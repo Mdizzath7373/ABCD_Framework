@@ -1,0 +1,496 @@
+package com.eit.abcdframework.serverbo;
+
+import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationContext;
+import org.springframework.stereotype.Service;
+
+import com.eit.abcdframework.controller.DCDesignDataServlet;
+import com.eit.abcdframework.dto.CommonUtilDto;
+import com.eit.abcdframework.http.caller.Httpclientcaller;
+import com.eit.abcdframework.http.caller.Httpurlconnectioncaller;
+
+@Service
+public class DisplayHandler {
+
+	public static final Logger LOGGER = LoggerFactory.getLogger(DisplayHandler.class);
+
+	@Autowired
+	DisplaySingleton displaySingleton;
+
+	static Httpclientcaller dataTransmits;
+
+	@Autowired
+	ApplicationContext context;
+
+	@Autowired
+	public void setProductService(@Qualifier("Httpclientcaller") Httpclientcaller service) {
+		dataTransmits = service;
+	}
+
+	@Value("${applicationurl}")
+	private String applicationurl;
+
+	@Autowired
+	WhereFormation whereFormation;
+
+//	@Autowired
+//	public void setProductService(@Qualifier("DCServelt") DCDesignDataServlet services) {
+//		dataServlet = services;
+//	}
+
+//	public String toExecute(String alias, String mode) {
+//		String htmlStr = null, where = null;
+//		Connection connection = null;
+//		Statement stmt = null;
+//		ResultSet rs = null;
+//		Configs displayConfig;
+//		String subQuery = null;
+//
+//		try {
+//			JSONObject aliesobj = new JSONObject(alias);
+//			JSONArray dataBody = aliesobj.getJSONArray("Data");
+//			JSONObject whereCondition = (JSONObject) dataBody.get(0);
+//
+//			where = whereCondition.getString("Where");
+//			String displayAlias = whereCondition.getString("Name");
+//			if (mode != null && mode.equals("javascript")) {
+//				subQuery = whereCondition.getString("SubQuery");
+//			}
+//			LOGGER.info("display alias = " + displayAlias);
+//			displayConfig = DisplaySingleton.memoryDispObjs2.get(displayAlias);
+//			LOGGER.info("display object = " + displayConfig);
+//			if (displayConfig != null) {
+//				JSONObject displayColumns = new JSONObject(displayConfig.getDiscfg());
+//				JSONObject extraDatas = new JSONObject(displayConfig.getDatas());
+//				JSONObject jsononbj = new JSONObject(displayColumns.getJSONObject("jqxdetails").toString());
+//
+//				JSONObject columnnames1 = new JSONObject();
+//				String linkScreenName = jsononbj.getString("screenname");
+//				String type = displayConfig.getDisplaytypes();
+//				String gridHeight = "450px";
+//				String gridWidth = "1200px";
+//				String entity = extraDatas.getString("entity");
+//				String api;
+//				if (displayConfig.getAttributetypes().equalsIgnoreCase("entity")) {
+//					// this entity was api path to send front end
+//					api = extraDatas.getString("api");
+//				} else {
+//					api = extraDatas.getString("api");
+//				}
+//
+//				String displayprimarykey = extraDatas.getJSONObject("primarykey").getString("displayname");
+//				if (jsononbj.has("gridheight")) {
+//					gridHeight = jsononbj.getString("gridheight");
+//				}
+//
+//				if (jsononbj.has("gridwidth")) {
+//					gridWidth = jsononbj.getString("gridwidth");
+//				}
+//
+//				LOGGER.info("JSONOBJECT = " + aliesobj.toString());
+//				String queryStr = null;
+//				queryStr = displayConfig.getQuery();
+//				String datasource = displayConfig.getQuery();
+//
+//				LOGGER.info("Datasource Jndi Name = " + datasource);
+//				/*
+//				 * returns the Class object associated with the class or interface with the
+//				 * given string name, using the given classloader.
+//				 */
+//
+//				if (!where.isEmpty()) {
+//					if (queryStr.contains("WHERE") && where.contains("WHERE")) {
+//
+//						where = where.replaceAll("WHERE", " AND ");
+//
+//						queryStr += where;
+//					} else if (queryStr.contains("WHERE") && !where.contains("WHERE")) {
+//
+//						if (subQuery != null && !subQuery.equals("y")) {
+//							queryStr += " AND " + where;
+//						}
+//						queryStr += " WHERE " + where;
+//					} else if (!queryStr.contains("WHERE") && where.contains("WHERE")) {
+//						queryStr += where;
+//					} else if (!queryStr.contains("WHERE") && !where.contains("WHERE")) {
+//						queryStr += " WHERE " + where;
+//					}
+//				}
+//				LOGGER.info("stmt = " + stmt);
+//				LOGGER.info("query str = " + queryStr);
+//				List<Object[]> queryresult = null;
+//				if (where != null && where.equalsIgnoreCase("")
+//						&& displayConfig.getAttributetypes().equalsIgnoreCase("entity")) {
+//					queryresult = resultData.getall(entity);
+//					LOGGER.info("Enter into entity method");
+//				} else {
+//					queryresult = resultData.getresult(queryStr);
+//					LOGGER.info("Enter into Query method");
+//				}
+//				if (queryresult != null && (queryresult.size() == 0 || queryresult.isEmpty())) {
+//					commonUtilDtoValue = new CommonUtilDto();
+//					List<String> listValues = new ArrayList<String>();
+//					listValues.add("No Data");
+//					commonUtilDtoValue.setDisplayType(type);
+//					commonUtilDtoValue.setPrimarykey(displayprimarykey);
+//					commonUtilDtoValue.setJqdetails(jsononbj.toString());
+//					commonUtilDtoValue.setFirstRowFilter(jsononbj.getBoolean("firstrowfilter"));
+//					commonUtilDtoValue.setLinkscreenname(linkScreenName);
+//					commonUtilDtoValue.setGridwidth(gridWidth);
+//					commonUtilDtoValue.setGridheight(gridHeight);
+//					commonUtilDtoValue.setColumnnames("");
+//					commonUtilDtoValue.setEntity(api);
+//					JSONArray jsonArray = new JSONArray();
+//					commonUtilDtoValue.setDatavalues(jsonArray.toString());
+//
+//				} else {
+//					commonUtilDtoValue = new CommonUtilDto();
+//					List<String> listValues1 = new ArrayList<String>();
+//					listValues1.add("Datas");
+//					commonUtilDtoValue.setFirstRowFilter(jsononbj.getBoolean("firstrowfilter"));
+//					commonUtilDtoValue.setLinkscreenname(linkScreenName);
+//					commonUtilDtoValue.setPrimarykey(displayprimarykey);
+//					commonUtilDtoValue.setDisplayType(type);
+//					commonUtilDtoValue.setJqdetails(jsononbj.toString());
+//					commonUtilDtoValue.setGridwidth(gridWidth);
+//					commonUtilDtoValue.setGridheight(gridHeight);
+//					commonUtilDtoValue.setEntity(api);
+//					JSONArray jsonArray = new JSONArray();
+//					JSONObject jsonObject2;
+//					if (queryresult != null && !queryresult.isEmpty() && queryresult.size() != 0) {
+//						for (int i = 0; i < queryresult.size(); i++) {
+//							jsonObject2 = new JSONObject();
+//							JSONArray dataJson = displayColumns.getJSONArray("columns");
+//							List<String> listValues = new ArrayList<String>();
+//							if (where != null && where.equalsIgnoreCase("")
+//									&& displayConfig.getAttributetypes().equalsIgnoreCase("entity")) {
+//								ObjectWriter ow = new ObjectMapper().registerModule(new JavaTimeModule())
+//										.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS).writer()
+//										.withDefaultPrettyPrinter();
+//								JSONObject qo = new JSONObject(ow.writeValueAsString(queryresult.get(i)));
+//								for (int j = 0; j < qo.length(); j++) {
+//									JSONObject dataJsonObject = (JSONObject) dataJson.get(j);
+//									listValues.add((qo.isNull(dataJsonObject.getString("columnname"))) ? null
+//											: String.valueOf(qo.get(dataJsonObject.getString("columnname"))));
+//									jsonObject2.put(dataJsonObject.getString("displayfield"),
+//											(qo.isNull(dataJsonObject.getString("columnname"))) ? null
+//													: qo.get(dataJsonObject.getString("columnname")) != null
+//															? (qo.isNull(dataJsonObject.getString("columnname"))) ? null
+//																	: qo.get(dataJsonObject.getString("columnname"))
+//															: "");
+//									columnnames1.put(dataJsonObject.getString("displayfield"),
+//											dataJsonObject.getString("columnname"));
+//								}
+//								jsonArray.put(jsonObject2);
+//
+//							} else {
+//								Object[] objs = (Object[]) queryresult.get(i);
+//								for (int j = 0; j < objs.length; j++) {
+//									JSONObject dataJsonObject = (JSONObject) dataJson.get(j);
+//									listValues.add(String.valueOf(objs[j]));
+//									jsonObject2.put(dataJsonObject.getString("displayfield"),
+//											objs[j] != null ? objs[j] : "");
+//									columnnames1.put(dataJsonObject.getString("displayfield"),
+//											dataJsonObject.getString("columnname"));
+//								}
+//
+//								jsonArray.put(jsonObject2);
+//
+//							}
+//						}
+//					}
+//					commonUtilDtoValue.setColumnnames(columnnames1.toString());
+//					commonUtilDtoValue.setDatavalues(String.valueOf(jsonArray));
+//				}
+//				if (mode != null && mode.equalsIgnoreCase("javascript")) {
+//					CommonUtilDtoServer commonUtilDtoServer = setDataForServerDto(commonUtilDtoValue);
+//					htmlStr = new JSONSerializer().exclude("*.class").deepSerialize(commonUtilDtoServer);
+//				} else {
+//					htmlStr = new JSONSerializer().exclude("*.class").deepSerialize(commonUtilDtoValue);
+//				}
+//				LOGGER.info("design and data htmlStr = " + htmlStr);
+//			}
+//
+//		} catch (Exception e) {
+//			LOGGER.error("Exception in toExecute : ", e);
+//		} finally {
+//			finallyDesignDataMethod(connection, stmt, rs);
+//		}
+//		LOGGER.info("design and data htmlStr = " + htmlStr);
+//
+//		return htmlStr;
+//	}
+
+	public CommonUtilDto toExecutePgRest(String alias, boolean function, String role) {
+		CommonUtilDto commonUtilDtoValue = new CommonUtilDto();
+		String htmlStr = null;
+		String where = null;
+		JSONArray res = new JSONArray();
+		JSONObject displayConfig;
+		String url;
+		String pgrest = applicationurl;
+		try {
+			List<JSONObject> checkjson = new ArrayList<>();
+			JSONObject aliesobj = new JSONObject(alias);
+			JSONArray dataBody = aliesobj.getJSONArray("Data");
+			JSONObject whereCondition = (JSONObject) dataBody.get(0);
+
+			where = whereCondition.getString("Where");
+//			JSONObject condition=whereCondition.getJSONObject("condition");
+			String displayAlias = whereCondition.getString("Name");
+//			String pgrest = DisplaySingleton.memoryApplicationSetting.get("pgresturl").toString();
+
+			LOGGER.info("display alias = {}", displayAlias);
+			displayConfig = DisplaySingleton.memoryDispObjs2.getJSONObject(displayAlias);
+
+			LOGGER.info("display object = {}", displayConfig);
+			if (displayConfig != null) {
+				JSONObject displayColumns = new JSONObject(displayConfig.get("discfg").toString());
+				JSONObject extraDatas = new JSONObject(displayConfig.get("datas").toString());
+				JSONObject jsononbj = new JSONObject(displayColumns.getJSONObject("jqxdetails").toString());
+				JSONObject columnnames1 = new JSONObject();
+				String linkScreenName = jsononbj.getString("screenname");
+				String type = displayConfig.getString("displaytypes");
+				String gridHeight = "450px";
+				String gridWidth = "1200px";
+				String api = function ? extraDatas.getString("Function") : extraDatas.getString("api");
+
+				String displayprimarykey = extraDatas.getJSONObject("primarykey").getString("displayname");
+
+				if (jsononbj.has("gridheight")) {
+					gridHeight = jsononbj.getString("gridheight");
+				}
+
+				if (jsononbj.has("gridwidth")) {
+					gridWidth = jsononbj.getString("gridwidth");
+				}
+
+				LOGGER.info("JSONOBJECT = {}", aliesobj);
+				commonUtilDtoValue = new CommonUtilDto();
+				List<String> listValues1 = new ArrayList<>();
+				listValues1.add("Datas");
+
+				commonUtilDtoValue.setFirstRowFilter(jsononbj.getBoolean("firstrowfilter"));
+				commonUtilDtoValue.setLinkscreenname(linkScreenName);
+				commonUtilDtoValue.setPrimarykey(displayprimarykey);
+
+				commonUtilDtoValue.setDisplayType(type);
+
+				commonUtilDtoValue.setGridwidth(gridWidth);
+				commonUtilDtoValue.setGridheight(gridHeight);
+				commonUtilDtoValue.setEntity(api);
+
+//				if(!where.equalsIgnoreCase("")) {
+//					where=whereFormation.whereCheck(where, function, displayAlias,condition);
+//				}
+
+//				String regex = DisplaySingleton.memoryApplicationSetting.getString("UrlEncodeExcept");;
+//				StringBuilder result = new StringBuilder();
+//				for (int i = 0; i < where.length(); i++) {
+//					char c = where.charAt(i);
+//					if (String.valueOf(c).matches(regex)) {
+//						// URL encode the special character
+//						String encodedChar = URLEncoder.encode(String.valueOf(c), "UTF-8");
+//						result.append(encodedChar);
+//					} else {
+//						result.append(c);
+//					}
+//				}
+//				System.err.println(result);
+
+				if (function && !where.isEmpty()) {
+					if (extraDatas.has("name"))
+						url = pgrest + api + where + "&" + "name=" + extraDatas.getString("name");
+					else
+						url = pgrest + api + where;
+				} else if (function) {
+					if (extraDatas.has("name"))
+						url = pgrest + api + "?name=" + extraDatas.getString("name");
+					else
+						url = pgrest + api + "?datas=";
+				} else if (!where.isEmpty()) {
+					url = pgrest + api + "?" + where;
+				} else {
+					url = pgrest + api;
+				}
+				url = url.replace(" ", "%20");
+				res = dataTransmits.transmitDataspgrest(url);
+				JSONObject jsonObject2;
+				JSONArray jsonArray = new JSONArray();
+				for (int i = 0; i < res.length(); i++) {
+					jsonObject2 = new JSONObject();
+					JSONObject getresjson = new JSONObject(res.get(i).toString());
+					JSONArray dataJson = jsononbj.getJSONArray("columns");
+					for (int j = 0; j < dataJson.length(); j++) {
+						JSONObject dataJsonObject = (JSONObject) dataJson.get(j);
+						jsonObject2.put(dataJsonObject.getString("displayfield"),
+								getresjson.get(dataJsonObject.getString("columnname")));
+						columnnames1.put(dataJsonObject.getString("displayfield"),
+								dataJsonObject.getString("columnname"));
+
+					}
+					jsonArray.put(jsonObject2);
+				}
+				if (role != null && !role.equalsIgnoreCase("")) {
+					JSONArray datas = jsononbj.getJSONArray("columns");
+					List<Object> showgirddata = new JSONObject(jsononbj.get("showgridbyrole").toString())
+							.getJSONArray(role).toList();
+					for (int i = 0; i < datas.length(); i++) {
+						if (showgirddata.contains(new JSONObject(datas.get(i).toString()).getString("columnname"))) {
+							checkjson.add(new JSONObject(datas.get(i).toString()));
+						}
+
+					}
+					jsononbj.put("columns", checkjson);
+
+				}
+				commonUtilDtoValue.setColumnnames(columnnames1.toString());
+				commonUtilDtoValue.setDatavalues(String.valueOf(jsonArray));
+				commonUtilDtoValue.setJqdetails(jsononbj.toString());
+			}
+
+//			htmlStr = new JSONSerializer().exclude("*.class").deepSerialize(commonUtilDtoValue);
+
+			LOGGER.info("design and data htmlStr = {}", htmlStr);
+
+		} catch (Exception e) {
+			LOGGER.error("Error : ", e);
+		}
+		return commonUtilDtoValue;
+	}
+
+	public String toExecutePgRest(String alias, boolean function, String role, String chartType) {
+		String response = "null";
+		JSONObject jsonObject4 = new JSONObject();
+		JSONArray jsonArray = new JSONArray();
+		JSONArray colour = new JSONArray();
+		JSONArray displayName = new JSONArray();
+		JSONArray datavalues = new JSONArray();
+		String where = null;
+		JSONArray res = new JSONArray();
+		JSONObject displayConfig;
+		String url;
+		String pgrest = applicationurl;
+		try {
+			JSONObject aliesobj = new JSONObject(alias);
+			JSONArray dataBody = aliesobj.getJSONArray("Data");
+			JSONObject whereCondition = (JSONObject) dataBody.get(0);
+
+			where = whereCondition.getString("Where");
+			String displayAlias = whereCondition.getString("Name");
+
+			LOGGER.info("display alias = {}", displayAlias);
+			displayConfig = DisplaySingleton.memoryDispObjs2.getJSONObject(displayAlias);
+
+			LOGGER.info("display object = {}", displayConfig);
+			if (displayConfig != null) {
+				JSONObject displayColumns = new JSONObject(displayConfig.get("discfg").toString());
+				JSONObject extraDatas = new JSONObject(displayConfig.get("datas").toString());
+
+				JSONObject object = displayColumns.getJSONObject("jqxdetails");
+				String chart = "";
+//				if (chartType.equalsIgnoreCase("barchart")) {
+//					chart = "barchart";
+//				} else if(chartType.equalsIgnoreCase("barchart")) {
+//					chart = "piechart";
+//				}
+				chart=chartType;
+				JSONArray jsonArray2 = object.getJSONArray(chart);
+
+				String api = function ? extraDatas.getString("Function") : extraDatas.getString("api");
+
+				String regex = DisplaySingleton.memoryApplicationSetting.getString("UrlEncodeExcept");
+				;
+				StringBuilder result = new StringBuilder();
+				for (int i = 0; i < where.length(); i++) {
+					char c = where.charAt(i);
+					if (String.valueOf(c).matches(regex)) {
+						// URL encode the special character
+						String encodedChar = URLEncoder.encode(String.valueOf(c), "UTF-8");
+						result.append(encodedChar);
+					} else {
+						result.append(c);
+					}
+				}
+				System.err.println(result);
+
+				if (function && !where.isEmpty()) {
+					if (extraDatas.has("name"))
+						url = pgrest + api + where + "&" + "name=" + extraDatas.getString("name");
+					else
+						url = pgrest + api + where;
+				} else if (function) {
+					if (extraDatas.has("name"))
+						url = pgrest + api + "?name=" + extraDatas.getString("name");
+					else
+						url = pgrest + api + "?datas=";
+				} else if (!where.isEmpty()) {
+					url = pgrest + api + "?" + where;
+				} else {
+					url = pgrest + api;
+				}
+				url = url.replace(" ", "%20");
+				res = dataTransmits.transmitDataspgrest(url);
+
+				if (chartType.equalsIgnoreCase("barchart")) {
+					List<Object> showgirddata = new JSONObject(object.get("showchartbyrole").toString())
+							.getJSONArray(role).toList();
+
+					for (int i = 0; i < res.length(); i++) {
+						JSONObject jsonObject = res.getJSONObject(i);
+						if (showgirddata.contains(jsonObject.get("types"))) {
+							JSONObject object5 = new JSONObject();
+							JSONArray jsonArray3 = new JSONArray();
+							jsonArray3.put(0);
+							jsonArray3.put(jsonObject.get("counts"));
+							object5.put("x", jsonObject.get("types"));
+							object5.put("y", jsonArray3);
+							jsonArray.put(object5);
+						}
+					}
+					response = jsonArray.toString();
+				} else if (chart.equalsIgnoreCase("piechart") || chart.equalsIgnoreCase("linechart")) {
+					if (role != null && !role.equalsIgnoreCase("")) {
+						List<Object> showgirddata = new JSONObject(object.get("showchartbyrole").toString())
+								.getJSONArray(role).toList();
+						for (int i = 0; i < res.length(); i++) {
+							JSONObject jsonObject = res.getJSONObject(i);
+							if (showgirddata.contains(jsonObject.get("types"))) {
+								for (int j = 0; j < jsonArray2.length(); j++) {
+									JSONObject object2 = new JSONObject(jsonArray2.get(j).toString());
+									if (jsonObject.get("types").equals(object2.get("Type"))
+											&& chart.equalsIgnoreCase("piechart")) {
+										colour.put(object2.get("color"));
+										break;
+									}
+								}
+								datavalues.put(jsonObject.get("counts"));
+								displayName.put(jsonObject.get("types"));
+							}
+						}
+						if (chart.equalsIgnoreCase("piechart"))
+							jsonObject4.put("Colour", colour);
+						jsonObject4.put("Type", displayName);
+						jsonObject4.put("Count", datavalues);
+					}
+					response = jsonObject4.toString();
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return response;
+
+	}
+
+}
