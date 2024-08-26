@@ -100,7 +100,7 @@ public class CronServices {
 						setvalue.put("createdtime", TimeZoneServices.getDateInTimeZoneforSKT("Asia/Riyadh"));
 						url = applicationurl + "activitylog";
 						dataTrans.transmitDataspgrestpost(url, setvalue.toString(), false);
-						res = commonServices.sendPushNotification(setvalue, "activitylog", "tenant");
+						res = commonServices.sendPushNotification(setvalue, "activitylog", "tenant",new JSONObject());
 					}
 					messageServices.MsegatsmsService(datavalue.getString("mobile"),
 							"Dear " + datavalue.get("username") + ", Your contract is going to end by ["

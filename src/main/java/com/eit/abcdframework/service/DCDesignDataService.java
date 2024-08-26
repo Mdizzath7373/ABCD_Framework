@@ -17,5 +17,7 @@ public interface DCDesignDataService {
 	String fileuploadforgeneratedpdf(String base64, String data);
 
 	String getDCDesignChart(String data);
+	
+	int getProgress();
 
 }

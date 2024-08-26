@@ -49,7 +49,7 @@ public class ConfigurationFile {
 				data = new String(inputStream.readAllBytes());
 			}
 			if (data != null && !data.equalsIgnoreCase("")) {
-//				log.error(data);
+				log.error("Load a Google Auth Of Notification");
 				googleAuth = ConfigFactory.parseString(data);
 			}
 		} catch (Exception e) {

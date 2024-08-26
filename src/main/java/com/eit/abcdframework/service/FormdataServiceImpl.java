@@ -150,7 +150,6 @@ public class FormdataServiceImpl implements FormdataService {
 		String response = "";
 		String res = "";
 		JSONObject email = null;
-		JSONArray mail = null;
 		try {
 			String rolename = jsonheader.has("rolename") ? jsonheader.getString("rolename") : "";
 			String message = jsonheader.has("message") ? jsonheader.getString("message") : "";
@@ -182,7 +181,7 @@ public class FormdataServiceImpl implements FormdataService {
 						new JSONObject(response.toString())
 								.get(gettabledata.getJSONObject(KEY).getString("columnname")));
 
-				commonServices.sendPushNotification(jsonbody, gettabledata.getString("api"), rolename);
+				commonServices.sendPushNotification(jsonbody, gettabledata.getString("api"), rolename,new JSONObject());
 
 				String socketRes = socketService.pushSocketData(jsonheader, jsonbody, "");
 				if (!socketRes.equalsIgnoreCase("Success")) {
@@ -224,7 +223,7 @@ public class FormdataServiceImpl implements FormdataService {
 					String sms = commonServices.smsService(jsonbody, gettabledata, jsonheader.getString("sms"));
 					LOGGER.warn("SMS -->{}", sms);
 				}
-				commonServices.sendPushNotification(jsonbody, gettabledata.getString("api"), rolename);
+				commonServices.sendPushNotification(jsonbody, gettabledata.getString("api"), rolename,new JSONObject());
 				String socketRes = socketService.pushSocketData(jsonheader, jsonbody, "");
 				if (!socketRes.equalsIgnoreCase("Success")) {
 					LOGGER.error("Push Socket responce::{}", socketRes);
@@ -263,7 +262,7 @@ public class FormdataServiceImpl implements FormdataService {
 					String sms = commonServices.smsService(jsonbody, gettabledata, jsonheader.getString("sms"));
 					LOGGER.warn("SMS -->{}", sms);
 				}
-				commonServices.sendPushNotification(jsonbody, gettabledata.getString("api"), rolename);
+				commonServices.sendPushNotification(jsonbody, gettabledata.getString("api"), rolename,new JSONObject());
 
 				String socketRes = socketService.pushSocketData(jsonheader, jsonbody, "");
 				if (!socketRes.equalsIgnoreCase("Success")) {

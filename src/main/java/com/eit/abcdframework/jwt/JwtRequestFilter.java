@@ -56,7 +56,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 						if (ischecktoken.equalsIgnoreCase("web")) {
 							username = jwtTokenUtil.getUsernameFromToken(jwtToken);
 							if (jwtTokenUtil.canTokenBeRefreshed(jwtToken)) {
-								lastupdToken.put(jwtToken, jwtTokenUtil.updateToken(jwtToken, ischecktoken));
+								lastupdToken.put(jwtToken, jwtTokenUtil.updateToken(jwtToken, ischecktoken,username));
 								jwtToken = lastupdToken.get(jwtToken);
 							}
 						}
@@ -65,7 +65,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 						if (ischecktoken.equalsIgnoreCase("web")) {
 							username = jwtTokenUtil.getUsernameFromToken(lastupdToken.get(jwtToken));
 							if (jwtTokenUtil.canTokenBeRefreshed(lastupdToken.get(jwtToken))) {
-								lastupdToken.put(jwtToken, jwtTokenUtil.updateToken(lastupdToken.get(jwtToken), "web"));
+								lastupdToken.put(jwtToken, jwtTokenUtil.updateToken(lastupdToken.get(jwtToken), "web",username));
 								jwtToken = lastupdToken.get(jwtToken);
 							} else {
 								lastupdToken.remove(username + "" + jwtToken);

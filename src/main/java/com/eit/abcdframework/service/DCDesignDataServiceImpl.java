@@ -366,6 +366,10 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 		}
 		return displayHandler.toExecutePgRest(value, function, role, chartType);
 	}
+	
+	public int getProgress() {
+		return fileuploadServices.getProgress(); // Returns the current progress as a percentage
+	}
 
 	@Override
 	public String fileuploadforgeneratedpdf(String base64, String data) {

@@ -71,7 +71,7 @@ public class CommonServices {
 			String response = dataTransmit.transmitDataspgrestpost(url, setvalue.toString(), false);
 			if (Integer.parseInt(response) >= 200 && Integer.parseInt(response) <= 226) {
 				if (notification) {
-					sendPushNotification(setvalue, "activitylog", rolename);
+					sendPushNotification(setvalue, "activitylog", rolename,new JSONObject());
 				}
 				JSONObject header = new JSONObject();
 				header.put("name", "activitylogs");
@@ -287,9 +287,9 @@ public class CommonServices {
 //		Long OTP = (long) Math.floor(1000 + Math.random() * 9000);
 		try {
 			JSONObject forgotJson = new JSONObject(
-                    DisplaySingleton.memoryApplicationSetting.get("forgotpassConfig").toString());
-            int otplen = forgotJson.getInt("otplength");
-            
+					DisplaySingleton.memoryApplicationSetting.get("forgotpassConfig").toString());
+			int otplen = forgotJson.getInt("otplength");
+
 			SecureRandom random = new SecureRandom();
 			StringBuilder codeBuilder = new StringBuilder(otplen);
 
@@ -439,33 +439,39 @@ public class CommonServices {
 		return "";
 	}
 
-	public String sendPushNotification(JSONObject jsonbody, String tablename, String rolename) {
-		JSONObject getJsonObject = new JSONObject(
-				DisplaySingleton.memoryApplicationSetting.get("notificationConfig").toString())
-				.getJSONObject("sendnotification");
+	public String sendPushNotification(JSONObject jsonbody, String tablename, String rolename,
+			JSONObject getPushNotificationJsonObject) {
+		String res = "success";
+//		JSONObject getJsonObject = new JSONObject(
+//				DisplaySingleton.memoryApplicationSetting.get("notificationConfig").toString())
+//				.getJSONObject("sendnotification");
 
-		if (getJsonObject.getJSONArray("tablename").toList().contains(tablename)) {
+//		if (getJsonObject.getJSONArray("tablename").toList().contains(tablename)) {
 //			System.err.println(getJsonObject.getJSONObject(tablename).getString("sendingdata"));
-			String sendingdata = getJsonObject.getJSONObject(tablename).getString("sendingdata");
-			String Findcolumn = getJsonObject.getJSONObject(tablename).getString("Findcolumn");
+		try {
+			String sendingdata = getPushNotificationJsonObject.getJSONObject(tablename).getString("sendingdata");
+			String Findcolumn = getPushNotificationJsonObject.getJSONObject(tablename).getString("Findcolumn");
 			if (!sendingdata.equalsIgnoreCase("all")) {
 				if (jsonbody.getString(Findcolumn).equalsIgnoreCase(sendingdata)) {
-					if (getJsonObject.getBoolean("sendbyrole")
-							&& getJsonObject.getJSONArray("rolename").toList().contains(rolename))
-						return sendnotification(jsonbody, tablename, getJsonObject);
-					else if (!getJsonObject.getBoolean("sendbyrole"))
-						return sendnotification(jsonbody, tablename, getJsonObject);
+					if (getPushNotificationJsonObject.getBoolean("sendbyrole")
+							&& getPushNotificationJsonObject.getJSONArray("rolename").toList().contains(rolename))
+						return sendnotification(jsonbody, tablename, getPushNotificationJsonObject);
+					else if (!getPushNotificationJsonObject.getBoolean("sendbyrole"))
+						return sendnotification(jsonbody, tablename, getPushNotificationJsonObject);
 				}
 			} else {
-				if (getJsonObject.getBoolean("sendbyrole")
-						&& getJsonObject.getJSONArray("rolename").toList().contains(rolename))
-					return sendnotification(jsonbody, tablename, getJsonObject);
-				else if (!getJsonObject.getBoolean("sendbyrole"))
-					return sendnotification(jsonbody, tablename, getJsonObject);
+				if (getPushNotificationJsonObject.getBoolean("sendbyrole")
+						&& getPushNotificationJsonObject.getJSONArray("rolename").toList().contains(rolename))
+					return sendnotification(jsonbody, tablename, getPushNotificationJsonObject);
+				else if (!getPushNotificationJsonObject.getBoolean("sendbyrole"))
+					return sendnotification(jsonbody, tablename, getPushNotificationJsonObject);
 			}
-
+		} catch (Exception e) {
+			LOGGER.error("Exception at " + Thread.currentThread().getStackTrace()[1].getMethodName(), e.getMessage());
+			return "Failed";
 		}
-		return "success";
+		LOGGER.info(res);
+		return res;
 	}
 
 	public String whereFormation(JSONObject jsonbody, JSONObject whereFormation) {

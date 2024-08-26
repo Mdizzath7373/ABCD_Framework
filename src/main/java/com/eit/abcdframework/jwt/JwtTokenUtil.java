@@ -25,10 +25,6 @@ public class JwtTokenUtil {
 	public static final long JWT_TOKEN_VALIDITY = 3600000;
 	public static final long JWT_TOKEN_VALIDITY_MOBLIE = 60000;
 
-//	public static final long JWT_TOKEN_VALIDITY = Long
-//			.parseLong(DisplaySingleton.memoryApplicationSetting.get("JWT_TOKEN_VALIDITY").toString());
-//	public static final long JWT_TOKEN_VALIDITY_MOBLIE = Long
-//			.parseLong(DisplaySingleton.memoryApplicationSetting.get("JWT_TOKEN_VALIDITY_MOBLIE").toString());
 	private static final Logger LOGGER = LoggerFactory.getLogger(JwtTokenUtil.class);
 
 	public String getUsernameFromToken(String token) {
@@ -95,6 +91,9 @@ public class JwtTokenUtil {
 	}
 
 	public Boolean validateToken(String token, UserDetails userDetails) {
+		System.err.println(getUsernameFromToken(token));
+		System.err.println(URLDecoder.decode(getUsernameFromToken(token), StandardCharsets.UTF_8));
+		
 		final String username = URLDecoder
 				.decode((Integer.parseInt((ConfigurationFile.getStringConfig("jwt.primaryValue"))) > 1
 						? getUsernameFromToken(token).split("#")[0]
@@ -105,7 +104,7 @@ public class JwtTokenUtil {
 			return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
 	}
 
-	public String updateToken(String token, String ismoblie) {
+	public String updateToken(String token, String ismoblie,String subject) {
 		String updatedToken = "";
 		try {
 			long currTimeMillis = System.currentTimeMillis();
@@ -115,10 +114,10 @@ public class JwtTokenUtil {
 			LOGGER.info("Update Token--> currTimeMillis :: " + currTimeMillis + ", isuuedTime :: " + isuuedTime
 					+ ", expiredTime :: " + expiredTime);
 			if (ismoblie.equalsIgnoreCase("moblie")) {
-				updatedToken =  Jwts.builder().setId(ismoblie).setIssuedAt(isuuedTime)
+				updatedToken =  Jwts.builder().setSubject(subject).setId(ismoblie).setIssuedAt(isuuedTime)
 						.signWith(SignatureAlgorithm.HS512, ConfigurationFile.getStringConfig("jwt.secret")).compact();
 			} else {
-				updatedToken =  Jwts.builder().setId(ismoblie).setIssuedAt(isuuedTime)
+				updatedToken =  Jwts.builder().setSubject(subject).setId(ismoblie).setIssuedAt(isuuedTime)
 						.setExpiration(expiredTime)
 						.signWith(SignatureAlgorithm.HS512, ConfigurationFile.getStringConfig("jwt.secret")).compact();
 			}

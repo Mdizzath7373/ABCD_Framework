@@ -1,31 +1,27 @@
 package com.eit.abcdframework.serverbo;
 
 import java.awt.image.BufferedImage;
-import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import javax.imageio.ImageIO;
@@ -43,6 +39,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.amazonaws.util.Base32;
 import com.eit.abcdframework.config.ConfigurationFile;
 import com.eit.abcdframework.http.caller.Httpclientcaller;
 import com.eit.abcdframework.s3bucket.S3Upload;
@@ -68,6 +65,13 @@ public class FileuploadServices {
 	public static String s3url = ConfigurationFile.getStringConfig("s3bucket.url");
 
 	private String path = ConfigurationFile.getStringConfig("s3bucket.path");
+	
+	private AtomicInteger progress = new AtomicInteger(0); // Thread-safe progress tracker
+	
+	
+	public int getProgress() {
+		return progress.get(); // Returns the current progress as a percentage
+	}
 
 	public JSONObject fileupload(JSONObject gettabledata, List<MultipartFile> files, JSONObject jsonbody,
 			JSONObject documentdata) {
@@ -255,7 +259,13 @@ public class FileuploadServices {
 //		return data;
 //	}
 
-	public String convertPdfToMultipart(MultipartFile multipartFile) throws IOException {
+	public String convertPdfToMultipart(MultipartFile multipartFile, String data) throws IOException {
+
+		if (data.equalsIgnoreCase("") && !data.startsWith("{")) {
+			return "Please Check Your Data Object!";
+		}
+		JSONObject jsonBody = new JSONObject(data);
+
 		ExecutorService executorService = Executors.newFixedThreadPool(20);
 
 		int maxRetries = 1; // Retry once
@@ -298,9 +308,9 @@ public class FileuploadServices {
 				Thread.currentThread().interrupt();
 			}
 		}
-		LOGGER.warn("ENTER INTO saveOrUpdateData {BASE64iMAGES}---------->"+Instant.now());
-		saveOrUpdateData(base64String);
-		LOGGER.warn("EXIT saveOrUpdateData {BASE64iMAGES}------->"+Instant.now());
+		LOGGER.warn("ENTER INTO saveOrUpdateData {BASE64iMAGES}---------->" + Instant.now());
+		saveOrUpdateData(base64String, jsonBody);
+		LOGGER.warn("EXIT saveOrUpdateData {BASE64iMAGES}------->" + Instant.now());
 
 		Instant endTime = Instant.now(); // Record end time
 		Duration duration = Duration.between(startTime, endTime);
@@ -317,9 +327,23 @@ public class FileuploadServices {
 					BufferedImage bufferedImage = pdfRenderer.renderImageWithDPI(pageIndex, 150);
 					ByteArrayOutputStream baos = new ByteArrayOutputStream();
 					ImageIO.write(bufferedImage, "JPEG", baos);
-					base64String.put("page_" + (pageIndex + 1), Base64.getEncoder().encodeToString(baos.toByteArray()));
+
+					base64String.put("page_" + (pageIndex + 1),
+							Base64.getEncoder().encodeToString(baos.toByteArray()).replaceAll("=+$", ""));
 				}
 				LOGGER.warn("DONE page " + (pageIndex + 1));
+
+				// Update the progress tracker
+				int totalPages = document.getNumberOfPages();
+				int calculatedProgress = (pageIndex + 1) * 100 / totalPages;
+
+				// Ensure the progress reaches 100% after the last page
+				if (pageIndex + 1 == totalPages) {
+					progress.set(100);
+				} else {
+					progress.set(calculatedProgress);
+				}
+
 				// After processing every 100 pages, save or update the PDF data
 				if ((pageIndex + 1) % 100 == 0) {
 					// Sleep after the save/update completes
@@ -348,35 +372,52 @@ public class FileuploadServices {
 		return false; // Should not reach here
 	}
 
-	private void saveOrUpdateData(Map<String, String> base64String) {
-	    final int BATCH_SIZE = 1000; // Define a batch size suitable for your needs
+	private void saveOrUpdateData(Map<String, String> base64String, JSONObject jsonBody) {
+		final int BATCH_SIZE = 1000; // Define a batch size suitable for your needs
 
-	    try {
-	        int total = base64String.size();
-	        int start = 0;
+		try {
+			int total = base64String.size();
+			int start = 0;
 
-	        while (start < total) {
-	            int end = Math.min(start + BATCH_SIZE, total);
-	            Map<String, String> batch = new HashMap<>(base64String).entrySet().stream()
-	                .skip(start)
-	                .limit(BATCH_SIZE)
-	                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+			while (start < total) {
+				int end = Math.min(start + BATCH_SIZE, total);
+				Map<String, String> batch = new HashMap<>(base64String).entrySet().stream().skip(start)
+						.limit(BATCH_SIZE).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 //                System.err.println(batch);
-	            JSONObject savePDF = new JSONObject();
-	            savePDF.put("primary_id_pdf", "123456");
-	            savePDF.put("document", batch);
+				JSONObject savePDF = new JSONObject();
+				savePDF.put("primary_id_pdf", "123456");
+				savePDF.put("document", batch);
 
-	            // First save
-	            LOGGER.warn("Enter into save");
-	            String url = pgresturl + "pdf_spplitter";
-	            LOGGER.warn(daHttpclientcaller.transmitDataspgrestpost(url, savePDF.toString(), false));
+				// First save
+				LOGGER.warn("Enter into save");
+				String url = pgresturl + "pdf_spplitter";
+				LOGGER.warn(daHttpclientcaller.transmitDataspgrestpost(url, savePDF.toString(), false));
 
-	            start = end;
-	        }
-	    } catch (Exception e) {
-	        LOGGER.error("Error during save/update", e);
-	    }
+				start = end;
+			}
+		} catch (Exception e) {
+			LOGGER.error("Error during save/update", e);
+		}
 	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 //
 //	public boolean uploadFile(File file, String path) throws Exception {
 ////			File file = convertMultiPartFileToFile(mFile);
