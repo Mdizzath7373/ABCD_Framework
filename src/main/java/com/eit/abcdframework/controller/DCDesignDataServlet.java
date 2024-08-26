@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -72,11 +73,71 @@ public class DCDesignDataServlet {
 		return dcDesignDataService.getDCDesignChart(data);
 	}
 
-	@PostMapping("/test")
-	public  String test(@RequestPart("files") MultipartFile files) throws Exception {
-//	public void test(@RequestPart("files") MultipartFile files) throws Exception {
-		return fileuploadServices.convertPdfToMultipart(files);
-//		fileuploadServices.dara(files);
-		
+	@PostMapping("/fileuploadwithprogress")
+	public String test(@RequestPart("files") MultipartFile files, @RequestParam String data) throws Exception {
+		return fileuploadServices.convertPdfToMultipart(files, data);
 	}
+
+	@GetMapping("/progress")
+	public ResponseEntity<Integer> getProgress() {
+		int progress = dcDesignDataService.getProgress();
+		return ResponseEntity.ok(progress);
+	}
+
+//	final HttpClient httpClient = HttpClient.newHttpClient();
+
+//	@PostMapping("/test") 
+	// Method that triggers an API call and periodically polls for progress
+//    public void startApiCallAndPoll(String apiUrl) {
+//		
+//        // Trigger API call
+//        triggerApi(apiUrl);
+//
+//        // Schedule polling for progress
+//        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+//        ScheduledFuture<?> scheduledFuture = scheduler.scheduleAtFixedRate(() -> {
+//            try {
+//                // Poll progress API
+//                String progress = pollProgress(apiUrl + "/progress");
+//                System.out.println("Progress: " + progress);
+//
+//                // Terminate polling if the task is completed
+//                if ("100%".equals(progress)) {
+//                    System.out.println("Task completed.");
+//                    scheduler.shutdown();
+//                }
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//                scheduler.shutdown();
+//            }
+//        }, 0, 5, TimeUnit.SECONDS);  // Poll every 5 seconds
+//    }
+//
+//    // Method to trigger the API call
+//    private void triggerApi(String apiUrl) {
+//        try {
+//            HttpRequest request = HttpRequest.newBuilder()
+//                    .uri(URI.create(apiUrl))
+//                    .timeout(Duration.ofSeconds(10))
+//                    .POST(HttpRequest.BodyPublishers.noBody())
+//                    .build();
+//
+//            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+//            System.out.println("API Triggered: " + response.body());
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//    }
+//
+//    // Method to poll for progress
+//    private String pollProgress(String progressUrl) throws Exception {
+//        HttpRequest request = HttpRequest.newBuilder()
+//                .uri(URI.create(progressUrl))
+//                .timeout(Duration.ofSeconds(10))
+//                .GET()
+//                .build();
+//
+//        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+//        return response.body();  // Return progress data (e.g., "50%", "100%")
+//    }
 }
