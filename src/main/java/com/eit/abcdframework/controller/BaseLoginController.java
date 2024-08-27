@@ -290,6 +290,7 @@ public class BaseLoginController {
 	}
 	@GetMapping(value="/geocoding", produces = { "application/json" })
     public String getLocation(@RequestParam String lat,@RequestParam String lon) {
+		JSONObject returnMessage=new JSONObject();
         String key = DisplaySingleton.memoryApplicationSetting.get("locationApikey").toString();
         String locationUrl = DisplaySingleton.memoryApplicationSetting.get("locationUrl").toString();
 
@@ -313,14 +314,14 @@ public class BaseLoginController {
                 ObjectMapper mapper = new ObjectMapper();
                 JsonNode rootNode = mapper.readTree(response);
                 String address = rootNode.path("display_name").asText();
-
-                return address;
+                returnMessage.put("datavalues", address);
             } catch (Exception e) {
                 e.printStackTrace();
                 return null;
             } finally {
                 method.releaseConnection();
             }
+            return returnMessage.toString();
     }
 
 }
