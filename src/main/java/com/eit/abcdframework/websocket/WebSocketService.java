@@ -166,7 +166,7 @@ public class WebSocketService extends TextWebSocketHandler {
 			if (method.equalsIgnoreCase("progress")) {
 				JSONObject returnMes = new JSONObject(fileuploadServices.getProgress().entrySet().stream()
 						.filter(entry -> jsonbody.get("ids").toString().equalsIgnoreCase(entry.getKey().split("-")[0]))
-						.collect(Collectors.toMap(entry -> entry.getKey().split("-")[1], Map.Entry::getValue)));
+						.collect(Collectors.toMap(entry -> entry.getKey().split("-")[1], entry -> entry.getValue().get()))); 
 
 
 				if (CompanySession.containsKey(jsonbody.get("ids").toString())) {

@@ -211,7 +211,7 @@ public class FormdataServiceImpl implements FormdataService {
 //					} else {
 //						mail = new JSONArray(email.getJSONArray("mail").toString());
 //					}
-					if (!new JSONArray(email.getJSONObject("mail").toString()).isEmpty()) {
+					if (!email.getJSONObject("mail").isEmpty()) {
 						List<MultipartFile> files = new ArrayList<>();
 						amazonSMTPMail.emailconfig(email, jsonbody, files,jsonheader.has("lang") ? jsonheader.getString("lang") : "en");
 					}
@@ -252,7 +252,7 @@ public class FormdataServiceImpl implements FormdataService {
 //					} else {
 //						mail = new JSONArray(email.getJSONArray("mail").toString());
 //					}
-					if (!new JSONArray(email.getJSONObject("mail").toString()).isEmpty()) {
+					if (!email.getJSONObject("mail").isEmpty()) {
 						List<MultipartFile> files = new ArrayList<>();
 						amazonSMTPMail.emailconfig( email, jsonbody, files,jsonheader.has("lang") ? jsonheader.getString("lang") : "en");
 					}
@@ -293,7 +293,7 @@ public class FormdataServiceImpl implements FormdataService {
 //					} else {
 //						mail = new JSONArray(email.getJSONArray("mail").toString());
 //					}
-					if (!new JSONArray(email.getJSONObject("mail").toString()).isEmpty()) {
+					if (!email.getJSONObject("mail").isEmpty()) {
 						List<MultipartFile> files = new ArrayList<>();
 						amazonSMTPMail.emailconfig( email, jsonbody, files,jsonheader.has("lang") ? jsonheader.getString("lang") : "en");
 					}
@@ -369,7 +369,7 @@ public class FormdataServiceImpl implements FormdataService {
 //					} else {
 //						mail = new JSONArray(email.getJSONArray("mail").toString());
 //					}
-					if (!email.getJSONObject("mail").toString().isEmpty()) {
+					if (!email.getJSONObject("mail").isEmpty()) {
 						List<MultipartFile> files = new ArrayList<>();
 						amazonSMTPMail.emailconfig(email, jsonbody, files,jsonheader.has("lang") ? jsonheader.getString("lang") : "en");
 					}

@@ -50,13 +50,14 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 		if (requestTokenHeader != null && requestTokenHeader.startsWith("Bearer ")) {
 			jwtToken = requestTokenHeader.substring(7);
 			try {
-				if (ConfigurationFile.getBooleanConfig("jwt.refreshtoken")) {
+				if (ConfigurationFile.getBooleanConfig("jwt.refreshtoken")
+						&& jwtTokenUtil.getIdFromToken(jwtToken).equalsIgnoreCase("web")) {
 					if (lastupdToken.isEmpty() || !lastupdToken.containsKey(jwtToken)) {
 						ischecktoken = jwtTokenUtil.getIdFromToken(jwtToken);
 						if (ischecktoken.equalsIgnoreCase("web")) {
 							username = jwtTokenUtil.getUsernameFromToken(jwtToken);
 							if (jwtTokenUtil.canTokenBeRefreshed(jwtToken)) {
-								lastupdToken.put(jwtToken, jwtTokenUtil.updateToken(jwtToken, ischecktoken,username));
+								lastupdToken.put(jwtToken, jwtTokenUtil.updateToken(jwtToken, ischecktoken, username));
 								jwtToken = lastupdToken.get(jwtToken);
 							}
 						}
@@ -65,7 +66,8 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 						if (ischecktoken.equalsIgnoreCase("web")) {
 							username = jwtTokenUtil.getUsernameFromToken(lastupdToken.get(jwtToken));
 							if (jwtTokenUtil.canTokenBeRefreshed(lastupdToken.get(jwtToken))) {
-								lastupdToken.put(jwtToken, jwtTokenUtil.updateToken(lastupdToken.get(jwtToken), "web",username));
+								lastupdToken.put(jwtToken,
+										jwtTokenUtil.updateToken(lastupdToken.get(jwtToken), "web", username));
 								jwtToken = lastupdToken.get(jwtToken);
 							} else {
 								lastupdToken.remove(username + "" + jwtToken);

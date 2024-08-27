@@ -71,13 +71,13 @@ public class FileuploadServices {
 
 	private String path = ConfigurationFile.getStringConfig("s3bucket.path");
 
-	private Map<String, String> progress = new HashMap<>();
+	private Map<String, AtomicInteger> progress = new HashMap<>();
 
-	public void setProgress(Map<String, String> progress) {
+	public void setProgress(Map<String, AtomicInteger> progress) {
 		this.progress = progress;
 	}
 
-	public Map<String, String> getProgress() {
+	public Map<String, AtomicInteger> getProgress() {
 		return progress;
 	}
 
@@ -285,33 +285,13 @@ public class FileuploadServices {
 				PDDocument document = PDDocument.load(inputStream)) {
 			PDFRenderer pdfRenderer = new PDFRenderer(document);
 			pageCount = document.getNumberOfPages();
-			int preProgresCount = 0;
+			AtomicInteger preProgresCount = new AtomicInteger(0);
 			List<Future<Boolean>> futures = new ArrayList<>();
 			for (int pageIndex = 0; pageIndex < pageCount; pageIndex++) {
 				int currentIndex = pageIndex;
 				futures.add(executorService.submit(() -> processPage(document, pdfRenderer, currentIndex, base64String,
 						maxRetries, retryDelayMillis, primaryKey, progressCount, FaildPages, id, jsonbody,
 						preProgresCount)));
-				System.err.println(progressCount);
-				// Update the progress tracker
-//				int totalPages = document.getNumberOfPages();
-//				int calculatedProgress = (pageIndex + 1) * 75 / totalPages;
-//
-//				if (pageIndex + 1 == totalPages) {
-//					progressCount.set(75);
-//					preProgresCount = 75;
-//					progress.put(id + "-" + primaryKey, ("Upload progress for taskId [" + primaryKey + "] : 75%"));
-//				} else {
-//					progressCount.set(calculatedProgress);
-//					preProgresCount = calculatedProgress;
-//					progress.put(id + "-" + primaryKey,
-//							("Upload progress for taskId [" + primaryKey + "] :" + progressCount + "%"));
-//				}
-
-				if (progressCount.get() > (preProgresCount) || progressCount.get() == 75) {
-					System.err.println(preProgresCount);
-					String socketRes = socketService.pushSocketData(new JSONObject(), jsonbody, "progress");
-				}
 			}
 			// Wait for all tasks to complete
 			for (Future<Boolean> future : futures) {
@@ -352,7 +332,7 @@ public class FileuploadServices {
 	private boolean processPage(PDDocument document, PDFRenderer pdfRenderer, int pageIndex,
 			Map<String, String> base64String, int maxRetries, int retryDelayMillis, String primaryKey,
 			AtomicInteger progressCount, List<Integer> FaildPages, String id, JSONObject jsonbody,
-			int preProgresCount) {
+			AtomicInteger preProgresCount) {
 		for (int attempt = 0; attempt <= maxRetries; attempt++) {
 			try {
 
@@ -364,22 +344,25 @@ public class FileuploadServices {
 					base64String.put("page_" + (pageIndex + 1),
 							Base64.getEncoder().encodeToString(baos.toByteArray()).replaceAll("=+$", ""));
 
+					int totalPages = document.getNumberOfPages();
+					int calculatedProgress = (pageIndex + 1) * 75 / totalPages;
+
+					if (pageIndex + 1 == totalPages) {
+						progressCount.set(75);
+						preProgresCount.set(75);
+						progress.put(id + "-" + primaryKey, progressCount);
+					} else {
+						progressCount.set(calculatedProgress);
+
+						progress.put(id + "-" + primaryKey, progressCount);
+					}
+					System.err.println(progressCount);
+					if (progressCount.get() > preProgresCount.get() || progressCount.get() == 75) {
+						preProgresCount.set(progressCount.get());
+						String socketRes = socketService.pushSocketData(new JSONObject(), jsonbody, "progress");
+					}
 				}
 				LOGGER.warn("DONE page " + (pageIndex + 1));
-
-				int totalPages = document.getNumberOfPages();
-				int calculatedProgress = (pageIndex + 1) * 75 / totalPages;
-
-				if (pageIndex + 1 == totalPages) {
-					progressCount.set(75);
-					preProgresCount = 75;
-					progress.put(id + "-" + primaryKey, ("Upload progress for taskId [" + primaryKey + "] : 75%"));
-				} else {
-					progressCount.set(calculatedProgress);
-					preProgresCount = calculatedProgress;
-					progress.put(id + "-" + primaryKey,
-							("Upload progress for taskId [" + primaryKey + "] :" + progressCount + "%"));
-				}
 
 				// After processing every 100 pages, save or update the PDF data
 				if ((pageIndex + 1) % 100 == 0) {
@@ -430,8 +413,7 @@ public class FileuploadServices {
 //				savePDF.put("ids", jsonbody.get("ids").toString());
 //				savePDF.put("byteofpdf", byteStream.toByteArray());
 				progressCount.set(80);
-				progress.put(id + "-" + primarykey,
-						("Upload progress for taskId [" + primarykey + "] :" + progressCount + "%"));
+				progress.put(id + "-" + primarykey, progressCount);
 				socketService.pushSocketData(new JSONObject(), jsonbody, "progress");
 
 				// First save
@@ -440,8 +422,7 @@ public class FileuploadServices {
 				res = daHttpclientcaller.transmitDataspgrestpost(url, savePDF.toString(), false);
 				if (Integer.parseInt(res) >= 200 && Integer.parseInt(res) <= 226) {
 					progressCount.set(85);
-					progress.put(id + "-" + primarykey,
-							("Upload progress for taskId [" + primarykey + "] :" + progressCount + "%"));
+					progress.put(id + "-" + primarykey, progressCount);
 					socketService.pushSocketData(new JSONObject(), jsonbody, "progress");
 				}
 				LOGGER.warn(daHttpclientcaller.transmitDataspgrestpost(url, savePDF.toString(), false));

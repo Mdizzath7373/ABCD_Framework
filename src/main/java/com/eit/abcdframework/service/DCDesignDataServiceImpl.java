@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.httpclient.HttpStatus;
 import org.json.JSONArray;
@@ -153,7 +154,8 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 				}
 				if (gettabledata.has("email")) {
 					email = new JSONObject(gettabledata.get("email").toString());
-					if (!new JSONArray(email.getJSONObject("mail").toString()).isEmpty())
+					System.err.println (email.getJSONObject("mail").isEmpty());
+					if (!email.getJSONObject("mail").isEmpty())
 						amazonSMTPMail.emailconfig(email, jsonbody, files,
 								jsonheader.has("lang") ? jsonheader.getString("lang") : "en");
 				}
@@ -376,7 +378,8 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 
 	@Override
 	public String getProgress(String id, String companyId) {
-		return fileuploadServices.getProgress().remove(companyId + "-" + id); // Returns the current progress as a
+		fileuploadServices.getProgress().remove(companyId + "-" + id);
+		return "Success";// Returns the current progress as a
 	}
 
 	@Override
@@ -445,9 +448,8 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 					returndata.put("reflex", res);
 				}
 
-				Map<String, String> progress = new HashMap<>();
-				progress.put(jsonbody.get("ids").toString() + "-" + value,
-						("Upload complete for taskId [" + value + "] :100%"));
+				Map<String, AtomicInteger> progress = new HashMap<>();
+				progress.put(jsonbody.get("ids").toString() + "-" + value, new AtomicInteger(100));
 				fileuploadServices.setProgress(progress);
 
 				String socketRes = socketService.pushSocketData(jsonheader, jsonbody, "progress");
