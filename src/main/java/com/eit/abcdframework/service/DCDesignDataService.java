@@ -18,6 +18,8 @@ public interface DCDesignDataService {
 
 	String getDCDesignChart(String data);
 	
-	int getProgress();
+	String getProgress(String id,String companyId);
+
+	String fileuploadwithprogress(MultipartFile files, String data);
 
 }

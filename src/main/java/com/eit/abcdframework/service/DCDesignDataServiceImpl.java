@@ -2,7 +2,9 @@ package com.eit.abcdframework.service;
 
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.httpclient.HttpStatus;
 import org.json.JSONArray;
@@ -21,6 +23,7 @@ import com.eit.abcdframework.serverbo.DisplayConfigBO;
 import com.eit.abcdframework.serverbo.DisplayHandler;
 import com.eit.abcdframework.serverbo.DisplaySingleton;
 import com.eit.abcdframework.serverbo.FileuploadServices;
+import com.eit.abcdframework.serverbo.ResponcesHandling;
 import com.eit.abcdframework.util.AmazonSMTPMail;
 import com.eit.abcdframework.util.TimeZoneServices;
 import com.eit.abcdframework.websocket.WebSocketService;
@@ -51,6 +54,9 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 
 	@Value("${applicationurl}")
 	private String pgresturl;
+
+	@Autowired
+	ResponcesHandling responcesHandling;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger("DCDesignDataServiceImpl");
 	private static final String ERROR = "error";
@@ -108,14 +114,14 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 			JSONObject gettabledata = new JSONObject(displayConfig.get("datas").toString());
 			// primary key column name comes in table
 			String columnprimarykey = gettabledata.getJSONObject("primarykey").getString("columnname");
-			//File Upload Class
+			// File Upload Class
 			JSONObject setJsonBody = new JSONObject();
 			setJsonBody = fileuploadServices.fileupload(gettabledata, files, jsonbody, documentdata);
-			
+
 			if (setJsonBody.isEmpty() || setJsonBody.has("error")) {
 				return returndata.put(ERROR, setJsonBody.getString("error")).toString();
 			}
-			//To save a Data.
+			// To save a Data.
 			String url = "";
 			String res = "";
 			String response = "";
@@ -140,6 +146,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 			}
 
 			if (Integer.parseInt(response) >= 200 && Integer.parseInt(response) <= 226) {
+
 				String socketRes = socketService.pushSocketData(jsonheader, jsonbody, method);
 				if (!socketRes.equalsIgnoreCase("Success")) {
 					LOGGER.error("Push Socket responce::{}", socketRes);
@@ -366,9 +373,93 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 		}
 		return displayHandler.toExecutePgRest(value, function, role, chartType);
 	}
-	
-	public int getProgress() {
-		return fileuploadServices.getProgress(); // Returns the current progress as a percentage
+
+	@Override
+	public String getProgress(String id, String companyId) {
+		return fileuploadServices.getProgress().remove(companyId + "-" + id); // Returns the current progress as a
+	}
+
+	@Override
+	public String fileuploadwithprogress(MultipartFile files, String data) {
+		JSONObject jsonObject1 = null;
+		JSONObject returndata = new JSONObject();
+		try {
+			if (data.equalsIgnoreCase("") && !data.startsWith("{")) {
+				return "Please Check Your Data Object!";
+			}
+			JSONObject displayConfig;
+			if (!data.startsWith("{"))
+				jsonObject1 = new JSONObject(CommonServices.decrypt(data));
+			else
+				jsonObject1 = new JSONObject(data);
+
+			JSONObject jsonheader = new JSONObject(
+					jsonObject1.getJSONObject("PrimaryBody").getJSONObject("header").toString());
+			String displayAlias = jsonheader.getString("name");
+			String method = jsonheader.getString("method");
+
+			JSONObject jsonbody = new JSONObject(
+					jsonObject1.getJSONObject("PrimaryBody").getJSONObject("body").toString());
+
+			displayConfig = DisplaySingleton.memoryDispObjs2.getJSONObject(displayAlias);
+			JSONObject gettabledata = new JSONObject(displayConfig.get("datas").toString());
+			// primary key column name comes in table
+			String columnprimarykey = gettabledata.getJSONObject("primarykey").getString("columnname");
+			String Splitter_primary_id = gettabledata.getJSONObject("Splitter").getString("Splitter_primary_id");
+
+			String value = jsonbody.get(Splitter_primary_id).toString();
+			fileuploadServices.convertPdfToMultipart(files, value, jsonbody.get("ids").toString(), jsonbody);
+
+			String url = "";
+			String res = "";
+			String response = "";
+			if (method.equalsIgnoreCase("POST")) {
+				if (gettabledata.has("dateandtime")) {
+					jsonbody.put(gettabledata.getString("dateandtime"),
+							TimeZoneServices.getDateInTimeZoneforSKT("Asia/Riyadh"));
+				}
+				url = pgresturl + gettabledata.getString("api");
+				url = url.replace(" ", "%20");
+				response = dataTransmit.transmitDataspgrestpost(url, jsonbody.toString(), false);
+			} else if (method.equalsIgnoreCase("PUT")) {
+				if (jsonbody.has(columnprimarykey) && !jsonbody.get(columnprimarykey).toString().equalsIgnoreCase("")) {
+					// if use put method we need primary key (set primary key column name)
+					url = pgresturl + gettabledata.getString("api") + "?" + columnprimarykey + "=eq."
+							+ (jsonbody.get(columnprimarykey)).toString();
+					url = url.replace(" ", "%20");
+					response = dataTransmit.transmitDataspgrestput(url, jsonbody.toString(), false);
+				} else {
+					return returndata.put(ERROR, "primaryKey is Missing,Please Check this").toString();
+				}
+			}
+
+			if (Integer.parseInt(response) >= 200 && Integer.parseInt(response) <= 226) {
+				if (gettabledata.has("synchronizedCurdOperation")) {
+					JSONArray typeOfMehods = gettabledata.getJSONObject("synchronizedCurdOperation")
+							.getJSONArray("type");
+					for (int typeOfMehod = 0; typeOfMehod < typeOfMehods.length(); typeOfMehod++) {
+						if (typeOfMehods.get(typeOfMehod).toString().equalsIgnoreCase("Map")) {
+							res = responcesHandling.MappedCurdOperation(gettabledata, data);
+						}
+					}
+					returndata.put("reflex", res);
+				}
+
+				Map<String, String> progress = new HashMap<>();
+				progress.put(jsonbody.get("ids").toString() + "-" + value,
+						("Upload complete for taskId [" + value + "] :100%"));
+				fileuploadServices.setProgress(progress);
+
+				String socketRes = socketService.pushSocketData(jsonheader, jsonbody, "progress");
+
+			}
+			System.err.println(response);
+
+		} catch (Exception e) {
+			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+		}
+
+		return returndata.toString();
 	}
 
 	@Override

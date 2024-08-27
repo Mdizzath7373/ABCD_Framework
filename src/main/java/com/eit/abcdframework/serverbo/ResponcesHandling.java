@@ -1,7 +1,12 @@
 package com.eit.abcdframework.serverbo;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -11,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.eit.abcdframework.service.FormdataServiceImpl;
 import com.eit.abcdframework.util.AmazonSMTPMail;
 import com.eit.abcdframework.websocket.WebSocketService;
 
@@ -24,6 +30,9 @@ public class ResponcesHandling {
 
 	@Autowired
 	static AmazonSMTPMail amazonSMTPMail;
+
+	@Autowired
+	FormdataServiceImpl formdataServiceImpl;
 
 	private static final String KEY = "primarykey";
 	private static final String REFLEX = "reflex";
@@ -62,7 +71,7 @@ public class ResponcesHandling {
 					commonServices.sendPushNotification(jsonbody, gettabledata.getString("api"), rolename,
 							getPushNotificationJsonObject);
 				}
-				
+
 				String socketRes = socketService.pushSocketData(jsonheader, jsonbody, "");
 				if (!socketRes.equalsIgnoreCase("Success")) {
 					LOGGER.error("Push Socket responce::{}", socketRes);
@@ -100,6 +109,43 @@ public class ResponcesHandling {
 
 		return "";
 
+	}
+
+	public String MappedCurdOperation(JSONObject getdataObject, String data) {
+		String res = "";
+		try {
+			Map<String, Boolean> formDataResponces = new HashMap<>();
+			JSONArray methods = getdataObject.getJSONObject("synchronizedCurdOperation").getJSONArray("Methods");
+			JSONArray bodJson = getdataObject.getJSONObject("synchronizedCurdOperation").getJSONArray("bodyJson");
+			JSONObject body = new JSONObject(data);
+			for (int method = 0; method < methods.length(); method++) {
+				String keyofmethods = methods.get(method).toString();
+				if (keyofmethods.equalsIgnoreCase("post")) {
+					res = formdataServiceImpl
+							.transmittingDatapost(body.getJSONObject(bodJson.get(method).toString()).toString());
+					formDataResponces.put(bodJson.get(method).toString(),
+							(new JSONObject(res).has("reflex") ? true : false));
+				} else if (keyofmethods.equalsIgnoreCase("put")) {
+					res = formdataServiceImpl
+							.transmittingDataput(body.getJSONObject(bodJson.get(method).toString()).toString());
+					formDataResponces.put(bodJson.get(method).toString(),
+							(new JSONObject(res).has("reflex") ? true : false));
+				} else {
+
+				}
+
+				Set<String> Failed = formDataResponces.entrySet().stream().filter(entry -> !entry.getValue())
+						.map(Map.Entry::getKey).collect(Collectors.toSet());
+				res = Failed.isEmpty() ? "Success" : "Missed Api" + Failed;
+				LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName() + "-->{}", res);
+
+			}
+
+		} catch (Exception e) {
+			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+		}
+
+		return res;
 	}
 
 }

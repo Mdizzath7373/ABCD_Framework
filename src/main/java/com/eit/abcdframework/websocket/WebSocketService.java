@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -20,6 +21,7 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import com.eit.abcdframework.http.caller.Httpclientcaller;
 import com.eit.abcdframework.serverbo.DisplaySingleton;
+import com.eit.abcdframework.serverbo.FileuploadServices;
 import com.eit.abcdframework.service.DashboardDataService;
 
 @Component
@@ -39,6 +41,12 @@ public class WebSocketService extends TextWebSocketHandler {
 
 	@Autowired
 	Httpclientcaller dataTransmit;
+
+	@Autowired
+	FileuploadServices fileuploadServices;
+
+	@Autowired
+	WebSocketService socketService;
 
 	public static Map<String, List<WebSocketSession>> CompanySession = new HashMap<>();
 	public static Map<String, List<WebSocketSession>> AdminSession = new HashMap<>();
@@ -153,81 +161,109 @@ public class WebSocketService extends TextWebSocketHandler {
 				LOGGER.warn("Socket Connection is empty");
 				return returnRes = "Socket is Not Connected,Connection is empty";
 			}
-			String role = jsonObject.getString("rolename");
 			JSONObject returnMessage = new JSONObject();
-			JSONObject displaydata = DisplaySingleton.memoryDispObjs2.getJSONObject("websocket");
 
-			JSONObject getConfigjson = new JSONObject(displaydata.get("discfg").toString());
-			JSONObject getdatas = new JSONObject(displaydata.get("datas").toString());
-			JSONArray getalisname = getdatas.getJSONObject("DataPushOfSocket").getJSONArray("alisename");
-			JSONArray getaction = getdatas.getJSONObject("DataPushOfSocket").getJSONArray("Action");
-			JSONObject dataof = new JSONObject();
-			dataof.put("addcomments", "RecentComments");
-			dataof.put("activitylogs", "ActivityLog");
+			if (method.equalsIgnoreCase("progress")) {
+				JSONObject returnMes = new JSONObject(fileuploadServices.getProgress().entrySet().stream()
+						.filter(entry -> jsonbody.get("ids").toString().equalsIgnoreCase(entry.getKey().split("-")[0]))
+						.collect(Collectors.toMap(entry -> entry.getKey().split("-")[1], Map.Entry::getValue)));
 
-			JSONObject getrefreshdata = new JSONObject();
-			getrefreshdata.put("companyrequest", "");
 
-			String name = dataof.has(jsonObject.getString("name")) ? dataof.getString(jsonObject.getString("name"))
-					: getaction.toList().contains(jsonObject.getString("name")) ? "OverViewOfDashboard" : "";
-			if (!name.equals("")) {
-				if (name.equalsIgnoreCase("OverViewOfDashboard")) {
-					String url = "";
-					if (role.equalsIgnoreCase("Company Admin")) {
-						url = applicationurl + "rpc/overviewofdashboard?datas=ids=" + jsonbody.get("ids");
-					} else {
-						url = applicationurl + "rpc/overviewofdashboard";
+				if (CompanySession.containsKey(jsonbody.get("ids").toString())) {
+					LOGGER.warn("Enter into Company Session {}",
+							CompanySession.containsKey(jsonbody.get("ids").toString()));
+					List<WebSocketSession> arrayOfSession = CompanySession.get(jsonbody.get("ids").toString());
+					for (int i = 0; i < arrayOfSession.size(); i++) {
+						sendsession(arrayOfSession.get(i), returnMes.toString(), "company",
+								jsonbody.get("ids").toString());
 					}
-					datavalues = new JSONObject(dataTransmit.transmitDataspgrest(url).get(0).toString());
-					datavalues.put("companyname",
-							new JSONObject(dataTransmit.transmitDataspgrest(applicationurl + "company?id=eq."
-									+ jsonbody.get("ids").toString() + "&select=companyname").get(0).toString())
-									.getString("companyname"));
-					datavalues.put("companyid", jsonbody.get("ids").toString());
-					orignalJson = getConfigjson.getJSONObject(name).getJSONArray("push");
-					changedJson = getConfigjson.getJSONObject(name).getJSONArray("changedJson");
-
-				} else {
-					orignalJson = getConfigjson.getJSONObject(name).getJSONArray("push");
-					changedJson = getConfigjson.getJSONObject(name).getJSONArray("changedJson");
-					datavalues = new JSONObject(jsonbody.toString());
-				}
-				if (getalisname.toList().contains(jsonObject.getString("name"))) {
-					JSONObject json = new JSONObject();
-					for (int i = 0; i < orignalJson.length(); i++) {
-						json.put(changedJson.getString(i), datavalues.get(orignalJson.get(i).toString()).toString());
-					}
-					returnMessage.put(name + "Data", new JSONArray().put(json));
-				}
-
-				if (role.equalsIgnoreCase("Company Admin")) {
-					if (CompanySession.containsKey(jsonbody.get("ids").toString())) {
-						LOGGER.warn("Enter into Company Session {}",
-								CompanySession.containsKey(jsonbody.get("ids").toString()));
-						List<WebSocketSession> arrayOfSession = CompanySession.get(jsonbody.get("ids").toString());
-						for (int i = 0; i < arrayOfSession.size(); i++) {
-							sendsession(arrayOfSession.get(i), returnMessage.toString(), "company",
-									jsonbody.get("ids").toString());
+				} else if (AdminSession.containsKey(jsonbody.get("ids").toString())) {
+					for (Entry<String, List<WebSocketSession>> data : AdminSession.entrySet()) {
+						List<WebSocketSession> arrayOfSession2 = data.getValue();
+						for (int i = 0; i < arrayOfSession2.size(); i++) {
+							sendsession(arrayOfSession2.get(i), returnMes.toString(), "Admin", data.getKey());
 						}
-						for (Entry<String, List<WebSocketSession>> data : AdminSession.entrySet()) {
-							List<WebSocketSession> arrayOfSession2 = data.getValue();
-							for (int i = 0; i < arrayOfSession2.size(); i++) {
-								sendsession(arrayOfSession2.get(i), returnMessage.toString(), "Admin", data.getKey());
+					}
+				}
+			} else {
+				String role = jsonObject.getString("rolename");
+				JSONObject displaydata = DisplaySingleton.memoryDispObjs2.getJSONObject("websocket");
+
+				JSONObject getConfigjson = new JSONObject(displaydata.get("discfg").toString());
+				JSONObject getdatas = new JSONObject(displaydata.get("datas").toString());
+				JSONArray getalisname = getdatas.getJSONObject("DataPushOfSocket").getJSONArray("alisename");
+				JSONArray getaction = getdatas.getJSONObject("DataPushOfSocket").getJSONArray("Action");
+				JSONObject dataof = new JSONObject();
+				dataof.put("addcomments", "RecentComments");
+				dataof.put("activitylogs", "ActivityLog");
+
+				JSONObject getrefreshdata = new JSONObject();
+				getrefreshdata.put("companyrequest", "");
+
+				String name = dataof.has(jsonObject.getString("name")) ? dataof.getString(jsonObject.getString("name"))
+						: getaction.toList().contains(jsonObject.getString("name")) ? "OverViewOfDashboard" : "";
+				if (!name.equals("")) {
+					if (name.equalsIgnoreCase("OverViewOfDashboard")) {
+						String url = "";
+						if (role.equalsIgnoreCase("Company Admin")) {
+							url = applicationurl + "rpc/overviewofdashboard?datas=ids=" + jsonbody.get("ids");
+						} else {
+							url = applicationurl + "rpc/overviewofdashboard";
+						}
+						datavalues = new JSONObject(dataTransmit.transmitDataspgrest(url).get(0).toString());
+						datavalues.put("companyname",
+								new JSONObject(dataTransmit
+										.transmitDataspgrest(applicationurl + "company?id=eq."
+												+ jsonbody.get("ids").toString() + "&select=companyname")
+										.get(0).toString()).getString("companyname"));
+						datavalues.put("companyid", jsonbody.get("ids").toString());
+						orignalJson = getConfigjson.getJSONObject(name).getJSONArray("push");
+						changedJson = getConfigjson.getJSONObject(name).getJSONArray("changedJson");
+
+					} else {
+						orignalJson = getConfigjson.getJSONObject(name).getJSONArray("push");
+						changedJson = getConfigjson.getJSONObject(name).getJSONArray("changedJson");
+						datavalues = new JSONObject(jsonbody.toString());
+					}
+					if (getalisname.toList().contains(jsonObject.getString("name"))) {
+						JSONObject json = new JSONObject();
+						for (int i = 0; i < orignalJson.length(); i++) {
+							json.put(changedJson.getString(i),
+									datavalues.get(orignalJson.get(i).toString()).toString());
+						}
+						returnMessage.put(name + "Data", new JSONArray().put(json));
+					}
+
+					if (role.equalsIgnoreCase("Company Admin")) {
+						if (CompanySession.containsKey(jsonbody.get("ids").toString())) {
+							LOGGER.warn("Enter into Company Session {}",
+									CompanySession.containsKey(jsonbody.get("ids").toString()));
+							List<WebSocketSession> arrayOfSession = CompanySession.get(jsonbody.get("ids").toString());
+							for (int i = 0; i < arrayOfSession.size(); i++) {
+								sendsession(arrayOfSession.get(i), returnMessage.toString(), "company",
+										jsonbody.get("ids").toString());
+							}
+							for (Entry<String, List<WebSocketSession>> data : AdminSession.entrySet()) {
+								List<WebSocketSession> arrayOfSession2 = data.getValue();
+								for (int i = 0; i < arrayOfSession2.size(); i++) {
+									sendsession(arrayOfSession2.get(i), returnMessage.toString(), "Admin",
+											data.getKey());
+								}
 							}
 						}
-					}
-				} else {
-					for (Entry<String, List<WebSocketSession>> data : AdminSession.entrySet()) {
-						List<WebSocketSession> arrayOfSession = data.getValue();
-						for (int i = 0; i < arrayOfSession.size(); i++) {
-							sendsession(arrayOfSession.get(i), returnMessage.toString(), "Admin", data.getKey());
+					} else {
+						for (Entry<String, List<WebSocketSession>> data : AdminSession.entrySet()) {
+							List<WebSocketSession> arrayOfSession = data.getValue();
+							for (int i = 0; i < arrayOfSession.size(); i++) {
+								sendsession(arrayOfSession.get(i), returnMessage.toString(), "Admin", data.getKey());
+							}
 						}
-					}
-					if (CompanySession.containsKey(jsonbody.get("ids").toString())) {
-						List<WebSocketSession> arrayOfSession2 = CompanySession.get(jsonbody.get("ids").toString());
-						for (int i = 0; i < arrayOfSession2.size(); i++) {
-							sendsession(arrayOfSession2.get(i), returnMessage.toString(), "company",
-									jsonbody.get("ids").toString());
+						if (CompanySession.containsKey(jsonbody.get("ids").toString())) {
+							List<WebSocketSession> arrayOfSession2 = CompanySession.get(jsonbody.get("ids").toString());
+							for (int i = 0; i < arrayOfSession2.size(); i++) {
+								sendsession(arrayOfSession2.get(i), returnMessage.toString(), "company",
+										jsonbody.get("ids").toString());
+							}
 						}
 					}
 				}

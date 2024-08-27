@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectOutputStream;
 import java.lang.reflect.Field;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
@@ -23,6 +24,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import java.util.zip.GZIPOutputStream;
 
 import javax.imageio.ImageIO;
 
@@ -39,10 +41,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.amazonaws.util.Base32;
 import com.eit.abcdframework.config.ConfigurationFile;
 import com.eit.abcdframework.http.caller.Httpclientcaller;
 import com.eit.abcdframework.s3bucket.S3Upload;
+import com.eit.abcdframework.websocket.WebSocketService;
 
 @Component
 public class FileuploadServices {
@@ -59,18 +61,24 @@ public class FileuploadServices {
 	@Autowired
 	Httpclientcaller daHttpclientcaller;
 
+	@Autowired
+	WebSocketService socketService;
+
 	@Value("${applicationurl}")
 	private String pgresturl;
 
 	public static String s3url = ConfigurationFile.getStringConfig("s3bucket.url");
 
 	private String path = ConfigurationFile.getStringConfig("s3bucket.path");
-	
-	private AtomicInteger progress = new AtomicInteger(0); // Thread-safe progress tracker
-	
-	
-	public int getProgress() {
-		return progress.get(); // Returns the current progress as a percentage
+
+	private Map<String, String> progress = new HashMap<>();
+
+	public void setProgress(Map<String, String> progress) {
+		this.progress = progress;
+	}
+
+	public Map<String, String> getProgress() {
+		return progress;
 	}
 
 	public JSONObject fileupload(JSONObject gettabledata, List<MultipartFile> files, JSONObject jsonbody,
@@ -259,33 +267,52 @@ public class FileuploadServices {
 //		return data;
 //	}
 
-	public String convertPdfToMultipart(MultipartFile multipartFile, String data) throws IOException {
-
-		if (data.equalsIgnoreCase("") && !data.startsWith("{")) {
-			return "Please Check Your Data Object!";
-		}
-		JSONObject jsonBody = new JSONObject(data);
+	public String convertPdfToMultipart(MultipartFile multipartFile, String primaryKey, String id, JSONObject jsonbody)
+			throws IOException {
 
 		ExecutorService executorService = Executors.newFixedThreadPool(20);
 
-		int maxRetries = 1; // Retry once
+		int maxRetries = 3; // Retry once
 		int retryDelayMillis = 2000; // Delay between retries in milliseconds
-
+		int pageCount = 0;
 		Instant startTime = Instant.now(); // Record start time
+		AtomicInteger progressCount = new AtomicInteger(0);
 		final Map<String, String> base64String = new TreeMap<>(); // Initializing the TreeMap
+		List<Integer> FaildPages = new ArrayList<>();
 
 //        PDDocument document = null;
 		try (InputStream inputStream = multipartFile.getInputStream();
 				PDDocument document = PDDocument.load(inputStream)) {
 			PDFRenderer pdfRenderer = new PDFRenderer(document);
-			int pageCount = document.getNumberOfPages();
+			pageCount = document.getNumberOfPages();
+			int preProgresCount = 0;
 			List<Future<Boolean>> futures = new ArrayList<>();
 			for (int pageIndex = 0; pageIndex < pageCount; pageIndex++) {
 				int currentIndex = pageIndex;
 				futures.add(executorService.submit(() -> processPage(document, pdfRenderer, currentIndex, base64String,
-						maxRetries, retryDelayMillis)));
-			}
+						maxRetries, retryDelayMillis, primaryKey, progressCount, FaildPages, id, jsonbody,
+						preProgresCount)));
+				System.err.println(progressCount);
+				// Update the progress tracker
+//				int totalPages = document.getNumberOfPages();
+//				int calculatedProgress = (pageIndex + 1) * 75 / totalPages;
+//
+//				if (pageIndex + 1 == totalPages) {
+//					progressCount.set(75);
+//					preProgresCount = 75;
+//					progress.put(id + "-" + primaryKey, ("Upload progress for taskId [" + primaryKey + "] : 75%"));
+//				} else {
+//					progressCount.set(calculatedProgress);
+//					preProgresCount = calculatedProgress;
+//					progress.put(id + "-" + primaryKey,
+//							("Upload progress for taskId [" + primaryKey + "] :" + progressCount + "%"));
+//				}
 
+				if (progressCount.get() > (preProgresCount) || progressCount.get() == 75) {
+					System.err.println(preProgresCount);
+					String socketRes = socketService.pushSocketData(new JSONObject(), jsonbody, "progress");
+				}
+			}
 			// Wait for all tasks to complete
 			for (Future<Boolean> future : futures) {
 				try {
@@ -308,8 +335,11 @@ public class FileuploadServices {
 				Thread.currentThread().interrupt();
 			}
 		}
+//		if(pageCount!=base64String.size()) {
+//			
+//		}
 		LOGGER.warn("ENTER INTO saveOrUpdateData {BASE64iMAGES}---------->" + Instant.now());
-		saveOrUpdateData(base64String, jsonBody);
+		saveOrUpdateData(base64String, primaryKey, progressCount, id, jsonbody);
 		LOGGER.warn("EXIT saveOrUpdateData {BASE64iMAGES}------->" + Instant.now());
 
 		Instant endTime = Instant.now(); // Record end time
@@ -320,9 +350,12 @@ public class FileuploadServices {
 	}
 
 	private boolean processPage(PDDocument document, PDFRenderer pdfRenderer, int pageIndex,
-			Map<String, String> base64String, int maxRetries, int retryDelayMillis) {
+			Map<String, String> base64String, int maxRetries, int retryDelayMillis, String primaryKey,
+			AtomicInteger progressCount, List<Integer> FaildPages, String id, JSONObject jsonbody,
+			int preProgresCount) {
 		for (int attempt = 0; attempt <= maxRetries; attempt++) {
 			try {
+
 				synchronized (document) {
 					BufferedImage bufferedImage = pdfRenderer.renderImageWithDPI(pageIndex, 150);
 					ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -330,18 +363,22 @@ public class FileuploadServices {
 
 					base64String.put("page_" + (pageIndex + 1),
 							Base64.getEncoder().encodeToString(baos.toByteArray()).replaceAll("=+$", ""));
+
 				}
 				LOGGER.warn("DONE page " + (pageIndex + 1));
 
-				// Update the progress tracker
 				int totalPages = document.getNumberOfPages();
-				int calculatedProgress = (pageIndex + 1) * 100 / totalPages;
+				int calculatedProgress = (pageIndex + 1) * 75 / totalPages;
 
-				// Ensure the progress reaches 100% after the last page
 				if (pageIndex + 1 == totalPages) {
-					progress.set(100);
+					progressCount.set(75);
+					preProgresCount = 75;
+					progress.put(id + "-" + primaryKey, ("Upload progress for taskId [" + primaryKey + "] : 75%"));
 				} else {
-					progress.set(calculatedProgress);
+					progressCount.set(calculatedProgress);
+					preProgresCount = calculatedProgress;
+					progress.put(id + "-" + primaryKey,
+							("Upload progress for taskId [" + primaryKey + "] :" + progressCount + "%"));
 				}
 
 				// After processing every 100 pages, save or update the PDF data
@@ -365,6 +402,7 @@ public class FileuploadServices {
 					return false; // Return null to indicate failure
 				}
 			} catch (Exception e) {
+				FaildPages.add((pageIndex + 1));
 				LOGGER.error("Error rendering page " + (pageIndex + 1), e);
 				return false; // Return null to indicate failure
 			}
@@ -372,9 +410,10 @@ public class FileuploadServices {
 		return false; // Should not reach here
 	}
 
-	private void saveOrUpdateData(Map<String, String> base64String, JSONObject jsonBody) {
-		final int BATCH_SIZE = 1000; // Define a batch size suitable for your needs
-
+	private void saveOrUpdateData(Map<String, String> base64String, String primarykey, AtomicInteger progressCount,
+			String id, JSONObject jsonbody) {
+		final int BATCH_SIZE = 500; // Define a batch size suitable for your needs
+		String res = "";
 		try {
 			int total = base64String.size();
 			int start = 0;
@@ -384,40 +423,37 @@ public class FileuploadServices {
 				Map<String, String> batch = new HashMap<>(base64String).entrySet().stream().skip(start)
 						.limit(BATCH_SIZE).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 //                System.err.println(batch);
+
 				JSONObject savePDF = new JSONObject();
-				savePDF.put("primary_id_pdf", "123456");
+				savePDF.put("primary_id_pdf", primarykey);
 				savePDF.put("document", batch);
+//				savePDF.put("ids", jsonbody.get("ids").toString());
+//				savePDF.put("byteofpdf", byteStream.toByteArray());
+				progressCount.set(80);
+				progress.put(id + "-" + primarykey,
+						("Upload progress for taskId [" + primarykey + "] :" + progressCount + "%"));
+				socketService.pushSocketData(new JSONObject(), jsonbody, "progress");
 
 				// First save
 				LOGGER.warn("Enter into save");
-				String url = pgresturl + "pdf_spplitter";
+				String url = pgresturl + "pdf_splitter";
+				res = daHttpclientcaller.transmitDataspgrestpost(url, savePDF.toString(), false);
+				if (Integer.parseInt(res) >= 200 && Integer.parseInt(res) <= 226) {
+					progressCount.set(85);
+					progress.put(id + "-" + primarykey,
+							("Upload progress for taskId [" + primarykey + "] :" + progressCount + "%"));
+					socketService.pushSocketData(new JSONObject(), jsonbody, "progress");
+				}
 				LOGGER.warn(daHttpclientcaller.transmitDataspgrestpost(url, savePDF.toString(), false));
 
 				start = end;
 			}
+
 		} catch (Exception e) {
 			LOGGER.error("Error during save/update", e);
 		}
 	}
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+
 //
 //	public boolean uploadFile(File file, String path) throws Exception {
 ////			File file = convertMultiPartFileToFile(mFile);

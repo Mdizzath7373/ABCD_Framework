@@ -1,7 +1,9 @@
 package com.eit.abcdframework.controller;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -75,13 +77,14 @@ public class DCDesignDataServlet {
 
 	@PostMapping("/fileuploadwithprogress")
 	public String test(@RequestPart("files") MultipartFile files, @RequestParam String data) throws Exception {
-		return fileuploadServices.convertPdfToMultipart(files, data);
+		return dcDesignDataService.fileuploadwithprogress(files, data);
+//		return fileuploadServices.convertPdfToMultipart(files, data);
 	}
 
 	@GetMapping("/progress")
-	public ResponseEntity<Integer> getProgress() {
-		int progress = dcDesignDataService.getProgress();
-		return ResponseEntity.ok(progress);
+	public ResponseEntity<String> getProgress(@RequestParam String id, @RequestParam String companyId) {
+		dcDesignDataService.getProgress(id, companyId);
+		return ResponseEntity.ok("Success");
 	}
 
 //	final HttpClient httpClient = HttpClient.newHttpClient();
