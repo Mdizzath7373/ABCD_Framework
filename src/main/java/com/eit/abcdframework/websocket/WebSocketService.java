@@ -42,8 +42,14 @@ public class WebSocketService extends TextWebSocketHandler {
 	@Autowired
 	Httpclientcaller dataTransmit;
 
+	private static FileuploadServices fileuploadServices;
+
 	@Autowired
-	FileuploadServices fileuploadServices;
+	public void setProductService(FileuploadServices fileuploadServices) {
+		this.fileuploadServices = fileuploadServices;
+	}
+//	@Autowired
+//	FileuploadServices fileuploadServices;
 
 	@Autowired
 	WebSocketService socketService;
@@ -71,8 +77,16 @@ public class WebSocketService extends TextWebSocketHandler {
 				}
 			} else {
 				if (session.isOpen()) {
-					session.sendMessage(
-							new TextMessage(new JSONObject().put("reflx", "Socket Is Connected").toString()));
+					if (json.getString("displaytab").equalsIgnoreCase("progress")) {
+						JSONObject messageData = new JSONObject(fileuploadServices.getProgress().entrySet().stream()
+								.filter(entry -> json.getJSONObject("where").get("ids").toString()
+										.equalsIgnoreCase(entry.getKey().split("-")[0]))
+								.collect(Collectors.toMap(entry -> entry.getKey().split("-")[1],
+										entry -> entry.getValue().get())));
+						session.sendMessage(new TextMessage(messageData.toString()));
+					} else
+						session.sendMessage(
+								new TextMessage(new JSONObject().put("reflx", "Socket Is Connected").toString()));
 				} else {
 					LOGGER.warn("Socket Is Not Connected");
 				}
@@ -166,8 +180,8 @@ public class WebSocketService extends TextWebSocketHandler {
 			if (method.equalsIgnoreCase("progress")) {
 				JSONObject returnMes = new JSONObject(fileuploadServices.getProgress().entrySet().stream()
 						.filter(entry -> jsonbody.get("ids").toString().equalsIgnoreCase(entry.getKey().split("-")[0]))
-						.collect(Collectors.toMap(entry -> entry.getKey().split("-")[1], entry -> entry.getValue().get()))); 
-
+						.collect(Collectors.toMap(entry -> entry.getKey().split("-")[1],
+								entry -> entry.getValue().get())));
 
 				if (CompanySession.containsKey(jsonbody.get("ids").toString())) {
 					LOGGER.warn("Enter into Company Session {}",

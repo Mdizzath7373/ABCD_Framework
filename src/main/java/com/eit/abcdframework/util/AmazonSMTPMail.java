@@ -169,11 +169,14 @@ public class AmazonSMTPMail {
 						jsonBody.put("key", key);
 						body = new JSONObject(jsondata.getString("contenttype")).getString(lang).replace("key", key);
 					} else if (!jsondata.getBoolean("custommail")) {
-						if (getJson.has(mail.get(c)+"replacementContent")) {
-							if (new JSONObject(getJson.get(mail.get(c)+"replacementContent").toString()).has("replace")) {
-								JSONArray replaceData = new JSONObject(getJson.get(mail.get(c)+"replacementContent").toString())
+						if (getJson.has(mail.get(c) + "replacementContent")) {
+							if (new JSONObject(getJson.get(mail.get(c) + "replacementContent").toString())
+									.has("replace")) {
+								JSONArray replaceData = new JSONObject(
+										getJson.get(mail.get(c) + "replacementContent").toString())
 										.getJSONArray("replace");
-								JSONArray column = new JSONObject(getJson.get(mail.get(c)+"replacementContent").toString())
+								JSONArray column = new JSONObject(
+										getJson.get(mail.get(c) + "replacementContent").toString())
 										.getJSONArray("column");
 								for (int r = 0; r < replaceData.length(); r++) {
 									if (r == 0) {
@@ -433,15 +436,27 @@ public class AmazonSMTPMail {
 				getcloumnname = new JSONObject(email.get("getcolumn").toString()).getString("columnname");
 				mailid = jsonbody.getString(getcloumnname);
 			}
-			for (int i = 0; i < email.getJSONArray("getContantType").length(); i++) {
-				if (jsonbody.get(email.getString("getContentNameColumn"))
-						.equals(email.getJSONArray("getContantType").get(i))) {
-					mail = email.getJSONObject("mail")
-							.getJSONArray(email.getJSONArray("getContantType").get(i).toString());
-					
-				} else
-					return returndata = "No Email Through";
+
+			if (email.getJSONArray("getContantType").toList()
+					.contains(jsonbody.get(email.getString("getContentNameColumn")))) {
+				int index = email.getJSONArray("getContantType").toList()
+						.indexOf(jsonbody.get(email.getString("getContentNameColumn")));
+				mail = email.getJSONObject("mail")
+						.getJSONArray(email.getJSONArray("getContantType").get(index).toString());
+
+			} else {
+				return returndata = "No Email Through";
 			}
+
+//			for (int i = 0; i < email.getJSONArray("getContantType").length(); i++) {
+//				if (jsonbody.get(email.getString("getContentNameColumn"))
+//						.equals(email.getJSONArray("getContantType").get(i))) {
+//					mail = email.getJSONObject("mail")
+//							.getJSONArray(email.getJSONArray("getContantType").get(i).toString());
+//
+//				} else
+//					return returndata = "No Email Through";
+//			}
 			returndata = mailSender2(mail, mailid, email, jsonbody, files, lang);
 
 		} catch (Exception e) {

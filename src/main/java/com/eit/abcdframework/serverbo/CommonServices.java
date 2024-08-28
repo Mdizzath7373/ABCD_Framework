@@ -442,12 +442,7 @@ public class CommonServices {
 	public String sendPushNotification(JSONObject jsonbody, String tablename, String rolename,
 			JSONObject getPushNotificationJsonObject) {
 		String res = "success";
-//		JSONObject getJsonObject = new JSONObject(
-//				DisplaySingleton.memoryApplicationSetting.get("notificationConfig").toString())
-//				.getJSONObject("sendnotification");
-
-//		if (getJsonObject.getJSONArray("tablename").toList().contains(tablename)) {
-//			System.err.println(getJsonObject.getJSONObject(tablename).getString("sendingdata"));
+    
 		try {
 			String sendingdata = getPushNotificationJsonObject.getJSONObject(tablename).getString("sendingdata");
 			String Findcolumn = getPushNotificationJsonObject.getJSONObject(tablename).getString("Findcolumn");

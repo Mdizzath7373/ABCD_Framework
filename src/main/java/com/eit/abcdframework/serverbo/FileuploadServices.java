@@ -71,7 +71,7 @@ public class FileuploadServices {
 
 	private String path = ConfigurationFile.getStringConfig("s3bucket.path");
 
-	private Map<String, AtomicInteger> progress = new HashMap<>();
+	private static Map<String, AtomicInteger> progress = new HashMap<>();
 
 	public void setProgress(Map<String, AtomicInteger> progress) {
 		this.progress = progress;
@@ -342,7 +342,7 @@ public class FileuploadServices {
 					ImageIO.write(bufferedImage, "JPEG", baos);
 
 					base64String.put("page_" + (pageIndex + 1),
-							Base64.getEncoder().encodeToString(baos.toByteArray()).replaceAll("=+$", ""));
+							"data:image/png;base64,"+Base64.getEncoder().encodeToString(baos.toByteArray()).replaceAll("=+$", ""));
 
 					int totalPages = document.getNumberOfPages();
 					int calculatedProgress = (pageIndex + 1) * 75 / totalPages;

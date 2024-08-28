@@ -2,10 +2,12 @@ package com.eit.abcdframework.service;
 
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import org.apache.commons.httpclient.HttpStatus;
 import org.json.JSONArray;
@@ -154,7 +156,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 				}
 				if (gettabledata.has("email")) {
 					email = new JSONObject(gettabledata.get("email").toString());
-					System.err.println (email.getJSONObject("mail").isEmpty());
+					System.err.println(email.getJSONObject("mail").isEmpty());
 					if (!email.getJSONObject("mail").isEmpty())
 						amazonSMTPMail.emailconfig(email, jsonbody, files,
 								jsonheader.has("lang") ? jsonheader.getString("lang") : "en");
@@ -377,9 +379,24 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 	}
 
 	@Override
-	public String getProgress(String id, String companyId) {
-		fileuploadServices.getProgress().remove(companyId + "-" + id);
-		return "Success";// Returns the current progress as a
+	public void getProgress(String data) {
+
+		JSONObject value = new JSONObject(data);
+		List<Object> key =  value.getJSONArray("id").toList();
+		String companyid = value.getString("companyId");
+
+		List<String> keysToRemove = key.stream().map(entry -> companyid + "-" + entry).collect(Collectors.toList());
+		
+		Map<String, AtomicInteger> filteredMap = fileuploadServices.getProgress().entrySet().stream()
+				.filter(entry -> !keysToRemove.contains(entry.getKey()))
+				.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+
+		fileuploadServices.getProgress().clear();
+		System.err.println("clear  " + fileuploadServices.getProgress());
+		fileuploadServices.setProgress(filteredMap);
+		System.err.println("finila" + fileuploadServices.getProgress());
+
 	}
 
 	@Override
@@ -448,7 +465,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 					returndata.put("reflex", res);
 				}
 
-				Map<String, AtomicInteger> progress = new HashMap<>();
+				Map<String, AtomicInteger> progress = fileuploadServices.getProgress();
 				progress.put(jsonbody.get("ids").toString() + "-" + value, new AtomicInteger(100));
 				fileuploadServices.setProgress(progress);
 

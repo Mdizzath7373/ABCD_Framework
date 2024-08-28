@@ -1,9 +1,6 @@
 package com.eit.abcdframework.controller;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -12,7 +9,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -81,10 +77,10 @@ public class DCDesignDataServlet {
 //		return fileuploadServices.convertPdfToMultipart(files, data);
 	}
 
-	@GetMapping("/progress")
-	public ResponseEntity<String> getProgress(@RequestParam String id, @RequestParam String companyId) {
-		dcDesignDataService.getProgress(id, companyId);
-		return ResponseEntity.ok("Success");
+	@PostMapping("/progress")
+	public ResponseEntity<String> getProgress(@RequestBody String data) {
+		dcDesignDataService.getProgress(data);
+		return ResponseEntity.ok(new JSONObject().put("reflex", "Success").toString());
 	}
 
 //	final HttpClient httpClient = HttpClient.newHttpClient();
