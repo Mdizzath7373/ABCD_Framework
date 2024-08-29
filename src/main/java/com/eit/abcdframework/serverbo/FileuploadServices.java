@@ -277,7 +277,7 @@ public class FileuploadServices {
 		int pageCount = 0;
 		Instant startTime = Instant.now(); // Record start time
 		AtomicInteger progressCount = new AtomicInteger(0);
-		final Map<String, String> base64String = new TreeMap<>(); // Initializing the TreeMap
+		final Map<Integer, String> base64String = new TreeMap<>(); // Initializing the TreeMap
 		List<Integer> FaildPages = new ArrayList<>();
 
 //        PDDocument document = null;
@@ -330,7 +330,7 @@ public class FileuploadServices {
 	}
 
 	private boolean processPage(PDDocument document, PDFRenderer pdfRenderer, int pageIndex,
-			Map<String, String> base64String, int maxRetries, int retryDelayMillis, String primaryKey,
+			Map<Integer, String> base64String, int maxRetries, int retryDelayMillis, String primaryKey,
 			AtomicInteger progressCount, List<Integer> FaildPages, String id, JSONObject jsonbody,
 			AtomicInteger preProgresCount) {
 		for (int attempt = 0; attempt <= maxRetries; attempt++) {
@@ -341,7 +341,7 @@ public class FileuploadServices {
 					ByteArrayOutputStream baos = new ByteArrayOutputStream();
 					ImageIO.write(bufferedImage, "JPEG", baos);
 
-					base64String.put("page_" + (pageIndex + 1),
+					base64String.put((pageIndex + 1),
 							"data:image/png;base64,"+Base64.getEncoder().encodeToString(baos.toByteArray()).replaceAll("=+$", ""));
 
 					int totalPages = document.getNumberOfPages();
@@ -393,7 +393,7 @@ public class FileuploadServices {
 		return false; // Should not reach here
 	}
 
-	private void saveOrUpdateData(Map<String, String> base64String, String primarykey, AtomicInteger progressCount,
+	private void saveOrUpdateData(Map<Integer, String> base64String, String primarykey, AtomicInteger progressCount,
 			String id, JSONObject jsonbody) {
 		final int BATCH_SIZE = 500; // Define a batch size suitable for your needs
 		String res = "";
@@ -403,7 +403,7 @@ public class FileuploadServices {
 
 			while (start < total) {
 				int end = Math.min(start + BATCH_SIZE, total);
-				Map<String, String> batch = new HashMap<>(base64String).entrySet().stream().skip(start)
+				Map<Integer, String> batch = new HashMap<>(base64String).entrySet().stream().skip(start)
 						.limit(BATCH_SIZE).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 //                System.err.println(batch);
 

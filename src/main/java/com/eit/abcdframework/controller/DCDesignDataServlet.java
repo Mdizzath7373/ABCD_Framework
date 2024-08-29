@@ -83,6 +83,25 @@ public class DCDesignDataServlet {
 		return ResponseEntity.ok(new JSONObject().put("reflex", "Success").toString());
 	}
 
+	
+	@PostMapping("/mergeToPDF")
+	public ResponseEntity<String> mergeToPDF(@RequestBody String data) {
+		dcDesignDataService.mergeToPDF(data);
+		return ResponseEntity.ok(new JSONObject().put("reflex", "Success").toString());
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 //	final HttpClient httpClient = HttpClient.newHttpClient();
 
 //	@PostMapping("/test") 

@@ -1,7 +1,10 @@
 package com.eit.abcdframework.serverbo;
 
+import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Base64;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
@@ -9,6 +12,7 @@ import javax.crypto.spec.SecretKeySpec;
 
 import org.apache.commons.httpclient.HttpStatus;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,7 +75,7 @@ public class CommonServices {
 			String response = dataTransmit.transmitDataspgrestpost(url, setvalue.toString(), false);
 			if (Integer.parseInt(response) >= 200 && Integer.parseInt(response) <= 226) {
 				if (notification) {
-					sendPushNotification(setvalue, "activitylog", rolename,new JSONObject());
+					sendPushNotification(setvalue, "activitylog", rolename, new JSONObject());
 				}
 				JSONObject header = new JSONObject();
 				header.put("name", "activitylogs");
@@ -442,7 +446,7 @@ public class CommonServices {
 	public String sendPushNotification(JSONObject jsonbody, String tablename, String rolename,
 			JSONObject getPushNotificationJsonObject) {
 		String res = "success";
-    
+
 		try {
 			String sendingdata = getPushNotificationJsonObject.getJSONObject(tablename).getString("sendingdata");
 			String Findcolumn = getPushNotificationJsonObject.getJSONObject(tablename).getString("Findcolumn");
@@ -538,5 +542,13 @@ public class CommonServices {
 		}
 		return messageServices
 				.MsegatsmsService(datavalue.get(smsObject.getJSONObject("fetchby").getString("getby")).toString(), msg);
+	}
+
+	public Map<String, Object> loadBase64(String value) throws JSONException, IOException {
+
+		String url = applicationurl + "pdf_splitter?select=document&primary_id_pdf=eq." + value;
+		return new JSONObject(dataTransmit.transmitDataspgrest(url).get(0).toString())
+				.getJSONObject("document").toMap();
+		 
 	}
 }

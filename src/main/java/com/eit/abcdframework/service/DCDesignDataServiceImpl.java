@@ -1,15 +1,24 @@
 package com.eit.abcdframework.service;
 
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.net.URLEncoder;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import javax.imageio.ImageIO;
+
 import org.apache.commons.httpclient.HttpStatus;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -382,15 +391,14 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 	public void getProgress(String data) {
 
 		JSONObject value = new JSONObject(data);
-		List<Object> key =  value.getJSONArray("id").toList();
+		List<Object> key = value.getJSONArray("id").toList();
 		String companyid = value.getString("companyId");
 
 		List<String> keysToRemove = key.stream().map(entry -> companyid + "-" + entry).collect(Collectors.toList());
-		
+
 		Map<String, AtomicInteger> filteredMap = fileuploadServices.getProgress().entrySet().stream()
 				.filter(entry -> !keysToRemove.contains(entry.getKey()))
 				.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
 
 		fileuploadServices.getProgress().clear();
 		System.err.println("clear  " + fileuploadServices.getProgress());
@@ -479,6 +487,78 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 		}
 
 		return returndata.toString();
+	}
+
+	@Override
+	public void mergeToPDF(String data) {
+		try {
+
+			JSONObject jsonObject = new JSONObject(data);
+			Map<String, Object> base64Images = commonServices.loadBase64(jsonObject.getString("id"));
+
+//			String path = "F:\\output.pdf";
+//			PdfWriter writerE = new PdfWriter(path);
+//
+//			// Creating a PdfDocument object
+//			PdfDocument pdf = new PdfDocument(writerE);
+//
+//			// Creating a Document object
+//			Document document2 = new Document(pdf);
+//
+//			document2.close();
+
+			String src = "F:\\output.pdf";
+//			String dest = "F:\\input.pdf";
+
+			for (Map.Entry<String, Object> entry : base64Images.entrySet()) {
+				String imageName = entry.getKey();
+				String base64Image = (String) entry.getValue();
+				byte[] imageBytes = Base64.getDecoder().decode(base64Image.replace("data:image/png;base64,", ""));
+
+				ByteArrayInputStream bis = new ByteArrayInputStream(imageBytes);
+				BufferedImage bufferedImage = ImageIO.read(bis);
+
+				File outputfile = new File("F:\\images\\" + imageName + ".jpg");
+				ImageIO.write(bufferedImage, "JPEG", outputfile);
+
+				// Image to be added
+				String imagePath = "F:\\images\\" + imageName + ".jpg";
+
+				PDDocument document = new PDDocument();
+
+				PDPage pages = new PDPage(PDRectangle.A4);
+				document.addPage(pages);
+
+				PDImageXObject images = PDImageXObject.createFromFile(imagePath, document);
+
+				float width = pages.getMediaBox().getWidth();
+				float height = pages.getMediaBox().getHeight();
+
+				float imageWidth = images.getWidth();
+				float imageHeight = images.getHeight();
+
+				float scaleFactor = Math.min(width / imageWidth, height / imageHeight);
+
+				float scaledWidth = imageWidth * scaleFactor;
+				float scaledHeight = imageHeight * scaleFactor;
+
+				float x = (width - scaledWidth) / 2;
+				float y = (height - scaledHeight) / 2;
+				
+				PDPageContentStream contentStream=new PDPageContentStream(document, pages);
+				
+				contentStream.drawImage(images,x,y,width,height);
+				contentStream.close();
+
+				document.save(src);
+				System.err.println("compaleted");
+				
+			}
+			
+		}catch (Exception e) {
+			// TODO: handle exception
+		}
+
 	}
 
 	@Override
