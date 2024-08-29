@@ -167,7 +167,7 @@ public class AmazonSMTPMail {
 					if (getJson != null && getJson.has("Key")) {
 						String key = generatekey();
 						jsonBody.put("key", key);
-						body = new JSONObject(jsondata.getString("contenttype")).getString(lang).replace("key", key);
+						body = new JSONObject(jsondata.get("contenttype").toString()).getString(lang).replace("key", key);
 					} else if (!jsondata.getBoolean("custommail")) {
 						if (getJson.has(mail.get(c) + "replacementContent")) {
 							if (new JSONObject(getJson.get(mail.get(c) + "replacementContent").toString())
@@ -182,7 +182,7 @@ public class AmazonSMTPMail {
 									if (r == 0) {
 //										body = new JSONObject(jsondata.getString("contenttype").replace(replaceData.getString(r),
 //												jsonBody.getString(column.getString(r)));
-										body = new JSONObject(jsondata.getString("contenttype")).getString(lang)
+										body = new JSONObject(jsondata.get("contenttype").toString()).getString(lang)
 												.replace(replaceData.getString(r),
 														jsonBody.getString(column.getString(r)));
 									} else
@@ -192,15 +192,15 @@ public class AmazonSMTPMail {
 								}
 							}
 						} else {
-							body = jsondata.getString("contenttype");
+							body =new JSONObject(jsondata.get("contenttype").toString()).getString(lang);
 						}
 
-					} else if (jsondata.getBoolean("custommail")) {
+					} else if (jsondata.getBoolean("custommail")) {						
 						body = getJson.has("AddcontentPre")
 								? "<h2>Dear " + jsonBody.getString(getJson.getString("AddcontentPre")) + "</h2>"
-										+ new JSONObject(jsondata.getString("contenttype")).getString(lang) + "<p>"
+										+ new JSONObject(jsondata.get("contenttype").toString()).getString(lang) + "<p>"
 										+ DisplaySingleton.memoryApplicationSetting.getString("onboardurl") + "</p>"
-								: new JSONObject(jsondata.getString("contenttype")).getString(lang);
+								: new JSONObject(jsondata.get("contenttype").toString()).getString(lang);
 
 					}
 					List<String> emails = null;
