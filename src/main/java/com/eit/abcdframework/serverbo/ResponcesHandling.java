@@ -13,26 +13,50 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.eit.abcdframework.http.caller.Httpclientcaller;
 import com.eit.abcdframework.service.FormdataServiceImpl;
 import com.eit.abcdframework.util.AmazonSMTPMail;
 import com.eit.abcdframework.websocket.WebSocketService;
 
 @Service
 public class ResponcesHandling {
-	@Autowired
+//	@Autowired
 	static CommonServices commonServices;
 
-	@Autowired
+//	@Autowired
 	static WebSocketService socketService;
 
-	@Autowired
+//	@Autowired
 	static AmazonSMTPMail amazonSMTPMail;
 
-	@Autowired
+//	@Autowired
 	static FormdataServiceImpl formdataServiceImpl;
+
+	@Autowired
+	public void setProductService(CommonServices commonServices) {
+		this.commonServices = commonServices;
+	}
+
+	@Autowired
+	public void setProductService(WebSocketService socketService) {
+		this.socketService = socketService;
+	}
+
+	@Autowired
+	public void setProductService(AmazonSMTPMail amazonSMTPMail) {
+		this.amazonSMTPMail = amazonSMTPMail;
+	}
+
+	@Autowired
+	public void setProductService(FormdataServiceImpl formdataServiceImpl) {
+		this.formdataServiceImpl = formdataServiceImpl;
+	}
+
+//	
 
 	private static final String KEY = "primarykey";
 	private static final String REFLEX = "reflex";
@@ -50,18 +74,18 @@ public class ResponcesHandling {
 					: new JSONObject();
 
 	public static String curdMethodResponceHandle(String response, JSONObject jsonbody, JSONObject jsonheader,
-			JSONObject gettabledata,String method) {
+			JSONObject gettabledata, String method) {
 		try {
 			if (response.startsWith("{")) {
 				jsonbody.put(gettabledata.getJSONObject(KEY).getString("columnname"),
 						new JSONObject(response.toString())
 								.get(gettabledata.getJSONObject(KEY).getString("columnname")));
-				handlerMethod(jsonheader, jsonbody, gettabledata,method);
+				handlerMethod(jsonheader, jsonbody, gettabledata, method);
 
 			} else if (response.equalsIgnoreCase("success")) {
-				handlerMethod(jsonheader, jsonbody, gettabledata,method);
+				handlerMethod(jsonheader, jsonbody, gettabledata, method);
 			} else if (Integer.parseInt(response) >= 200 && Integer.parseInt(response) <= 226) {
-				handlerMethod(jsonheader, jsonbody, gettabledata,method);
+				handlerMethod(jsonheader, jsonbody, gettabledata, method);
 			} else {
 				String res = HttpStatus.getStatusText(Integer.parseInt(response));
 				return new JSONObject().put(ERROR, res).toString();
@@ -116,7 +140,7 @@ public class ResponcesHandling {
 					if (!new JSONArray(email.getJSONObject("mail").toString()).isEmpty()) {
 						List<MultipartFile> files = new ArrayList<>();
 						amazonSMTPMail.emailconfig(email, jsonbody, files,
-								jsonheader.has("lang") ? jsonheader.getString("lang") : "en",method);
+								jsonheader.has("lang") ? jsonheader.getString("lang") : "en", method);
 					}
 				} catch (Exception e) {
 					LOGGER.error("Throw Email Failure! -->:: {}", e.getMessage());
