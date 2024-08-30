@@ -90,7 +90,8 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 	@Override
 	public String fileupload(List<MultipartFile> files, String data) {
 		JSONObject returndata = new JSONObject();
-		JSONObject email = null;
+//		JSONObject email = null;
+		String res = "";
 		JSONObject documentdata = null;
 		JSONObject jsonObject1 = null;
 		try {
@@ -124,7 +125,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 			}
 			// To save a Data.
 			String url = "";
-			String res = "";
+//			String res = "";
 			String response = "";
 			if (method.equalsIgnoreCase("POST")) {
 				if (gettabledata.has("dateandtime")) {
@@ -146,36 +147,38 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 				}
 			}
 
-			if (Integer.parseInt(response) >= 200 && Integer.parseInt(response) <= 226) {
+			res = ResponcesHandling.curdMethodResponceHandle(response, jsonheader, jsonbody, gettabledata, method);
 
-				String socketRes = socketService.pushSocketData(jsonheader, jsonbody, method);
-				if (!socketRes.equalsIgnoreCase("Success")) {
-					LOGGER.error("Push Socket responce::{}", socketRes);
-				}
-				if (gettabledata.has("email")) {
-					email = new JSONObject(gettabledata.get("email").toString());
-					System.err.println(email.getJSONObject("mail").isEmpty());
-					if (!email.getJSONObject("mail").isEmpty())
-						amazonSMTPMail.emailconfig(email, jsonbody, files,
-								jsonheader.has("lang") ? jsonheader.getString("lang") : "en", method);
-				}
-				if (gettabledata.has("activityLogs")) {
-					String resp = "";
-					if (jsonheader.has("message") && jsonheader.getString("message").equalsIgnoreCase("")
-							&& jsonheader.has("status") && jsonheader.getString("status").equalsIgnoreCase("")) {
-						resp = commonServices.addactivitylog(gettabledata.getJSONObject("activityLogs"),
-								jsonheader.getString("status"), jsonbody,
-								jsonheader.has("rolename") ? jsonheader.getString("rolename") : "",
-								jsonheader.getString("message"),
-								jsonheader.has("notification") ? jsonheader.getBoolean("notification") : false);
-					}
-					LOGGER.error("ActivityLogs-->:: {}", resp);
-				}
-				returndata.put("reflex", "Success");
-			} else {
-				res = HttpStatus.getStatusText(Integer.parseInt(response));
-				returndata.put(ERROR, res);
-			}
+//			if (Integer.parseInt(response) >= 200 && Integer.parseInt(response) <= 226) {
+//
+//				String socketRes = socketService.pushSocketData(jsonheader, jsonbody, method);
+//				if (!socketRes.equalsIgnoreCase("Success")) {
+//					LOGGER.error("Push Socket responce::{}", socketRes);
+//				}
+//				if (gettabledata.has("email")) {
+//					email = new JSONObject(gettabledata.get("email").toString());
+//					System.err.println(email.getJSONObject("mail").isEmpty());
+//					if (!email.getJSONObject("mail").isEmpty())
+//						amazonSMTPMail.emailconfig(email, jsonbody, files,
+//								jsonheader.has("lang") ? jsonheader.getString("lang") : "en", method);
+//				}
+//				if (gettabledata.has("activityLogs")) {
+//					String resp = "";
+//					if (jsonheader.has("message") && jsonheader.getString("message").equalsIgnoreCase("")
+//							&& jsonheader.has("status") && jsonheader.getString("status").equalsIgnoreCase("")) {
+//						resp = commonServices.addactivitylog(gettabledata.getJSONObject("activityLogs"),
+//								jsonheader.getString("status"), jsonbody,
+//								jsonheader.has("rolename") ? jsonheader.getString("rolename") : "",
+//								jsonheader.getString("message"),
+//								jsonheader.has("notification") ? jsonheader.getBoolean("notification") : false);
+//					}
+//					LOGGER.error("ActivityLogs-->:: {}", resp);
+//				}
+//				returndata.put("reflex", "Success");
+//			} else {
+//				res = HttpStatus.getStatusText(Integer.parseInt(response));
+//				returndata.put(ERROR, res);
+//			}
 
 		} catch (
 
