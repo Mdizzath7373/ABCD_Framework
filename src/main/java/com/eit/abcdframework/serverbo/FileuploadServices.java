@@ -1,6 +1,7 @@
 package com.eit.abcdframework.serverbo;
 
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -13,6 +14,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -29,6 +31,10 @@ import java.util.zip.GZIPOutputStream;
 import javax.imageio.ImageIO;
 
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.rendering.PDFRenderer;
 //import org.apache.pdfbox.pdmodel.PDDocument;
 //import org.apache.pdfbox.rendering.PDFRenderer;
@@ -41,6 +47,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.amazonaws.AmazonClientException;
 import com.eit.abcdframework.config.ConfigurationFile;
 import com.eit.abcdframework.http.caller.Httpclientcaller;
 import com.eit.abcdframework.s3bucket.S3Upload;
@@ -341,8 +348,8 @@ public class FileuploadServices {
 					ByteArrayOutputStream baos = new ByteArrayOutputStream();
 					ImageIO.write(bufferedImage, "JPEG", baos);
 
-					base64String.put((pageIndex + 1),
-							"data:image/png;base64,"+Base64.getEncoder().encodeToString(baos.toByteArray()).replaceAll("=+$", ""));
+					base64String.put((pageIndex + 1), "data:image/png;base64,"
+							+ Base64.getEncoder().encodeToString(baos.toByteArray()).replaceAll("=+$", ""));
 
 					int totalPages = document.getNumberOfPages();
 					int calculatedProgress = (pageIndex + 1) * 75 / totalPages;
@@ -395,7 +402,7 @@ public class FileuploadServices {
 
 	private void saveOrUpdateData(Map<Integer, String> base64String, String primarykey, AtomicInteger progressCount,
 			String id, JSONObject jsonbody) {
-		final int BATCH_SIZE = 500; // Define a batch size suitable for your needs
+		final int BATCH_SIZE = 700; // Define a batch size suitable for your needs
 		String res = "";
 		try {
 			int total = base64String.size();
@@ -410,8 +417,7 @@ public class FileuploadServices {
 				JSONObject savePDF = new JSONObject();
 				savePDF.put("primary_id_pdf", primarykey);
 				savePDF.put("document", batch);
-//				savePDF.put("ids", jsonbody.get("ids").toString());
-//				savePDF.put("byteofpdf", byteStream.toByteArray());
+				savePDF.put("total_pages", total);
 				progressCount.set(80);
 				progress.put(id + "-" + primarykey, progressCount);
 				socketService.pushSocketData(new JSONObject(), jsonbody, "progress");
@@ -432,6 +438,111 @@ public class FileuploadServices {
 
 		} catch (Exception e) {
 			LOGGER.error("Error during save/update", e);
+		}
+	}
+
+	private void writePDF(PDDocument document, String imagePath) {
+		try {
+
+			PDPage pages = new PDPage(PDRectangle.A4);
+			document.addPage(pages);
+
+			PDImageXObject images = PDImageXObject.createFromFile(imagePath, document);
+
+			float width = pages.getMediaBox().getWidth();
+			float height = pages.getMediaBox().getHeight();
+
+			float imageWidth = images.getWidth();
+			float imageHeight = images.getHeight();
+
+			float scaleFactor = Math.min(width / imageWidth, height / imageHeight);
+
+			float scaledWidth = imageWidth * scaleFactor;
+			float scaledHeight = imageHeight * scaleFactor;
+
+			float x = (width - scaledWidth) / 2;
+			float y = (height - scaledHeight) / 2;
+
+			PDPageContentStream contentStream = new PDPageContentStream(document, pages);
+
+			contentStream.drawImage(images, x, y, width, height);
+			contentStream.close();
+
+		} catch (Exception e) {
+			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+		}
+
+	}
+
+	public String writeImage(Map<String, Object> base64Images, String PDFpath, String filename) {
+
+		PDDocument document = new PDDocument();
+		String res = "";
+		try {
+			String currentDir = System.getProperty("user.dir");
+			Map<String, Object> sortedMap = new TreeMap<>(base64Images);
+
+			List<String> listofarray = sortedMap.entrySet().stream().map(entrys -> entrys.getKey())
+					.sorted(Comparator.comparingInt(Integer::parseInt)).collect(Collectors.toList());
+			System.err.println(listofarray);
+
+			base64Images.entrySet().stream()
+					.sorted(Map.Entry.comparingByKey(Comparator.comparingInt(Integer::parseInt))).forEach(entry -> {
+//			for (Map.Entry<String, Object> entry : sortedMap.entrySet()) {
+						String imageName = entry.getKey();
+						String base64Image = (String) entry.getValue();
+						byte[] imageBytes = Base64.getDecoder()
+								.decode(base64Image.replace("data:image/png;base64,", ""));
+						File outputfile = null;
+
+						try {
+							ByteArrayInputStream bis = new ByteArrayInputStream(imageBytes);
+							BufferedImage bufferedImage = ImageIO.read(bis);
+
+							String imagePath = currentDir + imageName + ".jpg";
+							outputfile = new File(imagePath);
+
+							ImageIO.write(bufferedImage, "JPEG", outputfile);
+							writePDF(document, imagePath);
+						} catch (IOException e) {
+							LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+						} finally {
+							if (outputfile.exists()) {
+								// Attempt to delete the file
+								if (outputfile.delete()) {
+									LOGGER.info("Image deleted successfully.");
+								} else {
+									LOGGER.info("Failed to delete the image.");
+								}
+							} else {
+								LOGGER.info("Image file does not exist.");
+							}
+						}
+					});
+//			}
+
+			document.save(PDFpath);
+			String filePath = path + filename + "_" + dateFormat.format(new Date()) + ".pdf";
+			if (PDFUploadS3(PDFpath, filePath)) {
+				return s3url + filePath;
+			} else {
+				res = "Failed";
+			}
+
+		} catch (Exception e) {
+			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+		}
+		return res;
+	}
+
+	private boolean PDFUploadS3(String PDFpath, String filePath) throws Exception {
+		File file = new File(PDFpath);
+		if (s3Upload.NewuploadFile(ConfigurationFile.getStringConfig("s3bucket.bucketName").toString(), filePath, file,
+				true)) {
+			file.delete();
+			return true;
+		} else {
+			return false;
 		}
 	}
 

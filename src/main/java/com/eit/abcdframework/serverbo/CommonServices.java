@@ -377,40 +377,16 @@ public class CommonServices {
 
 			} else if (mode.equalsIgnoreCase("otp")) {
 				code = CommonServices.generateVerificationCode(MAX_CODE_LENGTH);
-//				body = "<div>" + "<p>Thank you for registering with ["
-//						+ DisplaySingleton.memoryApplicationSetting.getString("websitename")
-//						+ "]!To complete the registration process and access all the features, please verify your email address by entering the following verification code:</p>"
-//						+ "<p>Verification Code:<b>" + code + "</b></p>"
-//						+ "<p>Please use the above code within One day to complete the verification process. If you did not request this verification or have any questions, please contact our support team at [refa@eitworks.com].</p>"
-//						+ "<p>Best Regards,<br>" + "REFA</p>" + "</div>";
-
-//				body = "<div style='font-weight:510;font-size:15px'><p>"
-//						+ "Thank you for registering with REFA. To complete the registration process and access all the features,</p><p> please verify your email address by entering the following verification code:</p>"
-//						+ "<p style='font-weight:600'>Verification Code: " + code + "</p><p>["
-//						+ DisplaySingleton.memoryApplicationSetting.getString("websitename") + "]</div> ";
-//				body = "<div style='font-weight:510;font-size:15px;direction:rtl;'><p>"
-//						+ "<p>شكرًا لك على التسجيل مع ريفا. لإكمال عملية التسجيل والوصول إلى كافة الميزات، يرجى إدخال رمز التحقق التالي</p>"
-//						+ "<p style='font-weight:600'>" + code + " :رمز التحقق</p><p>["
-//						+ DisplaySingleton.memoryApplicationSetting.getString("websitename") + "]</div>";
 				body = new JSONObject(
 						(new JSONObject(DisplaySingleton.memoryEmailCofig.get("otpverification").toString())
-								.getString("contenttype")).toString())
+								.get("contenttype")).toString())
 						.getString(lang).replaceAll("codeOTP", code);
 			}
-			subject = "Please Verify Your Email Address.";
+			subject = new JSONObject(DisplaySingleton.memoryEmailCofig.get("otpverification").toString())
+					.getJSONObject("subject").getString(lang);
 			String resultOfMail = amazonSMTPMail.sendEmail(mail, subject, body);
-//			if (resultOfMail.equalsIgnoreCase("Success")) {
-//				JSONObject savemail = new JSONObject();
-//				savemail.put("email", mail);
-//				savemail.put("verification_code", code);
-////				savemail.put("is_verified", true);
-//				savemail.put("verification_date", TimeZoneServices.getDateInTimeZoneforSKT("Asia/Riyadh"));
-//				String res = dataTransmit.transmitDataspgrestpost((applicationurl + "verifiedemails"),
-//						savemail.toString());
-//				if ((Integer.parseInt(res) >= 200 && Integer.parseInt(res) <= 226)) {
+
 			returndata.put("reflex", Base64.getEncoder().encodeToString(code.getBytes()));
-//				}
-//			}
 		} catch (Exception e) {
 			LOGGER.error("Exception at " + Thread.currentThread().getStackTrace()[1].getMethodName(), e);
 			returndata.put("error", "Faild Verification");
@@ -547,8 +523,8 @@ public class CommonServices {
 	public Map<String, Object> loadBase64(String value) throws JSONException, IOException {
 
 		String url = applicationurl + "pdf_splitter?select=document&primary_id_pdf=eq." + value;
-		return new JSONObject(dataTransmit.transmitDataspgrest(url).get(0).toString())
-				.getJSONObject("document").toMap();
-		 
+		return new JSONObject(dataTransmit.transmitDataspgrest(url).get(0).toString()).getJSONObject("document")
+				.toMap();
+
 	}
 }

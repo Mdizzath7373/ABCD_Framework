@@ -1,9 +1,6 @@
 package com.eit.abcdframework.service;
 
 import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.TimeZone;
 
 import org.apache.commons.httpclient.HttpStatus;
 import org.json.JSONArray;
@@ -14,13 +11,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
 import com.eit.abcdframework.http.caller.Httpclientcaller;
 import com.eit.abcdframework.serverbo.CommonServices;
 import com.eit.abcdframework.serverbo.DisplaySingleton;
+import com.eit.abcdframework.serverbo.ResponcesHandling;
 import com.eit.abcdframework.util.AmazonSMTPMail;
-import com.eit.abcdframework.util.MessageServices;
 import com.eit.abcdframework.util.TimeZoneServices;
 import com.eit.abcdframework.websocket.WebSocketService;
 
@@ -92,6 +88,14 @@ public class FormdataServiceImpl implements FormdataService {
 			displayConfig = DisplaySingleton.memoryDispObjs2.getJSONObject(displayAlias);
 			JSONObject gettabledata = new JSONObject(displayConfig.get("datas").toString());
 			res = transmittingDatatopgrestpost(pgrest, "POST", gettabledata, jsonbody, function, jsonheader);
+			if (gettabledata.has("synchronizedCurdOperation")) {
+				JSONArray typeOfMehods = gettabledata.getJSONObject("synchronizedCurdOperation").getJSONArray("type");
+				for (int typeOfMehod = 0; typeOfMehod < typeOfMehods.length(); typeOfMehod++) {
+					if (typeOfMehods.get(typeOfMehod).toString().equalsIgnoreCase("Map")) {
+						res = ResponcesHandling.MappedCurdOperation(gettabledata, data);
+					}
+				}
+			}
 		} catch (Exception e) {
 			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
 		}
@@ -115,6 +119,14 @@ public class FormdataServiceImpl implements FormdataService {
 			JSONObject gettabledata = new JSONObject(displayConfig.get("datas").toString());
 			String columnprimarykey = gettabledata.getJSONObject(KEY).getString("columnname");
 			res = transmittingDatatopgrestput(columnprimarykey, pgrest, gettabledata, jsonbody, jsonheader);
+			if (gettabledata.has("synchronizedCurdOperation")) {
+				JSONArray typeOfMehods = gettabledata.getJSONObject("synchronizedCurdOperation").getJSONArray("type");
+				for (int typeOfMehod = 0; typeOfMehod < typeOfMehods.length(); typeOfMehod++) {
+					if (typeOfMehods.get(typeOfMehod).toString().equalsIgnoreCase("Map")) {
+						res = ResponcesHandling.MappedCurdOperation(gettabledata, data);
+					}
+				}
+			}
 		} catch (Exception e) {
 			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
 		}
@@ -146,16 +158,17 @@ public class FormdataServiceImpl implements FormdataService {
 
 	public String transmittingDatatopgrestpost(String url, String method, JSONObject gettabledata, JSONObject jsonbody,
 			boolean function, JSONObject jsonheader) {
-		JSONObject returndata = new JSONObject();
+//		JSONObject returndata = new JSONObject();
 		String response = "";
 		String res = "";
-		JSONObject email = null;
+//		JSONObject email = null;
 		try {
-			String rolename = jsonheader.has("rolename") ? jsonheader.getString("rolename") : "";
-			String message = jsonheader.has("message") ? jsonheader.getString("message") : "";
-			String status = jsonheader.has("status") ? jsonheader.getString("status") : "";
-			boolean notification = jsonheader.has("notification") ? jsonheader.getBoolean("notification") : false;
+//			String rolename = jsonheader.has("rolename") ? jsonheader.getString("rolename") : "";
+//			String message = jsonheader.has("message") ? jsonheader.getString("message") : "";
+//			String status = jsonheader.has("status") ? jsonheader.getString("status") : "";
+//			boolean notification = jsonheader.has("notification") ? jsonheader.getBoolean("notification") : false;
 //			boolean isProcess = gettabledata.has("storedProcess") ? gettabledata.getBoolean("storedProcess") : false;
+
 			if (gettabledata.has("passwordencode") && gettabledata.getBoolean("passwordencode")) {
 				if (jsonbody.has(gettabledata.getString("passwordcolumn"))
 						&& !jsonbody.getString(gettabledata.getString("passwordcolumn")).equals("")) {
@@ -172,137 +185,139 @@ public class FormdataServiceImpl implements FormdataService {
 			response = dataTransmit.transmitDataspgrestpost(url, jsonbody.toString(),
 					jsonheader.has("primaryvalue") ? jsonheader.getBoolean("primaryvalue") : false);
 
-			if (response.startsWith("{")) {
-				if (jsonheader.has("sms")) {
-					String sms = commonServices.smsService(jsonbody, gettabledata, jsonheader.getString("sms"));
-					LOGGER.warn("SMS -->{}", sms);
-				}
-				jsonbody.put(gettabledata.getJSONObject(KEY).getString("columnname"),
-						new JSONObject(response.toString())
-								.get(gettabledata.getJSONObject(KEY).getString("columnname")));
+			res = ResponcesHandling.curdMethodResponceHandle(response, jsonheader, jsonbody, gettabledata,"POST");
 
-				commonServices.sendPushNotification(jsonbody, gettabledata.getString("api"), rolename,new JSONObject());
-
-				String socketRes = socketService.pushSocketData(jsonheader, jsonbody, "");
-				if (!socketRes.equalsIgnoreCase("Success")) {
-					LOGGER.error("Push Socket responce::{}", socketRes);
-				}
-				if (gettabledata.has("activityLogs")) {
-					String resp = "";
-					if (!message.equalsIgnoreCase("") && !status.equalsIgnoreCase("")) {
-						resp = commonServices.addactivitylog(gettabledata.getJSONObject("activityLogs"), status,
-								jsonbody, rolename, message, notification);
-					}
-					LOGGER.error("ActivityLogs-->:: {}", resp);
-					return returndata.put(REFLEX, SUCCESS).toString();
-				}
-				if (gettabledata.has("email")) {
-					email = new JSONObject(gettabledata.get("email").toString());
-//					if (email.has("MultiMail") && email.getBoolean("MultiMail")) {
-//						String data = jsonbody.getString(email.getString("getcolumn")).equalsIgnoreCase("Approved")
-//								? "Approved"
-//								: jsonbody.getString(email.getString("getcolumn")).split(" ")[0]
-//										.equalsIgnoreCase("Rejected") ? "Rejected" : "";
+//			if (response.startsWith("{")) {
+//				if (jsonheader.has("sms")) {
+//					String sms = commonServices.smsService(jsonbody, gettabledata, jsonheader.getString("sms"));
+//					LOGGER.warn("SMS -->{}", sms);
+//				}
+//				jsonbody.put(gettabledata.getJSONObject(KEY).getString("columnname"),
+//						new JSONObject(response.toString())
+//								.get(gettabledata.getJSONObject(KEY).getString("columnname")));
 //
-//						mail = new JSONObject(email.get("mail").toString()).has(data)
-//								? new JSONObject(email.get("mail").toString()).getJSONArray(data)
-//								: new JSONArray();
+//				commonServices.sendPushNotification(jsonbody, gettabledata.getString("api"), rolename,new JSONObject());
 //
-//					} else {
-//						mail = new JSONArray(email.getJSONArray("mail").toString());
+//				String socketRes = socketService.pushSocketData(jsonheader, jsonbody, "");
+//				if (!socketRes.equalsIgnoreCase("Success")) {
+//					LOGGER.error("Push Socket responce::{}", socketRes);
+//				}
+//				if (gettabledata.has("activityLogs")) {
+//					String resp = "";
+//					if (!message.equalsIgnoreCase("") && !status.equalsIgnoreCase("")) {
+//						resp = commonServices.addactivitylog(gettabledata.getJSONObject("activityLogs"), status,
+//								jsonbody, rolename, message, notification);
 //					}
-					if (!email.getJSONObject("mail").isEmpty()) {
-						List<MultipartFile> files = new ArrayList<>();
-						amazonSMTPMail.emailconfig(email, jsonbody, files,jsonheader.has("lang") ? jsonheader.getString("lang") : "en");
-					}
-				}
-			}
-
-			if (response.equalsIgnoreCase("success")) {
-				if (jsonheader.has("sms")) {
-					String sms = commonServices.smsService(jsonbody, gettabledata, jsonheader.getString("sms"));
-					LOGGER.warn("SMS -->{}", sms);
-				}
-				commonServices.sendPushNotification(jsonbody, gettabledata.getString("api"), rolename,new JSONObject());
-				String socketRes = socketService.pushSocketData(jsonheader, jsonbody, "");
-				if (!socketRes.equalsIgnoreCase("Success")) {
-					LOGGER.error("Push Socket responce::{}", socketRes);
-				}
-				if (gettabledata.has("activityLogs")) {
-					String resp = "";
-					if (!message.equalsIgnoreCase("") && !status.equalsIgnoreCase("")) {
-						resp = commonServices.addactivitylog(gettabledata.getJSONObject("activityLogs"), status,
-								jsonbody, rolename, message, notification);
-					}
-					LOGGER.error("ActivityLogs-->:: {}", resp);
-					return returndata.put(REFLEX, SUCCESS).toString();
-				}
-				if (gettabledata.has("email")) {
-					email = new JSONObject(gettabledata.get("email").toString());
-//					if (email.has("MultiMail") && email.getBoolean("MultiMail")) {
-//						String data = jsonbody.getString(email.getString("getcolumn")).equalsIgnoreCase("Approved")
-//								? "Approved"
-//								: jsonbody.getString(email.getString("getcolumn")).split(" ")[0]
-//										.equalsIgnoreCase("Rejected") ? "Rejected" : "";
-//
-//						mail = new JSONObject(email.get("mail").toString()).has(data)
-//								? new JSONObject(email.get("mail").toString()).getJSONArray(data)
-//								: new JSONArray();
-//
-//					} else {
-//						mail = new JSONArray(email.getJSONArray("mail").toString());
+//					LOGGER.error("ActivityLogs-->:: {}", resp);
+//					return returndata.put(REFLEX, SUCCESS).toString();
+//				}
+//				if (gettabledata.has("email")) {
+//					email = new JSONObject(gettabledata.get("email").toString());
+////					if (email.has("MultiMail") && email.getBoolean("MultiMail")) {
+////						String data = jsonbody.getString(email.getString("getcolumn")).equalsIgnoreCase("Approved")
+////								? "Approved"
+////								: jsonbody.getString(email.getString("getcolumn")).split(" ")[0]
+////										.equalsIgnoreCase("Rejected") ? "Rejected" : "";
+////
+////						mail = new JSONObject(email.get("mail").toString()).has(data)
+////								? new JSONObject(email.get("mail").toString()).getJSONArray(data)
+////								: new JSONArray();
+////
+////					} else {
+////						mail = new JSONArray(email.getJSONArray("mail").toString());
+////					}
+//					if (!email.getJSONObject("mail").isEmpty()) {
+//						List<MultipartFile> files = new ArrayList<>();
+//						amazonSMTPMail.emailconfig(email, jsonbody, files,jsonheader.has("lang") ? jsonheader.getString("lang") : "en");
 //					}
-					if (!email.getJSONObject("mail").isEmpty()) {
-						List<MultipartFile> files = new ArrayList<>();
-						amazonSMTPMail.emailconfig( email, jsonbody, files,jsonheader.has("lang") ? jsonheader.getString("lang") : "en");
-					}
-				}
-			} else if (Integer.parseInt(response) >= 200 && Integer.parseInt(response) <= 226) {
-				if (jsonheader.has("sms")) {
-					String sms = commonServices.smsService(jsonbody, gettabledata, jsonheader.getString("sms"));
-					LOGGER.warn("SMS -->{}", sms);
-				}
-				commonServices.sendPushNotification(jsonbody, gettabledata.getString("api"), rolename,new JSONObject());
-
-				String socketRes = socketService.pushSocketData(jsonheader, jsonbody, "");
-				if (!socketRes.equalsIgnoreCase("Success")) {
-					LOGGER.error("Respones of Data Pusing::{}", socketRes);
-				}
-
-				if (gettabledata.has("activityLogs")) {
-					String resp = "";
-					if (!message.equalsIgnoreCase("") && !status.equalsIgnoreCase("")) {
-						resp = commonServices.addactivitylog(gettabledata.getJSONObject("activityLogs"), status,
-								jsonbody, rolename, message, notification);
-					}
-					LOGGER.error("ActivityLogs-->:: {}", resp);
-					return returndata.put(REFLEX, SUCCESS).toString();
-				}
-				if (gettabledata.has("email")) {
-					email = new JSONObject(gettabledata.get("email").toString());
-//					if (email.has("MultiMail") && email.getBoolean("MultiMail")) {
-//						String data = jsonbody.getString(email.getString("getcolumn")).equalsIgnoreCase("Approved")
-//								? "Approved"
-//								: jsonbody.getString(email.getString("getcolumn")).split(" ")[0]
-//										.equalsIgnoreCase("Rejected") ? "Rejected" : "";
+//				}
+//			}
 //
-//						mail = new JSONObject(email.get("mail").toString()).has(data)
-//								? new JSONObject(email.get("mail").toString()).getJSONArray(data)
-//								: new JSONArray();
-//
-//					} else {
-//						mail = new JSONArray(email.getJSONArray("mail").toString());
+//			if (response.equalsIgnoreCase("success")) {
+//				if (jsonheader.has("sms")) {
+//					String sms = commonServices.smsService(jsonbody, gettabledata, jsonheader.getString("sms"));
+//					LOGGER.warn("SMS -->{}", sms);
+//				}
+//				commonServices.sendPushNotification(jsonbody, gettabledata.getString("api"), rolename,new JSONObject());
+//				String socketRes = socketService.pushSocketData(jsonheader, jsonbody, "");
+//				if (!socketRes.equalsIgnoreCase("Success")) {
+//					LOGGER.error("Push Socket responce::{}", socketRes);
+//				}
+//				if (gettabledata.has("activityLogs")) {
+//					String resp = "";
+//					if (!message.equalsIgnoreCase("") && !status.equalsIgnoreCase("")) {
+//						resp = commonServices.addactivitylog(gettabledata.getJSONObject("activityLogs"), status,
+//								jsonbody, rolename, message, notification);
 //					}
-					if (!email.getJSONObject("mail").isEmpty()) {
-						List<MultipartFile> files = new ArrayList<>();
-						amazonSMTPMail.emailconfig( email, jsonbody, files,jsonheader.has("lang") ? jsonheader.getString("lang") : "en");
-					}
-				}
+//					LOGGER.error("ActivityLogs-->:: {}", resp);
+//					return returndata.put(REFLEX, SUCCESS).toString();
+//				}
+//				if (gettabledata.has("email")) {
+//					email = new JSONObject(gettabledata.get("email").toString());
+////					if (email.has("MultiMail") && email.getBoolean("MultiMail")) {
+////						String data = jsonbody.getString(email.getString("getcolumn")).equalsIgnoreCase("Approved")
+////								? "Approved"
+////								: jsonbody.getString(email.getString("getcolumn")).split(" ")[0]
+////										.equalsIgnoreCase("Rejected") ? "Rejected" : "";
+////
+////						mail = new JSONObject(email.get("mail").toString()).has(data)
+////								? new JSONObject(email.get("mail").toString()).getJSONArray(data)
+////								: new JSONArray();
+////
+////					} else {
+////						mail = new JSONArray(email.getJSONArray("mail").toString());
+////					}
+//					if (!email.getJSONObject("mail").isEmpty()) {
+//						List<MultipartFile> files = new ArrayList<>();
+//						amazonSMTPMail.emailconfig( email, jsonbody, files,jsonheader.has("lang") ? jsonheader.getString("lang") : "en");
+//					}
+//				}
+//			} else if (Integer.parseInt(response) >= 200 && Integer.parseInt(response) <= 226) {
+//				if (jsonheader.has("sms")) {
+//					String sms = commonServices.smsService(jsonbody, gettabledata, jsonheader.getString("sms"));
+//					LOGGER.warn("SMS -->{}", sms);
+//				}
+//				commonServices.sendPushNotification(jsonbody, gettabledata.getString("api"), rolename,new JSONObject());
+//
+//				String socketRes = socketService.pushSocketData(jsonheader, jsonbody, "");
+//				if (!socketRes.equalsIgnoreCase("Success")) {
+//					LOGGER.error("Respones of Data Pusing::{}", socketRes);
+//				}
+//
+//				if (gettabledata.has("activityLogs")) {
+//					String resp = "";
+//					if (!message.equalsIgnoreCase("") && !status.equalsIgnoreCase("")) {
+//						resp = commonServices.addactivitylog(gettabledata.getJSONObject("activityLogs"), status,
+//								jsonbody, rolename, message, notification);
+//					}
+//					LOGGER.error("ActivityLogs-->:: {}", resp);
+//					return returndata.put(REFLEX, SUCCESS).toString();
+//				}
+//				if (gettabledata.has("email")) {
+//					email = new JSONObject(gettabledata.get("email").toString());
+////					if (email.has("MultiMail") && email.getBoolean("MultiMail")) {
+////						String data = jsonbody.getString(email.getString("getcolumn")).equalsIgnoreCase("Approved")
+////								? "Approved"
+////								: jsonbody.getString(email.getString("getcolumn")).split(" ")[0]
+////										.equalsIgnoreCase("Rejected") ? "Rejected" : "";
+////
+////						mail = new JSONObject(email.get("mail").toString()).has(data)
+////								? new JSONObject(email.get("mail").toString()).getJSONArray(data)
+////								: new JSONArray();
+////
+////					} else {
+////						mail = new JSONArray(email.getJSONArray("mail").toString());
+////					}
+//					if (!email.getJSONObject("mail").isEmpty()) {
+//						List<MultipartFile> files = new ArrayList<>();
+//						amazonSMTPMail.emailconfig( email, jsonbody, files,jsonheader.has("lang") ? jsonheader.getString("lang") : "en");
+//					}
+//				}
 
-			} else {
-				res = HttpStatus.getStatusText(Integer.parseInt(response));
-				return new JSONObject().put(ERROR, res).toString();
-			}
+//			} else {
+//				res = HttpStatus.getStatusText(Integer.parseInt(response));
+//				return new JSONObject().put(ERROR, res).toString();
+//			}
 
 		} catch (
 
@@ -310,8 +325,9 @@ public class FormdataServiceImpl implements FormdataService {
 			LOGGER.error("Exception at {} ", Thread.currentThread().getStackTrace()[1].getMethodName(), e);
 			return new JSONObject().put(ERROR, FAILURE).toString();
 		}
-		returndata.put(REFLEX, SUCCESS);
-		return returndata.toString();
+//		returndata.put(REFLEX, SUCCESS);
+//		return returndata.toString();
+		return res;
 	}
 
 	public String transmittingDatatopgrestput(String primarykey, String url, JSONObject gettabledata,
@@ -319,13 +335,13 @@ public class FormdataServiceImpl implements FormdataService {
 		JSONObject returndata = new JSONObject();
 		String response = "";
 		String res = "";
-		JSONObject email = null;
-		JSONArray mail = null;
+//		JSONObject email = null;
+//		JSONArray mail = null;
 		try {
-			String rolename = jsonheader.has("rolename") ? jsonheader.getString("rolename") : "";
-			String message = jsonheader.has("message") ? jsonheader.getString("message") : "";
-			String status = jsonheader.has("status") ? jsonheader.getString("status") : "";
-			boolean notification = jsonheader.has("notification") ? jsonheader.getBoolean("notification") : false;
+//			String rolename = jsonheader.has("rolename") ? jsonheader.getString("rolename") : "";
+//			String message = jsonheader.has("message") ? jsonheader.getString("message") : "";
+//			String status = jsonheader.has("status") ? jsonheader.getString("status") : "";
+//			boolean notification = jsonheader.has("notification") ? jsonheader.getBoolean("notification") : false;
 //			boolean isProcess = gettabledata.has("storedProcess") ? gettabledata.getBoolean("storedProcess") : true;
 
 			if (gettabledata.has("passwordencode") && gettabledata.getBoolean("passwordencode")) {
@@ -345,54 +361,58 @@ public class FormdataServiceImpl implements FormdataService {
 			} else {
 				returndata.put(ERROR, "PrimaryKey is Missing!!");
 			}
-			if (Integer.parseInt(response) >= 200 && Integer.parseInt(response) <= 226) {
-				if (jsonheader.has("sms")) {
-					String sms = commonServices.smsService(jsonbody, gettabledata, jsonheader.getString("sms"));
-					LOGGER.warn("SMS -->{}", sms);
-				}
-				String socketRes = socketService.pushSocketData(jsonheader, jsonbody, "");
-				if (!socketRes.equalsIgnoreCase("Success")) {
-					LOGGER.error("Push Socket responce::{}", socketRes);
-				}
-				if (gettabledata.has("email")) {
-					email = new JSONObject(gettabledata.get("email").toString());
-//					if (email.has("MultiMail") && email.getBoolean("MultiMail")) {
-//						String data = jsonbody.getString(email.getString("getcolumn")).equalsIgnoreCase("Approved")
-//								? "Approved"
-//								: jsonbody.getString(email.getString("getcolumn")).split(" ")[0]
-//										.equalsIgnoreCase("Rejected") ? "Rejected" : "";
-//
-//						mail = new JSONObject(email.get("mail").toString()).has(data)
-//								? new JSONObject(email.get("mail").toString()).getJSONArray(data)
-//								: new JSONArray();
-//
-//					} else {
-//						mail = new JSONArray(email.getJSONArray("mail").toString());
+			res = ResponcesHandling.curdMethodResponceHandle(response, jsonheader, jsonbody, gettabledata,"PUT");
+			
+//			if (Integer.parseInt(response) >= 200 && Integer.parseInt(response) <= 226) {
+//				if (jsonheader.has("sms")) {
+//					String sms = commonServices.smsService(jsonbody, gettabledata, jsonheader.getString("sms"));
+//					LOGGER.warn("SMS -->{}", sms);
+//				}
+//				String socketRes = socketService.pushSocketData(jsonheader, jsonbody, "");
+//				if (!socketRes.equalsIgnoreCase("Success")) {
+//					LOGGER.error("Push Socket responce::{}", socketRes);
+//				}
+//				if (gettabledata.has("email")) {
+//					email = new JSONObject(gettabledata.get("email").toString());
+////					if (email.has("MultiMail") && email.getBoolean("MultiMail")) {
+////						String data = jsonbody.getString(email.getString("getcolumn")).equalsIgnoreCase("Approved")
+////								? "Approved"
+////								: jsonbody.getString(email.getString("getcolumn")).split(" ")[0]
+////										.equalsIgnoreCase("Rejected") ? "Rejected" : "";
+////
+////						mail = new JSONObject(email.get("mail").toString()).has(data)
+////								? new JSONObject(email.get("mail").toString()).getJSONArray(data)
+////								: new JSONArray();
+////
+////					} else {
+////						mail = new JSONArray(email.getJSONArray("mail").toString());
+////					}
+//					if (!email.getJSONObject("mail").isEmpty()) {
+//						List<MultipartFile> files = new ArrayList<>();
+//						amazonSMTPMail.emailconfig(email, jsonbody, files,
+//								jsonheader.has("lang") ? jsonheader.getString("lang") : "en");
 //					}
-					if (!email.getJSONObject("mail").isEmpty()) {
-						List<MultipartFile> files = new ArrayList<>();
-						amazonSMTPMail.emailconfig(email, jsonbody, files,jsonheader.has("lang") ? jsonheader.getString("lang") : "en");
-					}
-				}
-				if (gettabledata.has("activityLogs")) {
-					String resp = "";
-					if (!message.equalsIgnoreCase("") && !status.equalsIgnoreCase("")) {
-						resp = commonServices.addactivitylog(gettabledata.getJSONObject("activityLogs"), status,
-								jsonbody, rolename, message, notification);
-					}
-					LOGGER.error("ActivityLogs-->:: {}", resp);
-					return returndata.put(REFLEX, SUCCESS).toString();
-				}
-			} else {
-				res = HttpStatus.getStatusText(Integer.parseInt(response));
-				return new JSONObject().put(ERROR, res).toString();
-			}
+//				}
+//				if (gettabledata.has("activityLogs")) {
+//					String resp = "";
+//					if (!message.equalsIgnoreCase("") && !status.equalsIgnoreCase("")) {
+//						resp = commonServices.addactivitylog(gettabledata.getJSONObject("activityLogs"), status,
+//								jsonbody, rolename, message, notification);
+//					}
+//					LOGGER.error("ActivityLogs-->:: {}", resp);
+//					return returndata.put(REFLEX, SUCCESS).toString();
+//				}
+//			} else {
+//				res = HttpStatus.getStatusText(Integer.parseInt(response));
+//				return new JSONObject().put(ERROR, res).toString();
+//			}
 		} catch (Exception e) {
 			LOGGER.error("Exception at = {}", Thread.currentThread().getStackTrace()[1].getMethodName(), e);
 			return new JSONObject().put(ERROR, FAILURE).toString();
 		}
 
-		return returndata.put(REFLEX, SUCCESS).toString();
+//		return returndata.put(REFLEX, SUCCESS).toString();
+		return res;
 	}
 
 	public String transmittingDatapgrestget(String columnprimarykey, String url, String method, JSONObject gettabledata,

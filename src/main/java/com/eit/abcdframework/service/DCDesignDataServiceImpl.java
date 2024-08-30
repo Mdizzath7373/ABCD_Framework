@@ -1,24 +1,16 @@
 package com.eit.abcdframework.service;
 
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.net.URLEncoder;
 import java.util.ArrayList;
-import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-
-import javax.imageio.ImageIO;
+import java.util.stream.StreamSupport;
 
 import org.apache.commons.httpclient.HttpStatus;
 import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDPage;
-import org.apache.pdfbox.pdmodel.PDPageContentStream;
-import org.apache.pdfbox.pdmodel.common.PDRectangle;
-import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -66,9 +58,6 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 
 	@Value("${applicationurl}")
 	private String pgresturl;
-
-	@Autowired
-	ResponcesHandling responcesHandling;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger("DCDesignDataServiceImpl");
 	private static final String ERROR = "error";
@@ -168,7 +157,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 					System.err.println(email.getJSONObject("mail").isEmpty());
 					if (!email.getJSONObject("mail").isEmpty())
 						amazonSMTPMail.emailconfig(email, jsonbody, files,
-								jsonheader.has("lang") ? jsonheader.getString("lang") : "en");
+								jsonheader.has("lang") ? jsonheader.getString("lang") : "en", method);
 				}
 				if (gettabledata.has("activityLogs")) {
 					String resp = "";
@@ -467,7 +456,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 							.getJSONArray("type");
 					for (int typeOfMehod = 0; typeOfMehod < typeOfMehods.length(); typeOfMehod++) {
 						if (typeOfMehods.get(typeOfMehod).toString().equalsIgnoreCase("Map")) {
-							res = responcesHandling.MappedCurdOperation(gettabledata, data);
+							res = ResponcesHandling.MappedCurdOperation(gettabledata, data);
 						}
 					}
 					returndata.put("reflex", res);
@@ -480,7 +469,6 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 				String socketRes = socketService.pushSocketData(jsonheader, jsonbody, "progress");
 
 			}
-			System.err.println(response);
 
 		} catch (Exception e) {
 			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
@@ -490,74 +478,172 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 	}
 
 	@Override
-	public void mergeToPDF(String data) {
+	public String mergeToPDF(String data) {
+		JSONObject jsonObject1 = null;
+		JSONObject returndata = new JSONObject();
 		try {
 
-			JSONObject jsonObject = new JSONObject(data);
-			Map<String, Object> base64Images = commonServices.loadBase64(jsonObject.getString("id"));
-
-//			String path = "F:\\output.pdf";
-//			PdfWriter writerE = new PdfWriter(path);
-//
-//			// Creating a PdfDocument object
-//			PdfDocument pdf = new PdfDocument(writerE);
-//
-//			// Creating a Document object
-//			Document document2 = new Document(pdf);
-//
-//			document2.close();
-
-			String src = "F:\\output.pdf";
-//			String dest = "F:\\input.pdf";
-
-			for (Map.Entry<String, Object> entry : base64Images.entrySet()) {
-				String imageName = entry.getKey();
-				String base64Image = (String) entry.getValue();
-				byte[] imageBytes = Base64.getDecoder().decode(base64Image.replace("data:image/png;base64,", ""));
-
-				ByteArrayInputStream bis = new ByteArrayInputStream(imageBytes);
-				BufferedImage bufferedImage = ImageIO.read(bis);
-
-				File outputfile = new File("F:\\images\\" + imageName + ".jpg");
-				ImageIO.write(bufferedImage, "JPEG", outputfile);
-
-				// Image to be added
-				String imagePath = "F:\\images\\" + imageName + ".jpg";
-
-				PDDocument document = new PDDocument();
-
-				PDPage pages = new PDPage(PDRectangle.A4);
-				document.addPage(pages);
-
-				PDImageXObject images = PDImageXObject.createFromFile(imagePath, document);
-
-				float width = pages.getMediaBox().getWidth();
-				float height = pages.getMediaBox().getHeight();
-
-				float imageWidth = images.getWidth();
-				float imageHeight = images.getHeight();
-
-				float scaleFactor = Math.min(width / imageWidth, height / imageHeight);
-
-				float scaledWidth = imageWidth * scaleFactor;
-				float scaledHeight = imageHeight * scaleFactor;
-
-				float x = (width - scaledWidth) / 2;
-				float y = (height - scaledHeight) / 2;
-				
-				PDPageContentStream contentStream=new PDPageContentStream(document, pages);
-				
-				contentStream.drawImage(images,x,y,width,height);
-				contentStream.close();
-
-				document.save(src);
-				System.err.println("compaleted");
-				
+			if (data.equalsIgnoreCase("") && !data.startsWith("{")) {
+				return "Please Check Your Data Object!";
 			}
-			
-		}catch (Exception e) {
+			JSONObject displayConfig;
+			if (!data.startsWith("{"))
+				jsonObject1 = new JSONObject(CommonServices.decrypt(data));
+			else
+				jsonObject1 = new JSONObject(data);
+
+			JSONObject jsonheader = new JSONObject(
+					jsonObject1.getJSONObject("PrimaryBody").getJSONObject("header").toString());
+			String displayAlias = jsonheader.getString("name");
+			String method = jsonheader.getString("method");
+
+			JSONObject jsonbody = new JSONObject(
+					jsonObject1.getJSONObject("PrimaryBody").getJSONObject("body").toString());
+
+			displayConfig = DisplaySingleton.memoryDispObjs2.getJSONObject(displayAlias);
+			JSONObject gettabledata = new JSONObject(displayConfig.get("datas").toString());
+
+			JSONArray jarr = new JSONArray(gettabledata.getJSONArray("filepathname").toString());
+
+			// set list of column name in json body (column name)
+			JSONArray column = new JSONArray(gettabledata.getJSONArray("column").toString());
+			String filename = jsonbody.get(jarr.get(0).toString()).toString();
+
+			// primary key column name comes in table
+			String columnprimarykey = gettabledata.getJSONObject("primarykey").getString("columnname");
+			String Splitter_primary_id = gettabledata.getJSONObject("Splitter").getString("Splitter_primary_id");
+
+			String value = jsonbody.get(Splitter_primary_id).toString();
+
+			String currentDir = System.getProperty("user.dir");
+
+			String nameofPDF = "output.pdf";
+
+			String PDFpath = currentDir + nameofPDF;
+
+			Map<String, Object> base64Images = commonServices.loadBase64(value);
+			String path = "";
+			try (PDDocument document = new PDDocument()) {
+				path = fileuploadServices.writeImage(base64Images, PDFpath, filename);
+				jsonbody.put(column.get(0).toString(), path);
+			}
+
+			String url = "";
+			String res = "";
+			String response = "";
+			if (method.equalsIgnoreCase("POST")) {
+				if (gettabledata.has("dateandtime")) {
+					jsonbody.put(gettabledata.getString("dateandtime"),
+							TimeZoneServices.getDateInTimeZoneforSKT("Asia/Riyadh"));
+				}
+				url = pgresturl + gettabledata.getString("api");
+				url = url.replace(" ", "%20");
+				response = dataTransmit.transmitDataspgrestpost(url, jsonbody.toString(), false);
+			} else if (method.equalsIgnoreCase("PUT")) {
+				if (jsonbody.has(columnprimarykey) && !jsonbody.get(columnprimarykey).toString().equalsIgnoreCase("")) {
+					// if use put method we need primary key (set primary key column name)
+					url = pgresturl + gettabledata.getString("api") + "?" + columnprimarykey + "=eq."
+							+ (jsonbody.get(columnprimarykey)).toString();
+					url = url.replace(" ", "%20");
+					response = dataTransmit.transmitDataspgrestput(url, jsonbody.toString(), false);
+				} else {
+					return returndata.put(ERROR, "primaryKey is Missing,Please Check this").toString();
+				}
+			}
+
+			if (Integer.parseInt(response) >= 200 && Integer.parseInt(response) <= 226) {
+				if (gettabledata.has("synchronizedCurdOperation")) {
+					JSONArray typeOfMehods = gettabledata.getJSONObject("synchronizedCurdOperation")
+							.getJSONArray("type");
+					for (int typeOfMehod = 0; typeOfMehod < typeOfMehods.length(); typeOfMehod++) {
+						if (typeOfMehods.get(typeOfMehod).toString().equalsIgnoreCase("Map")) {
+							res = ResponcesHandling.MappedCurdOperation(gettabledata, data);
+						}
+					}
+					returndata.put("reflex", res);
+				}
+
+			}
+
+			// for (Map.Entry<String, Object> entry : base64Images.entrySet()) {
+//
+//				String imageName = entry.getKey();
+//				String base64Image = (String) entry.getValue();
+//				byte[] imageBytes = Base64.getDecoder().decode(base64Image.replace("data:image/png;base64,", ""));
+//
+//				ByteArrayInputStream bis = new ByteArrayInputStream(imageBytes);
+//				BufferedImage bufferedImage = ImageIO.read(bis);
+//
+//				File outputfile = new File("F:\\images\\" + imageName + ".jpg");
+//				ImageIO.write(bufferedImage, "JPEG", outputfile);
+//
+//				// Image to be added
+//				String imagePath = "F:\\images\\" + imageName + ".jpg";
+//
+//				PDPage pages = new PDPage(PDRectangle.A4);
+//				document.addPage(pages);
+//
+//				PDImageXObject images = PDImageXObject.createFromFile(imagePath, document);
+//
+//				float width = pages.getMediaBox().getWidth();
+//				float height = pages.getMediaBox().getHeight();
+//
+//				float imageWidth = images.getWidth();
+//				float imageHeight = images.getHeight();
+//
+//				float scaleFactor = Math.min(width / imageWidth, height / imageHeight);
+//
+//				float scaledWidth = imageWidth * scaleFactor;
+//				float scaledHeight = imageHeight * scaleFactor;
+//
+//				float x = (width - scaledWidth) / 2;
+//				float y = (height - scaledHeight) / 2;
+//
+//				PDPageContentStream contentStream = new PDPageContentStream(document, pages);
+//
+//				contentStream.drawImage(images, x, y, width, height);
+//				contentStream.close();
+//			}
+//			document.save(PDFpath);
+			System.err.println("compaleted");
+
+		} catch (Exception e) {
 			// TODO: handle exception
 		}
+		return data;
+
+	}
+
+	public String SplitterPDFChanges(String data) {
+		JSONObject jsonObject1 = new JSONObject();
+		try {
+
+			if (data.equalsIgnoreCase("") && !data.startsWith("{")) {
+				return "Please Check Your Data Object!";
+			}
+			if (!data.startsWith("{"))
+				jsonObject1 = new JSONObject(CommonServices.decrypt(data));
+			else
+				jsonObject1 = new JSONObject(data);
+
+			JSONObject jsonbody = new JSONObject(data);
+
+			Map<String, Object> base64Images = commonServices.loadBase64(jsonbody.getString("primary_id_pdf"));
+			JSONObject jsonObject = jsonbody.getJSONObject("document");
+
+			jsonObject.keys().forEachRemaining(key -> {
+				base64Images.put(key, jsonObject.getString(key));
+			});
+			jsonbody.put("document", jsonObject);
+
+			String url = pgresturl + "pdf_splitter?id=eq." + jsonbody.get("id");
+			String res = dataTransmit.transmitDataspgrestput(url, jsonbody.toString(), false);
+
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+
+		return pgresturl;
 
 	}
 

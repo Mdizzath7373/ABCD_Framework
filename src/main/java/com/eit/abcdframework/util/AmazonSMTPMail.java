@@ -167,7 +167,8 @@ public class AmazonSMTPMail {
 					if (getJson != null && getJson.has("Key")) {
 						String key = generatekey();
 						jsonBody.put("key", key);
-						body = new JSONObject(jsondata.get("contenttype").toString()).getString(lang).replace("key", key);
+						body = new JSONObject(jsondata.get("contenttype").toString()).getString(lang).replace("key",
+								key);
 					} else if (!jsondata.getBoolean("custommail")) {
 						if (getJson.has(mail.get(c) + "replacementContent")) {
 							if (new JSONObject(getJson.get(mail.get(c) + "replacementContent").toString())
@@ -192,10 +193,10 @@ public class AmazonSMTPMail {
 								}
 							}
 						} else {
-							body =new JSONObject(jsondata.get("contenttype").toString()).getString(lang);
+							body = new JSONObject(jsondata.get("contenttype").toString()).getString(lang);
 						}
 
-					} else if (jsondata.getBoolean("custommail")) {						
+					} else if (jsondata.getBoolean("custommail")) {
 						body = getJson.has("AddcontentPre")
 								? "<h2>Dear " + jsonBody.getString(getJson.getString("AddcontentPre")) + "</h2>"
 										+ new JSONObject(jsondata.get("contenttype").toString()).getString(lang) + "<p>"
@@ -217,15 +218,18 @@ public class AmazonSMTPMail {
 							if (k == 3) {
 								return resultOfMail = FAILED;
 							}
-							if (getJson.has("withattachment") && getJson.getBoolean("withattachment") && !files.isEmpty()) {
+							if (getJson.has("withattachment") && getJson.getBoolean("withattachment")
+									&& !files.isEmpty()) {
 								resultOfMail = sendEmailWithFile(smtpMail.getString("amazonverifiedfromemail"),
-										emails.get(m), jsondata.getString("subject"), body,
-										smtpMail.getString("amazonsmtpusername"),
+										emails.get(m),
+//										new JSONObject(jsondata.get("subject").toString()).getString(lang), body,
+										jsondata.getString("subject"), body, smtpMail.getString("amazonsmtpusername"),
 										smtpMail.getString("amazonsmtppassword"),
 										smtpMail.getString("amazonhostaddress"), smtpMail.getString("amazonport"),
 										files);
 							} else {
 								resultOfMail = sendEmail(smtpMail.getString("amazonverifiedfromemail"), emails.get(m),
+//										new JSONObject(jsondata.get("subject").toString()).getString(lang), body,
 										jsondata.getString("subject"), body, smtpMail.getString("amazonsmtpusername"),
 										smtpMail.getString("amazonsmtppassword"),
 										smtpMail.getString("amazonhostaddress"), smtpMail.getString("amazonport"));
@@ -421,7 +425,8 @@ public class AmazonSMTPMail {
 		return resultOfMail;
 	}
 
-	public String emailconfig(JSONObject email, JSONObject jsonbody, List<MultipartFile> files, String lang) {
+	public String emailconfig(JSONObject email, JSONObject jsonbody, List<MultipartFile> files, String lang,
+			String method) {
 		String returndata = "";
 		try {
 			JSONArray mail = null;
@@ -441,6 +446,12 @@ public class AmazonSMTPMail {
 					.contains(jsonbody.get(email.getString("getContentNameColumn")))) {
 				int index = email.getJSONArray("getContantType").toList()
 						.indexOf(jsonbody.get(email.getString("getContentNameColumn")));
+				mail = email.getJSONObject("mail")
+						.getJSONArray(email.getJSONArray("getContantType").get(index).toString());
+
+			} else if (email.getString("getContentNameColumn").equalsIgnoreCase("default")
+					&& email.getJSONArray("getContantType").toList().contains(method)) {
+				int index = email.getJSONArray("getContantType").toList().indexOf(method);
 				mail = email.getJSONObject("mail")
 						.getJSONArray(email.getJSONArray("getContantType").get(index).toString());
 

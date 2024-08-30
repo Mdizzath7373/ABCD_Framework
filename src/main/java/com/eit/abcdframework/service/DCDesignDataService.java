@@ -22,6 +22,6 @@ public interface DCDesignDataService {
 
 	void getProgress(String data);
 
-	void mergeToPDF(String data);
+	String mergeToPDF(String data);
 
 }
