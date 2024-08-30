@@ -2,12 +2,10 @@ package com.eit.abcdframework.service;
 
 import java.net.URLEncoder;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import org.apache.commons.httpclient.HttpStatus;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -187,7 +185,8 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 			return new JSONObject().put(ERROR, "Failure").toString();
 		}
 		LOGGER.info("Fileupload Completed");
-		return returndata.toString();
+//		return returndata.toString();
+		return res;
 	}
 
 	@Override
@@ -469,7 +468,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 				progress.put(jsonbody.get("ids").toString() + "-" + value, new AtomicInteger(100));
 				fileuploadServices.setProgress(progress);
 
-				String socketRes = socketService.pushSocketData(jsonheader, jsonbody, "progress");
+				 socketService.pushSocketData(jsonheader, jsonbody, "progress");
 
 			}
 

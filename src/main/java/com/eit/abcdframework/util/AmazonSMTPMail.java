@@ -107,7 +107,7 @@ public class AmazonSMTPMail {
 			Session session = Session.getDefaultInstance(props);
 			MimeMessage msg = new MimeMessage(session);
 
-			MimeMultipart multipart = new MimeMultipart();
+//			MimeMultipart multipart = new MimeMultipart();
 			msg.setFrom(new InternetAddress(from, fromOfMail));
 			msg.setRecipient(Message.RecipientType.TO, new InternetAddress(to));
 			msg.setSubject(subject);
@@ -361,7 +361,7 @@ public class AmazonSMTPMail {
 			Session session = Session.getDefaultInstance(props);
 			MimeMessage msg = new MimeMessage(session);
 
-			MimeMultipart multipart = new MimeMultipart();
+//			MimeMultipart multipart = new MimeMultipart();
 			msg.setFrom(new InternetAddress(from, "Onboard-RAC"));
 			msg.setRecipient(Message.RecipientType.TO, new InternetAddress(to));
 			msg.setSubject(subject);

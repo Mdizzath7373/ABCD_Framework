@@ -1,12 +1,9 @@
 package com.eit.abcdframework.cronscheduler;
 
-import java.util.Date;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import com.eit.abcdframework.cronservices.CronServices;
@@ -49,15 +46,15 @@ public class CronSchedularController {
 //		}
 //	}
 
-	@Scheduled(cron = "0 39 18 * * ?", zone = "Asia/Kolkata")
-	public void run2() {
-		//	At 10:00:00am every day
-		try {
-			String  corn=cronServices.triggerCorn(); 
-			LOGGER.error(" Scheduler End's at " + new Date());
-		} catch (Exception e) {
-			LOGGER.error("Exception in Cumulative Summary Day Report Scheduler :: ", e);
-		}
-	}
+//	@Scheduled(cron = "0 39 18 * * ?", zone = "Asia/Kolkata")
+//	public void run2() {
+//		//	At 10:00:00am every day
+//		try {
+//			String  corn=cronServices.triggerCorn(); 
+//			LOGGER.error(" Scheduler End's at " + new Date());
+//		} catch (Exception e) {
+//			LOGGER.error("Exception in Cumulative Summary Day Report Scheduler :: ", e);
+//		}
+//	}
 
 }

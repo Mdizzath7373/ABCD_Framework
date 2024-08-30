@@ -7,7 +7,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.ObjectOutputStream;
 import java.lang.reflect.Field;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
@@ -26,7 +25,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-import java.util.zip.GZIPOutputStream;
 
 import javax.imageio.ImageIO;
 
@@ -47,7 +45,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.amazonaws.AmazonClientException;
 import com.eit.abcdframework.config.ConfigurationFile;
 import com.eit.abcdframework.http.caller.Httpclientcaller;
 import com.eit.abcdframework.s3bucket.S3Upload;
@@ -366,7 +363,7 @@ public class FileuploadServices {
 					System.err.println(progressCount);
 					if (progressCount.get() > preProgresCount.get() || progressCount.get() == 75) {
 						preProgresCount.set(progressCount.get());
-						String socketRes = socketService.pushSocketData(new JSONObject(), jsonbody, "progress");
+						 socketService.pushSocketData(new JSONObject(), jsonbody, "progress");
 					}
 				}
 				LOGGER.warn("DONE page " + (pageIndex + 1));
