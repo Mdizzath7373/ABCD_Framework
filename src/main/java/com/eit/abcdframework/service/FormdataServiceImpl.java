@@ -185,7 +185,7 @@ public class FormdataServiceImpl implements FormdataService {
 			response = dataTransmit.transmitDataspgrestpost(url, jsonbody.toString(),
 					jsonheader.has("primaryvalue") ? jsonheader.getBoolean("primaryvalue") : false);
 
-			res = ResponcesHandling.curdMethodResponceHandle(response, jsonheader, jsonbody, gettabledata,"POST");
+			res = ResponcesHandling.curdMethodResponceHandle(response, jsonbody,jsonheader, gettabledata,"POST");
 
 //			if (response.startsWith("{")) {
 //				if (jsonheader.has("sms")) {
@@ -361,7 +361,7 @@ public class FormdataServiceImpl implements FormdataService {
 			} else {
 				returndata.put(ERROR, "PrimaryKey is Missing!!");
 			}
-			res = ResponcesHandling.curdMethodResponceHandle(response, jsonheader, jsonbody, gettabledata,"PUT");
+			res = ResponcesHandling.curdMethodResponceHandle(response, jsonbody,jsonheader, gettabledata,"PUT");
 			
 //			if (Integer.parseInt(response) >= 200 && Integer.parseInt(response) <= 226) {
 //				if (jsonheader.has("sms")) {
