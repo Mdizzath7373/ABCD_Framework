@@ -614,8 +614,10 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 
 	}
 
+	@Override
 	public String SplitterPDFChanges(String data) {
 		JSONObject jsonObject1 = new JSONObject();
+		String res = "";
 		try {
 
 			if (data.equalsIgnoreCase("") && !data.startsWith("{")) {
@@ -626,24 +628,22 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 			else
 				jsonObject1 = new JSONObject(data);
 
-			JSONObject jsonbody = new JSONObject(data);
-
-			Map<String, Object> base64Images = commonServices.loadBase64(jsonbody.getString("primary_id_pdf"));
-			JSONObject jsonObject = jsonbody.getJSONObject("document");
+			Map<String, Object> base64Images = commonServices.loadBase64(jsonObject1.getString("primary_id_pdf"));
+			JSONObject jsonObject = jsonObject1.getJSONObject("document");
 
 			jsonObject.keys().forEachRemaining(key -> {
 				base64Images.put(key, jsonObject.getString(key));
 			});
-			jsonbody.put("document", jsonObject);
+			jsonObject1.put("document", base64Images);
 
-			String url = pgresturl + "pdf_splitter?id=eq." + jsonbody.get("id");
-			String res = dataTransmit.transmitDataspgrestput(url, jsonbody.toString(), false);
+			String url = pgresturl + "pdf_splitter?id=eq." + jsonObject1.get("id");
+			res = dataTransmit.transmitDataspgrestput(url, jsonObject1.toString(), false);
 
 		} catch (Exception e) {
-			// TODO: handle exception
+			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
 		}
 
-		return pgresturl;
+		return res;
 
 	}
 

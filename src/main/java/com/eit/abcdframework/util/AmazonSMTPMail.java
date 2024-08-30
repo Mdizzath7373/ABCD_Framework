@@ -442,16 +442,16 @@ public class AmazonSMTPMail {
 				mailid = jsonbody.getString(getcloumnname);
 			}
 
-			if (email.getJSONArray("getContantType").toList()
-					.contains(jsonbody.get(email.getString("getContentNameColumn")))) {
-				int index = email.getJSONArray("getContantType").toList()
-						.indexOf(jsonbody.get(email.getString("getContentNameColumn")));
+			if (email.getString("getContentNameColumn").equalsIgnoreCase("default")
+					&& email.getJSONArray("getContantType").toList().contains(method)) {
+				int index = email.getJSONArray("getContantType").toList().indexOf(method);
 				mail = email.getJSONObject("mail")
 						.getJSONArray(email.getJSONArray("getContantType").get(index).toString());
 
-			} else if (email.getString("getContentNameColumn").equalsIgnoreCase("default")
-					&& email.getJSONArray("getContantType").toList().contains(method)) {
-				int index = email.getJSONArray("getContantType").toList().indexOf(method);
+			} else if (email.getJSONArray("getContantType").toList()
+					.contains(jsonbody.get(email.getString("getContentNameColumn")))) {
+				int index = email.getJSONArray("getContantType").toList()
+						.indexOf(jsonbody.get(email.getString("getContentNameColumn")));
 				mail = email.getJSONObject("mail")
 						.getJSONArray(email.getJSONArray("getContantType").get(index).toString());
 

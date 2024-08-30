@@ -90,6 +90,12 @@ public class DCDesignDataServlet {
 		return ResponseEntity.ok(new JSONObject().put("reflex", "Success").toString());
 	}
 	
+	@PostMapping("/UpdatePDFImage")
+	public ResponseEntity<String> UpdatePDFImage(@RequestBody String data) {
+		dcDesignDataService.SplitterPDFChanges(data);
+		return ResponseEntity.ok(new JSONObject().put("reflex", "Success").toString());
+	}
+	
 	
 	
 	

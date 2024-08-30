@@ -23,5 +23,7 @@ public interface DCDesignDataService {
 	void getProgress(String data);
 
 	String mergeToPDF(String data);
+	
+	String SplitterPDFChanges(String data);
 
 }
