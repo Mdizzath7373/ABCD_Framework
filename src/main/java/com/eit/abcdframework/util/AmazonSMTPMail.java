@@ -218,8 +218,7 @@ public class AmazonSMTPMail {
 							if (k == 3) {
 								return resultOfMail = FAILED;
 							}
-							if (getJson.has("withattachment") && getJson.getBoolean("withattachment")
-									&& !files.isEmpty()) {
+							if (jsondata.getBoolean("withattachment") && !files.isEmpty()) {
 								resultOfMail = sendEmailWithFile(smtpMail.getString("amazonverifiedfromemail"),
 										emails.get(m),
 //										new JSONObject(jsondata.get("subject").toString()).getString(lang), body,
