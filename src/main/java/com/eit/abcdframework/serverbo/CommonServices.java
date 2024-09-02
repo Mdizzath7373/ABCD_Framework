@@ -2,8 +2,17 @@ package com.eit.abcdframework.serverbo;
 
 import java.io.IOException;
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.crypto.Cipher;
@@ -521,10 +530,67 @@ public class CommonServices {
 	}
 
 	public Map<String, Object> loadBase64(String value) throws JSONException, IOException {
+		String url = "";
+		Map<String, Object> base64String = new HashMap<>();
+		url = applicationurl + "pdf_splitter?select=total_pages&primary_id_pdf=eq." + value;
+		int total_pages = new JSONObject(dataTransmit.transmitDataspgrest(url).get(0).toString()).getInt("total_pages");
 
-		String url = applicationurl + "pdf_splitter?select=document&primary_id_pdf=eq." + value;
-		return new JSONObject(dataTransmit.transmitDataspgrest(url).get(0).toString()).getJSONObject("document")
-				.toMap();
+		if (total_pages <= 100) {
+			url = applicationurl + "pdf_splitter?select=document&primary_id_pdf=eq." + value;
+			return new JSONObject(dataTransmit.transmitDataspgrest(url).get(0).toString()).getJSONObject("document")
+					.toMap();
+
+		} else if (total_pages > 100) {
+			int start_page = 1;
+			ExecutorService executorService = Executors.newFixedThreadPool(10);
+
+			try {
+				while (start_page < total_pages) {
+					final int current_start_page = start_page;
+					final int current_end_page = (start_page == 1 ? (start_page + 49) : (start_page + 50)) > total_pages
+							? total_pages
+							: start_page == 1 ? (start_page + 49) : (start_page + 50);
+
+					executorService.submit(() -> {
+
+						String urls = applicationurl + "rpc/get_pdf_splitdata?start_page=" + current_start_page
+								+ "&end_page=" + current_end_page + "&datas=primary_id_pdf='" + value + "'";
+
+						try {
+							JSONObject jsonObject = new JSONObject(
+									dataTransmit.transmitDataspgrest(urls).get(0).toString()).getJSONObject("images");
+
+							jsonObject.keys().forEachRemaining(key -> {
+								synchronized (base64String) {
+									base64String.put(key, jsonObject.getString(key));
+								}
+							});
+
+							LOGGER.info("Successfully Put Into Object startPages: {} --- endPage: {}",
+									current_start_page, current_end_page);
+
+						} catch (Exception e) {
+							LOGGER.error("Error processing pages {} to {}: {}", current_start_page, current_end_page,
+									e.getMessage());
+						}
+					});
+					start_page = current_end_page > total_pages ? total_pages : current_end_page;
+				}
+			} finally {
+				executorService.shutdown();
+				try {
+					if (!executorService.awaitTermination(60, TimeUnit.MINUTES)) {
+						executorService.shutdownNow();
+					}
+				} catch (InterruptedException e) {
+					executorService.shutdownNow();
+					Thread.currentThread().interrupt();
+				}
+			}
+		}
+		System.err.println(base64String.size());
+		return base64String;
 
 	}
+
 }

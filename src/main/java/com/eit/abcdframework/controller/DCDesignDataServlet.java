@@ -7,6 +7,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,6 +19,8 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.S3Object;
 import com.eit.abcdframework.dto.CommonUtilDto;
 import com.eit.abcdframework.serverbo.FileuploadServices;
 import com.eit.abcdframework.service.DCDesignDataService;
@@ -31,6 +35,9 @@ public class DCDesignDataServlet {
 
 	@Autowired
 	FileuploadServices fileuploadServices;
+	
+	@Autowired
+	AmazonS3 amazonS3;
 
 	@Value("${applicationurl}")
 	public String pgrest;
@@ -83,31 +90,25 @@ public class DCDesignDataServlet {
 		return ResponseEntity.ok(new JSONObject().put("reflex", "Success").toString());
 	}
 
-	
 	@PostMapping("/mergeToPDF")
-	public ResponseEntity<String> mergeToPDF(@RequestBody String data) {
-		dcDesignDataService.mergeToPDF(data);
+	public ResponseEntity<String> mergeToPDF(@RequestPart("files") MultipartFile files, @RequestParam String data) {
+		dcDesignDataService.mergeToPDF(files, data);
 		return ResponseEntity.ok(new JSONObject().put("reflex", "Success").toString());
 	}
-	
+
 	@PostMapping("/UpdatePDFImage")
 	public ResponseEntity<String> UpdatePDFImage(@RequestBody String data) {
 		dcDesignDataService.SplitterPDFChanges(data);
 		return ResponseEntity.ok(new JSONObject().put("reflex", "Success").toString());
 	}
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+
+	@PostMapping("/test")
+	public ResponseEntity<String> test(@RequestPart("files") MultipartFile files) {
+//		dcDesignDataService.mergeToPDF(files,data);
+        fileuploadServices.test(files);
+		return null;		
+	}
+
 //	final HttpClient httpClient = HttpClient.newHttpClient();
 
 //	@PostMapping("/test") 

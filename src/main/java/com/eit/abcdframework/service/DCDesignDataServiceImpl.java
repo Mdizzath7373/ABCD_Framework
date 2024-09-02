@@ -1,5 +1,6 @@
 package com.eit.abcdframework.service;
 
+import java.io.File;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
@@ -392,9 +393,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 				.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
 		fileuploadServices.getProgress().clear();
-		System.err.println("clear  " + fileuploadServices.getProgress());
 		fileuploadServices.setProgress(filteredMap);
-		System.err.println("finila" + fileuploadServices.getProgress());
 
 	}
 
@@ -480,7 +479,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 	}
 
 	@Override
-	public String mergeToPDF(String data) {
+	public String mergeToPDF(MultipartFile files,String data) {
 		JSONObject jsonObject1 = null;
 		JSONObject returndata = new JSONObject();
 		try {
@@ -526,7 +525,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 			Map<String, Object> base64Images = commonServices.loadBase64(value);
 			String path = "";
 			try (PDDocument document = new PDDocument()) {
-				path = fileuploadServices.writeImage(base64Images, PDFpath, filename);
+				path = fileuploadServices.writeImage(base64Images, PDFpath, filename,document,files);
 				jsonbody.put(column.get(0).toString(), path);
 			}
 
@@ -610,7 +609,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 			System.err.println("compaleted");
 
 		} catch (Exception e) {
-			// TODO: handle exception
+			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
 		}
 		return data;
 

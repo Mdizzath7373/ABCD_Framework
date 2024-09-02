@@ -24,7 +24,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 import javax.imageio.ImageIO;
 
@@ -42,9 +41,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.S3Object;
 import com.eit.abcdframework.config.ConfigurationFile;
 import com.eit.abcdframework.http.caller.Httpclientcaller;
 import com.eit.abcdframework.s3bucket.S3Upload;
@@ -67,6 +72,9 @@ public class FileuploadServices {
 
 	@Autowired
 	WebSocketService socketService;
+
+	@Autowired
+	AmazonS3 amazonS3;
 
 	@Value("${applicationurl}")
 	private String pgresturl;
@@ -276,15 +284,14 @@ public class FileuploadServices {
 
 		ExecutorService executorService = Executors.newFixedThreadPool(20);
 
-		int maxRetries = 3; // Retry once
-		int retryDelayMillis = 2000; // Delay between retries in milliseconds
+		int maxRetries = 3;
+		int retryDelayMillis = 2000;
 		int pageCount = 0;
-		Instant startTime = Instant.now(); // Record start time
+		Instant startTime = Instant.now();
 		AtomicInteger progressCount = new AtomicInteger(0);
-		final Map<Integer, String> base64String = new TreeMap<>(); // Initializing the TreeMap
+		final Map<Integer, String> base64String = new TreeMap<>();
 		List<Integer> FaildPages = new ArrayList<>();
 
-//        PDDocument document = null;
 		try (InputStream inputStream = multipartFile.getInputStream();
 				PDDocument document = PDDocument.load(inputStream)) {
 			PDFRenderer pdfRenderer = new PDFRenderer(document);
@@ -297,7 +304,7 @@ public class FileuploadServices {
 						maxRetries, retryDelayMillis, primaryKey, progressCount, FaildPages, id, jsonbody,
 						preProgresCount)));
 			}
-			// Wait for all tasks to complete
+
 			for (Future<Boolean> future : futures) {
 				try {
 					future.get();
@@ -306,9 +313,6 @@ public class FileuploadServices {
 				}
 			}
 		} finally {
-//            if (document != null) {
-//                document.close(); // Close the document after all threads are done
-//            }
 			executorService.shutdown();
 			try {
 				if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
@@ -319,14 +323,12 @@ public class FileuploadServices {
 				Thread.currentThread().interrupt();
 			}
 		}
-//		if(pageCount!=base64String.size()) {
-//			
-//		}
+
 		LOGGER.warn("ENTER INTO saveOrUpdateData {BASE64iMAGES}---------->" + Instant.now());
 		saveOrUpdateData(base64String, primaryKey, progressCount, id, jsonbody);
 		LOGGER.warn("EXIT saveOrUpdateData {BASE64iMAGES}------->" + Instant.now());
 
-		Instant endTime = Instant.now(); // Record end time
+		Instant endTime = Instant.now();
 		Duration duration = Duration.between(startTime, endTime);
 		LOGGER.warn(startTime + "_" + endTime + " Processing time: " + duration.toMillis() + " milliseconds");
 
@@ -345,7 +347,7 @@ public class FileuploadServices {
 					ByteArrayOutputStream baos = new ByteArrayOutputStream();
 					ImageIO.write(bufferedImage, "JPEG", baos);
 
-					base64String.put((pageIndex + 1), "data:image/png;base64,"
+					base64String.put((pageIndex + 1), "data:image/jpeg;base64,"
 							+ Base64.getEncoder().encodeToString(baos.toByteArray()).replaceAll("=+$", ""));
 
 					int totalPages = document.getNumberOfPages();
@@ -360,19 +362,16 @@ public class FileuploadServices {
 
 						progress.put(id + "-" + primaryKey, progressCount);
 					}
-					System.err.println(progressCount);
 					if (progressCount.get() > preProgresCount.get() || progressCount.get() == 75) {
 						preProgresCount.set(progressCount.get());
-						 socketService.pushSocketData(new JSONObject(), jsonbody, "progress");
+						socketService.pushSocketData(new JSONObject(), jsonbody, "progress");
 					}
 				}
 				LOGGER.warn("DONE page " + (pageIndex + 1));
 
-				// After processing every 100 pages, save or update the PDF data
 				if ((pageIndex + 1) % 100 == 0) {
-					// Sleep after the save/update completes
 					LOGGER.warn("Sleeping after processing " + (pageIndex + 1) + " pages.");
-					Thread.sleep(300000); // Sleep for the specified duration
+					Thread.sleep(300000);
 				}
 				return true;
 			} catch (IllegalStateException e) {
@@ -386,83 +385,96 @@ public class FileuploadServices {
 				} else {
 					LOGGER.error("Failed to process page " + (pageIndex + 1) + " after " + (attempt + 1) + " attempts.",
 							e);
-					return false; // Return null to indicate failure
+					return false;
 				}
 			} catch (Exception e) {
 				FaildPages.add((pageIndex + 1));
 				LOGGER.error("Error rendering page " + (pageIndex + 1), e);
-				return false; // Return null to indicate failure
+				return false;
 			}
 		}
-		return false; // Should not reach here
+		return false;
 	}
 
 	private void saveOrUpdateData(Map<Integer, String> base64String, String primarykey, AtomicInteger progressCount,
 			String id, JSONObject jsonbody) {
-		final int BATCH_SIZE = 700; // Define a batch size suitable for your needs
+//		final int BATCH_SIZE = 700;
 		String res = "";
 		try {
 			int total = base64String.size();
-			int start = 0;
 
-			while (start < total) {
-				int end = Math.min(start + BATCH_SIZE, total);
-				Map<Integer, String> batch = new HashMap<>(base64String).entrySet().stream().skip(start)
-						.limit(BATCH_SIZE).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-//                System.err.println(batch);
+//			int start = 0;
 
-				JSONObject savePDF = new JSONObject();
-				savePDF.put("primary_id_pdf", primarykey);
-				savePDF.put("document", batch);
-				savePDF.put("total_pages", total);
-				progressCount.set(80);
+//			while (start < total) {
+//				int end = Math.min(start + BATCH_SIZE, total);
+//				Map<Integer, String> batch = new HashMap<>(base64String).entrySet().stream().skip(start)
+//						.limit(BATCH_SIZE).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+			JSONObject savePDF = new JSONObject();
+			savePDF.put("primary_id_pdf", primarykey);
+			savePDF.put("document", base64String);
+			savePDF.put("total_pages", total);
+			progressCount.set(80);
+			progress.put(id + "-" + primarykey, progressCount);
+			socketService.pushSocketData(new JSONObject(), jsonbody, "progress");
+
+			LOGGER.warn("Enter into save");
+			String url = pgresturl + "pdf_splitter";
+			res = daHttpclientcaller.transmitDataspgrestpost(url, savePDF.toString(), false);
+			if (Integer.parseInt(res) >= 200 && Integer.parseInt(res) <= 226) {
+				progressCount.set(85);
 				progress.put(id + "-" + primarykey, progressCount);
 				socketService.pushSocketData(new JSONObject(), jsonbody, "progress");
-
-				// First save
-				LOGGER.warn("Enter into save");
-				String url = pgresturl + "pdf_splitter";
-				res = daHttpclientcaller.transmitDataspgrestpost(url, savePDF.toString(), false);
-				if (Integer.parseInt(res) >= 200 && Integer.parseInt(res) <= 226) {
-					progressCount.set(85);
-					progress.put(id + "-" + primarykey, progressCount);
-					socketService.pushSocketData(new JSONObject(), jsonbody, "progress");
-				}
-				LOGGER.warn(daHttpclientcaller.transmitDataspgrestpost(url, savePDF.toString(), false));
-
-				start = end;
 			}
+			LOGGER.warn(daHttpclientcaller.transmitDataspgrestpost(url, savePDF.toString(), false));
+
+//				start = end;
+//			}
 
 		} catch (Exception e) {
 			LOGGER.error("Error during save/update", e);
 		}
 	}
 
-	private void writePDF(PDDocument document, String imagePath) {
+	private void writePDF(PDDocument document, List<String> paths) {
+		List<PDImageXObject> imagesList = new ArrayList<>();
 		try {
 
 			PDPage pages = new PDPage(PDRectangle.A4);
 			document.addPage(pages);
+			PDPageContentStream contentStream =new PDPageContentStream(document, pages);
 
-			PDImageXObject images = PDImageXObject.createFromFile(imagePath, document);
+			for (String imagePath : paths) {
+				PDImageXObject images = PDImageXObject.createFromFile(imagePath, document);
+				imagesList.add(images);
+			}
 
 			float width = pages.getMediaBox().getWidth();
 			float height = pages.getMediaBox().getHeight();
+			float currentY = height;
 
-			float imageWidth = images.getWidth();
-			float imageHeight = images.getHeight();
+			for (PDImageXObject image : imagesList) {
+				float imageWidth = image.getWidth();
+				float imageHeight = image.getHeight();
+				float scaleFactor = Math.min(width / imageWidth, height / imageHeight);
+				float scaledWidth = imageWidth * scaleFactor;
+				float scaledHeight = imageHeight * scaleFactor;
 
-			float scaleFactor = Math.min(width / imageWidth, height / imageHeight);
+				currentY -= scaledHeight;
 
-			float scaledWidth = imageWidth * scaleFactor;
-			float scaledHeight = imageHeight * scaleFactor;
+				if (currentY < 0) {
+					contentStream.close();
+					pages = new PDPage(PDRectangle.A4);
+					document.addPage(pages);
+					contentStream = new PDPageContentStream(document, pages);
+					currentY = height - scaledHeight;
+				}
 
-			float x = (width - scaledWidth) / 2;
-			float y = (height - scaledHeight) / 2;
+				float x = (width - scaledWidth) / 2;
+				contentStream.drawImage(image, x, currentY, scaledWidth, scaledHeight);
 
-			PDPageContentStream contentStream = new PDPageContentStream(document, pages);
+			}
 
-			contentStream.drawImage(images, x, y, width, height);
 			contentStream.close();
 
 		} catch (Exception e) {
@@ -471,52 +483,95 @@ public class FileuploadServices {
 
 	}
 
-	public String writeImage(Map<String, Object> base64Images, String PDFpath, String filename) {
+	public String writeImage(Map<String, Object> base64Images, String PDFpath, String filename, PDDocument document,
+			MultipartFile file) {
 
-		PDDocument document = new PDDocument();
 		String res = "";
 		try {
 			String currentDir = System.getProperty("user.dir");
-			Map<String, Object> sortedMap = new TreeMap<>(base64Images);
 
-			List<String> listofarray = sortedMap.entrySet().stream().map(entrys -> entrys.getKey())
-					.sorted(Comparator.comparingInt(Integer::parseInt)).collect(Collectors.toList());
-			System.err.println(listofarray);
+			ExecutorService executorService = Executors.newFixedThreadPool(10);
+			List<Future<Boolean>> futures = new ArrayList<>();
 
+			boolean IsFirst = true;
+
+			if (IsFirst && !file.isEmpty()) {
+
+				String paramImagePath = currentDir + "/MaterialPage."+file.getOriginalFilename().split("\\.")[1];
+				File convFile = new File(paramImagePath);
+				file.transferTo(convFile);
+//				BufferedImage paramImage = ImageIO.read(file.getInputStream());
+//				ImageIO.write(paramImage, "JPEG", new File(paramImagePath));
+
+				S3Object s3Object = amazonS3.getObject("goldenelement", "download22.png");
+				BufferedImage localImage = null;
+				try (InputStream inputStream = s3Object.getObjectContent();) {
+					localImage = ImageIO.read(inputStream);
+				}
+				String localpath = currentDir + "/S3Images.png";
+				File S3file = new File(localpath);
+
+				ImageIO.write(localImage, "png", S3file);
+
+				List<String> paths = new ArrayList<>();
+				paths.add(paramImagePath);
+				paths.add(localpath);
+				writePDF(document, paths);
+
+			}
 			base64Images.entrySet().stream()
 					.sorted(Map.Entry.comparingByKey(Comparator.comparingInt(Integer::parseInt))).forEach(entry -> {
-//			for (Map.Entry<String, Object> entry : sortedMap.entrySet()) {
 						String imageName = entry.getKey();
 						String base64Image = (String) entry.getValue();
+//						byte[] imageBytes;
+//						if ((base64Image.split("data:image/")[1]).split(";")[0].equalsIgnoreCase("png")) {
+//							imageBytes = Base64.getDecoder().decode(base64Image.replace("data:image/png;base64,", ""));
+//						} else if ((base64Image.split("data:image/")[1]).split(";")[0].equalsIgnoreCase("jpeg")) {
+//							imageBytes = Base64.getDecoder().decode(base64Image.replace("data:image/jpeg;base64,", ""));
+//						} else if ((base64Image.split("data:image/")[1]).split(";")[0].equalsIgnoreCase("jpg")) {
+//							imageBytes = Base64.getDecoder().decode(base64Image.replace("data:image/jpg;base64,", ""));
+//						} else {
+//							imageBytes = new byte[0];
+//						}
 						byte[] imageBytes = Base64.getDecoder()
-								.decode(base64Image.replace("data:image/png;base64,", ""));
-						File outputfile = null;
+								.decode(base64Image.replace("data:image/jpeg;base64,", ""));
 
-						try {
-							ByteArrayInputStream bis = new ByteArrayInputStream(imageBytes);
-							BufferedImage bufferedImage = ImageIO.read(bis);
+						futures.add(executorService.submit(() -> {
+							File outputfile = null;
+							try (ByteArrayInputStream bis = new ByteArrayInputStream(imageBytes)) {
 
-							String imagePath = currentDir + imageName + ".jpg";
-							outputfile = new File(imagePath);
+								BufferedImage bufferedImage = ImageIO.read(bis);
 
-							ImageIO.write(bufferedImage, "JPEG", outputfile);
-							writePDF(document, imagePath);
-						} catch (IOException e) {
-							LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
-						} finally {
-							if (outputfile.exists()) {
-								// Attempt to delete the file
-								if (outputfile.delete()) {
-									LOGGER.info("Image deleted successfully.");
+								String imagePath = currentDir + imageName + ".jpeg";
+								outputfile = new File(imagePath);
+
+								ImageIO.write(bufferedImage, "JPEG", outputfile);
+
+								List<String> paths = new ArrayList<>();
+								paths.add(imagePath);
+								writePDF(document, paths);
+
+							} catch (IOException e) {
+								LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+							} finally {
+								if (outputfile.exists()) {
+									// Attempt to delete the file
+									if (outputfile.delete()) {
+										LOGGER.info("Image deleted successfully.");
+									} else {
+										LOGGER.info("Failed to delete the image.");
+									}
 								} else {
-									LOGGER.info("Failed to delete the image.");
+									LOGGER.info("Image file does not exist.");
 								}
-							} else {
-								LOGGER.info("Image file does not exist.");
 							}
-						}
+							return true;
+						}));
 					});
-//			}
+
+			for (Future<Boolean> future : futures) {
+				future.get();
+			}
 
 			document.save(PDFpath);
 			String filePath = path + filename + "_" + dateFormat.format(new Date()) + ".pdf";
@@ -541,6 +596,97 @@ public class FileuploadServices {
 		} else {
 			return false;
 		}
+	}
+
+	public void test(MultipartFile files) {
+
+		try {
+			File convFile = new File("F:\\image1.png");
+			files.transferTo(convFile);
+//			BufferedImage localImage = ImageIO.read(convFile);
+
+			// Retrieve the second image from S3
+			S3Object s3Object = amazonS3.getObject("goldenelement", "download22.png");
+			InputStream inputStream = s3Object.getObjectContent();
+			BufferedImage localImage = ImageIO.read(inputStream);
+
+			// Define local file path
+			File file = new File("F:\\image2.png");
+
+			ImageIO.write(localImage, "png", file);
+
+			// Create a new PDF document
+			PDDocument document = new PDDocument();
+			PDPage page = new PDPage(PDRectangle.A4);
+			document.addPage(page);
+
+			// Create PDImageXObject for both images
+			PDImageXObject pdImage1 = PDImageXObject.createFromFile("F:\\image1.png", document);
+			PDImageXObject pdImage2 = PDImageXObject.createFromFile("F:\\image2.png", document);
+
+			float width = page.getMediaBox().getWidth();
+			float height = page.getMediaBox().getHeight();
+
+			PDPageContentStream contentStream = new PDPageContentStream(document, page);
+//			float imageWidth2 = pdImage2.getWidth();
+//		    float imageHeight2 = pdImage2.getHeight();
+//		    float scaleFactor2 = Math.min(width / imageWidth2, height / imageHeight2);
+//		    float scaledWidth2 = imageWidth2 * scaleFactor2;
+//		    float scaledHeight2 = imageHeight2 * scaleFactor2;
+//		    float x2 = (width - scaledWidth2) / 2;
+//		    float y2 = (height - scaledHeight2) / 2;
+//
+//			float imageWidth1 = pdImage1.getWidth();
+//		    float imageHeight1 = pdImage1.getHeight();
+//		    float scaleFactor1 = Math.min(width / imageWidth1, height / imageHeight1);
+//		    float scaledWidth1 = imageWidth1 * scaleFactor1;
+//		    float scaledHeight1 = imageHeight1 * scaleFactor1;
+//		    float x1 = (width - scaledWidth1) / 2;
+//		    float y1 = (height - scaledHeight1) / 2 ;
+
+			float imageWidth1 = pdImage1.getWidth();
+			float imageHeight1 = pdImage1.getHeight();
+			float scaleFactor1 = Math.min(width / imageWidth1, height / imageHeight1);
+			float scaledWidth1 = imageWidth1 * scaleFactor1;
+			float scaledHeight1 = imageHeight1 * scaleFactor1;
+			float x1 = (width - scaledWidth1) / 2;
+			float y1 = height - scaledHeight1; // Position at the top of the page
+			contentStream.drawImage(pdImage1, x1, y1, scaledWidth1, scaledHeight1);
+
+			// Draw the second image (from S3) on the PDF page
+			float imageWidth2 = pdImage2.getWidth();
+			float imageHeight2 = pdImage2.getHeight();
+			float scaleFactor2 = Math.min(width / imageWidth2, height / imageHeight2);
+			float scaledWidth2 = imageWidth2 * scaleFactor2;
+			float scaledHeight2 = imageHeight2 * scaleFactor2;
+
+			// Calculate y-coordinate to position the second image below the first
+			float y2 = y1 - scaledHeight2;
+
+			// Ensure that the image fits within the page
+			if (y2 < 0) {
+				y2 = 0; // Adjust if necessary to ensure the image fits within the page
+			}
+//		    
+
+			contentStream.drawImage(pdImage2, x1, y2, scaledWidth2, scaledHeight2);
+			// Close the content stream
+			contentStream.close();
+
+			// Save the PDF to a file
+			document.save("F:\\newTest.pdf");
+
+			// Close the document
+			document.close();
+
+			// Close the S3 input stream
+			inputStream.close();
+			// TODO Auto-generated method stub
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
 	}
 
 //
