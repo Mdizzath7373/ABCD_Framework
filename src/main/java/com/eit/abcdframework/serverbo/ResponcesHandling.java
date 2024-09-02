@@ -74,18 +74,18 @@ public class ResponcesHandling {
 					: new JSONObject();
 
 	public static String curdMethodResponceHandle(String response, JSONObject jsonbody, JSONObject jsonheader,
-			JSONObject gettabledata, String method) {
+			JSONObject gettabledata, String method,List<MultipartFile> files) {
 		try {
 			if (response.startsWith("{")) {
 				jsonbody.put(gettabledata.getJSONObject(KEY).getString("columnname"),
 						new JSONObject(response.toString())
 								.get(gettabledata.getJSONObject(KEY).getString("columnname")));
-				handlerMethod(jsonheader, jsonbody, gettabledata, method);
+				handlerMethod(jsonheader, jsonbody, gettabledata, method,files);
 
 			} else if (response.equalsIgnoreCase("success")) {
-				handlerMethod(jsonheader, jsonbody, gettabledata, method);
+				handlerMethod(jsonheader, jsonbody, gettabledata, method,files);
 			} else if (Integer.parseInt(response) >= 200 && Integer.parseInt(response) <= 226) {
-				handlerMethod(jsonheader, jsonbody, gettabledata, method);
+				handlerMethod(jsonheader, jsonbody, gettabledata, method,files);
 			} else {
 				String res = HttpStatus.getStatusText(Integer.parseInt(response));
 				return new JSONObject().put(ERROR, res).toString();
@@ -98,7 +98,7 @@ public class ResponcesHandling {
 	}
 
 	private static void handlerMethod(JSONObject jsonheader, JSONObject jsonbody, JSONObject gettabledata,
-			String method) {
+			String method,List<MultipartFile> files) {
 		try {
 			String rolename = jsonheader.has("rolename") ? jsonheader.getString("rolename") : "";
 			String message = jsonheader.has("message") ? jsonheader.getString("message") : "";
@@ -137,8 +137,7 @@ public class ResponcesHandling {
 			if (gettabledata.has("email")) {
 				try {
 					email = new JSONObject(gettabledata.get("email").toString());
-					if (!new JSONArray(email.getJSONObject("mail").toString()).isEmpty()) {
-						List<MultipartFile> files = new ArrayList<>();
+					if (!new JSONObject(email.get("mail").toString()).isEmpty()) {
 						amazonSMTPMail.emailconfig(email, jsonbody, files,
 								jsonheader.has("lang") ? jsonheader.getString("lang") : "en", method);
 					}

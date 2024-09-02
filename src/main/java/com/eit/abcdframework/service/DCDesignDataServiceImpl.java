@@ -146,7 +146,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 				}
 			}
 
-			res = ResponcesHandling.curdMethodResponceHandle(response, jsonbody,jsonheader, gettabledata, method);
+			res = ResponcesHandling.curdMethodResponceHandle(response, jsonbody,jsonheader, gettabledata, method,files);
 
 //			if (Integer.parseInt(response) >= 200 && Integer.parseInt(response) <= 226) {
 //
