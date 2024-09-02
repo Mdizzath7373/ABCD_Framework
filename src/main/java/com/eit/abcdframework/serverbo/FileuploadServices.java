@@ -442,7 +442,7 @@ public class FileuploadServices {
 
 			PDPage pages = new PDPage(PDRectangle.A4);
 			document.addPage(pages);
-			PDPageContentStream contentStream =new PDPageContentStream(document, pages);
+			PDPageContentStream contentStream = new PDPageContentStream(document, pages);
 
 			for (String imagePath : paths) {
 				PDImageXObject images = PDImageXObject.createFromFile(imagePath, document);
@@ -497,7 +497,7 @@ public class FileuploadServices {
 
 			if (IsFirst && !file.isEmpty()) {
 
-				String paramImagePath = currentDir + "/MaterialPage."+file.getOriginalFilename().split("\\.")[1];
+				String paramImagePath = currentDir + "/MaterialPage." + file.getOriginalFilename().split("\\.")[1];
 				File convFile = new File(paramImagePath);
 				file.transferTo(convFile);
 //				BufferedImage paramImage = ImageIO.read(file.getInputStream());
@@ -505,18 +505,40 @@ public class FileuploadServices {
 
 				S3Object s3Object = amazonS3.getObject("goldenelement", "download22.png");
 				BufferedImage localImage = null;
+				File S3file = null;
 				try (InputStream inputStream = s3Object.getObjectContent();) {
 					localImage = ImageIO.read(inputStream);
+					String localpath = currentDir + "/S3Images.png";
+					S3file = new File(localpath);
+
+					ImageIO.write(localImage, "png", S3file);
+
+					List<String> paths = new ArrayList<>();
+					paths.add(paramImagePath);
+					paths.add(localpath);
+					writePDF(document, paths);
+				} finally {
+					if (S3file.exists()) {
+						// Attempt to delete the file
+						if (S3file.delete()) {
+							LOGGER.info("Image deleted successfully.");
+						} else {
+							LOGGER.info("Failed to delete the image.");
+						}
+					} else {
+						LOGGER.info("Image file does not exist.");
+					}
+					if (convFile.exists()) {
+						// Attempt to delete the file
+						if (convFile.delete()) {
+							LOGGER.info("Image deleted successfully.");
+						} else {
+							LOGGER.info("Failed to delete the image.");
+						}
+					} else {
+						LOGGER.info("Image file does not exist.");
+					}
 				}
-				String localpath = currentDir + "/S3Images.png";
-				File S3file = new File(localpath);
-
-				ImageIO.write(localImage, "png", S3file);
-
-				List<String> paths = new ArrayList<>();
-				paths.add(paramImagePath);
-				paths.add(localpath);
-				writePDF(document, paths);
 
 			}
 			base64Images.entrySet().stream()
