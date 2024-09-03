@@ -92,22 +92,20 @@ public class DCDesignDataServlet {
 
 	@PostMapping("/mergeToPDF")
 	public ResponseEntity<String> mergeToPDF(@RequestPart("files") MultipartFile files, @RequestParam String data) {
-		dcDesignDataService.mergeToPDF(files, data);
-		return ResponseEntity.ok(new JSONObject().put("reflex", "Success").toString());
+		return ResponseEntity.ok(dcDesignDataService.mergeToPDF(files, data));
 	}
 
 	@PostMapping("/UpdatePDFImage")
 	public ResponseEntity<String> UpdatePDFImage(@RequestBody String data) {
-		dcDesignDataService.SplitterPDFChanges(data);
-		return ResponseEntity.ok(new JSONObject().put("reflex", "Success").toString());
+		return ResponseEntity.ok(dcDesignDataService.SplitterPDFChanges(data));
 	}
 
-	@PostMapping("/test")
-	public ResponseEntity<String> test(@RequestPart("files") MultipartFile files) {
-//		dcDesignDataService.mergeToPDF(files,data);
-        fileuploadServices.test(files);
-		return null;		
-	}
+//	@PostMapping("/test")
+//	public ResponseEntity<String> test(@RequestPart("files") MultipartFile files) {
+////		dcDesignDataService.mergeToPDF(files,data);
+//        fileuploadServices.test(files);
+//		return null;		
+//	}
 
 //	final HttpClient httpClient = HttpClient.newHttpClient();
 

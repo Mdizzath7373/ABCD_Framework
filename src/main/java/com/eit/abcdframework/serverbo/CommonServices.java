@@ -5,15 +5,10 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
@@ -170,8 +165,8 @@ public class CommonServices {
 								new JSONObject().put("message", setvalueofnotification).toString());
 					}
 				} else {
-					System.err.println(jsonBody.get(getJsonObject.getJSONObject(tablename).getString("checkUser")));
-					System.err.println(new JSONObject(jsonArray.get(i).toString()).get("userid"));
+//					System.err.println(jsonBody.get(getJsonObject.getJSONObject(tablename).getString("checkUser")));
+//					System.err.println(new JSONObject(jsonArray.get(i).toString()).get("userid"));
 					if (getJsonObject.getJSONObject(tablename).has("checkUser")
 							&& jsonBody.get(getJsonObject.getJSONObject(tablename).getString("checkUser"))
 									.equals(new JSONObject(jsonArray.get(i).toString()).get("userid"))) {
@@ -393,7 +388,7 @@ public class CommonServices {
 			}
 			subject = new JSONObject(DisplaySingleton.memoryEmailCofig.get("otpverification").toString())
 					.getJSONObject("subject").getString(lang);
-			String resultOfMail = amazonSMTPMail.sendEmail(mail, subject, body);
+			amazonSMTPMail.sendEmail(mail, subject, body);
 
 			returndata.put("reflex", Base64.getEncoder().encodeToString(code.getBytes()));
 		} catch (Exception e) {
@@ -439,17 +434,53 @@ public class CommonServices {
 				if (jsonbody.getString(Findcolumn).equalsIgnoreCase(sendingdata)) {
 					if (getPushNotificationJsonObject.getBoolean("sendbyrole")
 							&& getPushNotificationJsonObject.getJSONArray("rolename").toList().contains(rolename))
-						return sendnotification(jsonbody, tablename, getPushNotificationJsonObject);
+						sendnotification(jsonbody, tablename, getPushNotificationJsonObject);
 					else if (!getPushNotificationJsonObject.getBoolean("sendbyrole"))
-						return sendnotification(jsonbody, tablename, getPushNotificationJsonObject);
+						sendnotification(jsonbody, tablename, getPushNotificationJsonObject);
 				}
 			} else {
 				if (getPushNotificationJsonObject.getBoolean("sendbyrole")
 						&& getPushNotificationJsonObject.getJSONArray("rolename").toList().contains(rolename))
-					return sendnotification(jsonbody, tablename, getPushNotificationJsonObject);
+					sendnotification(jsonbody, tablename, getPushNotificationJsonObject);
 				else if (!getPushNotificationJsonObject.getBoolean("sendbyrole"))
-					return sendnotification(jsonbody, tablename, getPushNotificationJsonObject);
+					sendnotification(jsonbody, tablename, getPushNotificationJsonObject);
 			}
+			System.err.println();
+
+			if (getPushNotificationJsonObject.getJSONObject(tablename).has("email")) {
+				JSONObject emailObject = new JSONObject(
+						getPushNotificationJsonObject.getJSONObject(tablename).get("email").toString());
+
+				if (emailObject.getBoolean("Toggle")) {
+					String api = emailObject.getJSONObject("FindToggle").getString("tablename");
+					String where = emailObject.getJSONObject("FindToggle").getJSONObject("where").getString("condition")
+							+ jsonbody.get(
+									emailObject.getJSONObject("FindToggle").getJSONObject("where").getString("value"));
+					String url = (applicationurl + api + "?" + where).replaceAll(" ", "%20");
+
+					String toogleData = new JSONObject(dataTransmit.transmitDataspgrest(url).get(0).toString())
+							.getString(emailObject.getJSONObject("FindToggle").getString("columnkey"));
+					if (toogleData.equalsIgnoreCase("On")) {
+
+						if (!rolename.equalsIgnoreCase("Company Admin")) {
+							jsonbody.put("from", DisplaySingleton.memoryApplicationSetting.getString("AdminName"));
+							jsonbody.put("to",
+									jsonbody.getString("companyname") + "-" + jsonbody.getString("username"));
+						} else {
+							jsonbody.put("to", DisplaySingleton.memoryApplicationSetting.getString("AdminName"));
+							jsonbody.put("from",
+									jsonbody.getString("companyname") + "-" + jsonbody.getString("username"));
+						}
+						amazonSMTPMail.emailconfig(emailObject, jsonbody, new ArrayList<>(), "en", "POST");
+						jsonbody.remove("from");
+						jsonbody.remove("to");
+
+					}
+
+				}
+
+			}
+
 		} catch (Exception e) {
 			LOGGER.error("Exception at " + Thread.currentThread().getStackTrace()[1].getMethodName(), e.getMessage());
 			return "Failed";
@@ -529,11 +560,9 @@ public class CommonServices {
 				.MsegatsmsService(datavalue.get(smsObject.getJSONObject("fetchby").getString("getby")).toString(), msg);
 	}
 
-	public Map<String, Object> loadBase64(String value) throws JSONException, IOException {
+	public Map<String, Object> loadBase64(String value, int total_pages) throws JSONException, IOException {
 		String url = "";
 		Map<String, Object> base64String = new HashMap<>();
-		url = applicationurl + "pdf_splitter?select=total_pages&primary_id_pdf=eq." + value;
-		int total_pages = new JSONObject(dataTransmit.transmitDataspgrest(url).get(0).toString()).getInt("total_pages");
 
 		if (total_pages <= 100) {
 			url = applicationurl + "pdf_splitter?select=document&primary_id_pdf=eq." + value;

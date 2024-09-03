@@ -31,6 +31,8 @@ import com.eit.abcdframework.util.AmazonSMTPMail;
 import com.eit.abcdframework.util.TimeZoneServices;
 import com.eit.abcdframework.websocket.WebSocketService;
 
+import flexjson.JSON;
+
 @Service
 public class DCDesignDataServiceImpl implements DCDesignDataService {
 
@@ -146,7 +148,8 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 				}
 			}
 
-			res = ResponcesHandling.curdMethodResponceHandle(response, jsonbody,jsonheader, gettabledata, method,files);
+			res = ResponcesHandling.curdMethodResponceHandle(response, jsonbody, jsonheader, gettabledata, method,
+					files);
 
 //			if (Integer.parseInt(response) >= 200 && Integer.parseInt(response) <= 226) {
 //
@@ -460,26 +463,30 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 							res = ResponcesHandling.MappedCurdOperation(gettabledata, data);
 						}
 					}
-					returndata.put("reflex", res);
+					if (res.equalsIgnoreCase("Success"))
+						returndata.put("reflex", res);
+					else
+						return returndata.put("error", res).toString();
 				}
 
 				Map<String, AtomicInteger> progress = fileuploadServices.getProgress();
 				progress.put(jsonbody.get("ids").toString() + "-" + value, new AtomicInteger(100));
 				fileuploadServices.setProgress(progress);
 
-				 socketService.pushSocketData(jsonheader, jsonbody, "progress");
+				socketService.pushSocketData(jsonheader, jsonbody, "progress");
 
 			}
 
 		} catch (Exception e) {
 			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+			return new JSONObject().put("error", "Failed Please Retry").toString();
 		}
 
 		return returndata.toString();
 	}
 
 	@Override
-	public String mergeToPDF(MultipartFile files,String data) {
+	public String mergeToPDF(MultipartFile files, String data) {
 		JSONObject jsonObject1 = null;
 		JSONObject returndata = new JSONObject();
 		try {
@@ -512,20 +519,32 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 
 			// primary key column name comes in table
 			String columnprimarykey = gettabledata.getJSONObject("primarykey").getString("columnname");
+
 			String Splitter_primary_id = gettabledata.getJSONObject("Splitter").getString("Splitter_primary_id");
 
 			String value = jsonbody.get(Splitter_primary_id).toString();
 
+			String geturl = pgresturl + "pdf_splitter?select=total_pages&primary_id_pdf=eq." + value;
+			JSONObject datavalue = new JSONObject(dataTransmit.transmitDataspgrest(geturl).get(0).toString());
+			int total_pages = datavalue.getInt("total_pages");
+			int primary_id = datavalue.getInt("id");
+
 			String currentDir = System.getProperty("user.dir");
+			String PDFpath = "";
 
-			String nameofPDF = "output.pdf";
+			if (gettabledata.getJSONObject("Splitter").has("original")
+					&& gettabledata.getJSONObject("Splitter").getBoolean("original")) {
+				PDFpath = currentDir + "original.pdf";
+			}
 
-			String PDFpath = currentDir + nameofPDF;
-
-			Map<String, Object> base64Images = commonServices.loadBase64(value);
-			String path = "";
+			Map<String, Object> base64Images = commonServices.loadBase64(value, total_pages);
+			JSONObject path = null;
+			;
 			try (PDDocument document = new PDDocument()) {
-				path = fileuploadServices.writeImage(base64Images, PDFpath, filename,document,files);
+				path = fileuploadServices.writeImage(base64Images, PDFpath, filename, document, files);
+				if (path.has("error")) {
+					return path.toString();
+				}
 				jsonbody.put(column.get(0).toString(), path);
 			}
 
@@ -561,55 +580,22 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 							res = ResponcesHandling.MappedCurdOperation(gettabledata, data);
 						}
 					}
-					returndata.put("reflex", res);
+					if (res.equalsIgnoreCase("Success"))
+						returndata.put("reflex", res);
+					else
+						returndata.put("error", res);
+				}
+
+				if (returndata.has("reflex")) {
+					String delUrl = pgresturl + "pdf_splitter?id=eq." + primary_id;
+					dataTransmit.transmitDataspgrestDel(delUrl);
 				}
 
 			}
 
-			// for (Map.Entry<String, Object> entry : base64Images.entrySet()) {
-//
-//				String imageName = entry.getKey();
-//				String base64Image = (String) entry.getValue();
-//				byte[] imageBytes = Base64.getDecoder().decode(base64Image.replace("data:image/png;base64,", ""));
-//
-//				ByteArrayInputStream bis = new ByteArrayInputStream(imageBytes);
-//				BufferedImage bufferedImage = ImageIO.read(bis);
-//
-//				File outputfile = new File("F:\\images\\" + imageName + ".jpg");
-//				ImageIO.write(bufferedImage, "JPEG", outputfile);
-//
-//				// Image to be added
-//				String imagePath = "F:\\images\\" + imageName + ".jpg";
-//
-//				PDPage pages = new PDPage(PDRectangle.A4);
-//				document.addPage(pages);
-//
-//				PDImageXObject images = PDImageXObject.createFromFile(imagePath, document);
-//
-//				float width = pages.getMediaBox().getWidth();
-//				float height = pages.getMediaBox().getHeight();
-//
-//				float imageWidth = images.getWidth();
-//				float imageHeight = images.getHeight();
-//
-//				float scaleFactor = Math.min(width / imageWidth, height / imageHeight);
-//
-//				float scaledWidth = imageWidth * scaleFactor;
-//				float scaledHeight = imageHeight * scaleFactor;
-//
-//				float x = (width - scaledWidth) / 2;
-//				float y = (height - scaledHeight) / 2;
-//
-//				PDPageContentStream contentStream = new PDPageContentStream(document, pages);
-//
-//				contentStream.drawImage(images, x, y, width, height);
-//				contentStream.close();
-//			}
-//			document.save(PDFpath);
-			System.err.println("compaleted");
-
 		} catch (Exception e) {
 			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+			return new JSONObject().put("error", "Failed Please Retry").toString();
 		}
 		return data;
 
@@ -629,7 +615,8 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 			else
 				jsonObject1 = new JSONObject(data);
 
-			Map<String, Object> base64Images = commonServices.loadBase64(jsonObject1.getString("primary_id_pdf"));
+			Map<String, Object> base64Images = commonServices.loadBase64(jsonObject1.getString("primary_id_pdf"),
+					jsonObject1.getInt("total_page"));
 			JSONObject jsonObject = jsonObject1.getJSONObject("document");
 
 			jsonObject.keys().forEachRemaining(key -> {
@@ -642,6 +629,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 
 		} catch (Exception e) {
 			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+			return new JSONObject().put("error", "Failed Please Retry").toString();
 		}
 
 		return res;

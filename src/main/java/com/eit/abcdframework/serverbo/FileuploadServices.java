@@ -483,12 +483,22 @@ public class FileuploadServices {
 
 	}
 
-	public String writeImage(Map<String, Object> base64Images, String PDFpath, String filename, PDDocument document,
-			MultipartFile file) {
+	public JSONObject writeImage(Map<String, Object> base64Images, String PDFpath, String filename,
+			PDDocument document, MultipartFile file) {
 
-		String res = "";
+		JSONObject res =new JSONObject();
 		try {
 			String currentDir = System.getProperty("user.dir");
+
+			String nameofPDF = "split.pdf";
+
+			String splitPDFPath = currentDir + nameofPDF;
+			List<String> s3paths = new ArrayList<>();
+			s3paths.add(splitPDFPath);
+
+			if (!PDFpath.equalsIgnoreCase("")) {
+				s3paths.add(PDFpath);
+			}
 
 			ExecutorService executorService = Executors.newFixedThreadPool(10);
 			List<Future<Boolean>> futures = new ArrayList<>();
@@ -500,8 +510,6 @@ public class FileuploadServices {
 				String paramImagePath = currentDir + "/MaterialPage." + file.getOriginalFilename().split("\\.")[1];
 				File convFile = new File(paramImagePath);
 				file.transferTo(convFile);
-//				BufferedImage paramImage = ImageIO.read(file.getInputStream());
-//				ImageIO.write(paramImage, "JPEG", new File(paramImagePath));
 
 				S3Object s3Object = amazonS3.getObject("goldenelement", "download22.png");
 				BufferedImage localImage = null;
@@ -545,16 +553,6 @@ public class FileuploadServices {
 					.sorted(Map.Entry.comparingByKey(Comparator.comparingInt(Integer::parseInt))).forEach(entry -> {
 						String imageName = entry.getKey();
 						String base64Image = (String) entry.getValue();
-//						byte[] imageBytes;
-//						if ((base64Image.split("data:image/")[1]).split(";")[0].equalsIgnoreCase("png")) {
-//							imageBytes = Base64.getDecoder().decode(base64Image.replace("data:image/png;base64,", ""));
-//						} else if ((base64Image.split("data:image/")[1]).split(";")[0].equalsIgnoreCase("jpeg")) {
-//							imageBytes = Base64.getDecoder().decode(base64Image.replace("data:image/jpeg;base64,", ""));
-//						} else if ((base64Image.split("data:image/")[1]).split(";")[0].equalsIgnoreCase("jpg")) {
-//							imageBytes = Base64.getDecoder().decode(base64Image.replace("data:image/jpg;base64,", ""));
-//						} else {
-//							imageBytes = new byte[0];
-//						}
 						byte[] imageBytes = Base64.getDecoder()
 								.decode(base64Image.replace("data:image/jpeg;base64,", ""));
 
@@ -595,15 +593,31 @@ public class FileuploadServices {
 				future.get();
 			}
 
-			document.save(PDFpath);
-			String filePath = path + filename + "_" + dateFormat.format(new Date()) + ".pdf";
-			if (PDFUploadS3(PDFpath, filePath)) {
-				return s3url + filePath;
+			document.save(splitPDFPath);
+
+			if (!file.isEmpty() && !PDFpath.equalsIgnoreCase("")) {
+				document.removePage(0);
+				document.save(PDFpath);
+			} else if (file.isEmpty() && PDFpath.equalsIgnoreCase("")) {
+				document.save(PDFpath);
 			} else {
-				res = "Failed";
+				LOGGER.info("Original PDF Not save!!");
+			}
+
+			for (String path : s3paths) {
+
+				String filePath = path + filename + "_" + path.indexOf(path) + "_" + dateFormat.format(new Date())
+						+ ".pdf";
+				if (PDFUploadS3(PDFpath, filePath)) {
+					res.put(path.split("\\.")[0],s3url + filePath);
+				} else {
+					res.put("error", "Failed to save a S3Bucket..");
+				}
+
 			}
 
 		} catch (Exception e) {
+			res.put("error", "Failed to split PDF,Please Retry");
 			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
 		}
 		return res;

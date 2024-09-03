@@ -56,6 +56,7 @@ public class WebSocketService extends TextWebSocketHandler {
 
 	public static Map<String, List<WebSocketSession>> CompanySession = new HashMap<>();
 	public static Map<String, List<WebSocketSession>> AdminSession = new HashMap<>();
+	public static Map<String, List<WebSocketSession>> ProgressSession = new HashMap<>();
 	public static Map<String, JSONObject> lastdata = new HashMap<>();
 	public static Map<String, List<WebSocketSession>> RemoveCloseSession = new HashMap<>();
 
@@ -91,34 +92,55 @@ public class WebSocketService extends TextWebSocketHandler {
 					LOGGER.warn("Socket Is Not Connected");
 				}
 			}
-			if (json.has("push") && json.getString("push").equalsIgnoreCase("Company Admin")) {
-				if (CompanySession.isEmpty() || !CompanySession.containsKey(json.get("id").toString())) {
+
+			if (json.getString("displaytab").equalsIgnoreCase("progress")) {
+
+				if (ProgressSession.isEmpty() || !ProgressSession.containsKey(json.get("id").toString())) {
 					List<WebSocketSession> newsession = new ArrayList();
 					newsession.add(session);
-					CompanySession.put(json.get("id").toString(), newsession);
-					LOGGER.warn("Check Session is created :: {}",
-							CompanySession.containsKey(json.get("id").toString()));
+					ProgressSession.put(json.get("id").toString(), newsession);
+					LOGGER.warn("Check progress Session is created :: {}",
+							ProgressSession.containsKey(json.get("id").toString()));
 				} else {
-					List<WebSocketSession> jsonArray = CompanySession.get(json.get("id").toString());
+					List<WebSocketSession> jsonArray = ProgressSession.get(json.get("id").toString());
 					jsonArray.add(session);
-					CompanySession.put(json.get("id").toString(), jsonArray);
-					LOGGER.warn("New session Updatedby company {}",
-							CompanySession.get(json.get("id").toString()).toArray().length);
+					ProgressSession.put(json.get("id").toString(), jsonArray);
+					LOGGER.warn("New progress session Updatedby company {}",
+							ProgressSession.get(json.get("id").toString()).toArray().length);
 
 				}
-			} else if (json.has("push") && (json.getString("push").equalsIgnoreCase("Airport Officer")
-					|| json.getString("push").equalsIgnoreCase("Airport Admin"))) {
-				if (AdminSession.isEmpty() || !AdminSession.containsKey(json.get("id").toString())) {
-					List<WebSocketSession> newsession = new ArrayList<WebSocketSession>();
-					newsession.add(session);
-					AdminSession.put(json.get("id").toString(), newsession);
-					LOGGER.warn("Check Session is created :: {}", AdminSession.containsKey(json.get("id").toString()));
-				} else {
-					List<WebSocketSession> jsonArray = AdminSession.get(json.get("id").toString());
-					jsonArray.add(session);
-					AdminSession.put(json.get("id").toString(), jsonArray);
-					LOGGER.warn("New session created Updatedby Admin {}",
-							AdminSession.get(json.get("id").toString()).toArray().length);
+
+			} else {
+				if (json.has("push") && json.getString("push").equalsIgnoreCase("Company Admin")) {
+					if (CompanySession.isEmpty() || !CompanySession.containsKey(json.get("id").toString())) {
+						List<WebSocketSession> newsession = new ArrayList();
+						newsession.add(session);
+						CompanySession.put(json.get("id").toString(), newsession);
+						LOGGER.warn("Check Session is created :: {}",
+								CompanySession.containsKey(json.get("id").toString()));
+					} else {
+						List<WebSocketSession> jsonArray = CompanySession.get(json.get("id").toString());
+						jsonArray.add(session);
+						CompanySession.put(json.get("id").toString(), jsonArray);
+						LOGGER.warn("New session Updatedby company {}",
+								CompanySession.get(json.get("id").toString()).toArray().length);
+
+					}
+				} else if (json.has("push") && (json.getString("push").equalsIgnoreCase("Airport Officer")
+						|| json.getString("push").equalsIgnoreCase("Airport Admin"))) {
+					if (AdminSession.isEmpty() || !AdminSession.containsKey(json.get("id").toString())) {
+						List<WebSocketSession> newsession = new ArrayList<WebSocketSession>();
+						newsession.add(session);
+						AdminSession.put(json.get("id").toString(), newsession);
+						LOGGER.warn("Check Session is created :: {}",
+								AdminSession.containsKey(json.get("id").toString()));
+					} else {
+						List<WebSocketSession> jsonArray = AdminSession.get(json.get("id").toString());
+						jsonArray.add(session);
+						AdminSession.put(json.get("id").toString(), jsonArray);
+						LOGGER.warn("New session created Updatedby Admin {}",
+								AdminSession.get(json.get("id").toString()).toArray().length);
+					}
 				}
 			}
 		} catch (Exception e) {
@@ -171,35 +193,70 @@ public class WebSocketService extends TextWebSocketHandler {
 		String returnRes = "Success";
 		try {
 			LOGGER.error("Enter Into pushSocketData Method::");
-			if (CompanySession.isEmpty() && AdminSession.isEmpty()) {
-				LOGGER.warn("Socket Connection is empty");
-				return returnRes = "Socket is Not Connected,Connection is empty";
-			}
-			JSONObject returnMessage = new JSONObject();
-
 			if (method.equalsIgnoreCase("progress")) {
+				if (ProgressSession.isEmpty()) {
+					LOGGER.warn("Socket Connection is empty");
+					return returnRes = "Socket is Not Connected,Connection is empty";
+				}
 				JSONObject returnMes = new JSONObject(fileuploadServices.getProgress().entrySet().stream()
 						.filter(entry -> jsonbody.get("ids").toString().equalsIgnoreCase(entry.getKey().split("-")[0]))
 						.collect(Collectors.toMap(entry -> entry.getKey().split("-")[1],
 								entry -> entry.getValue().get())));
 
-				if (CompanySession.containsKey(jsonbody.get("ids").toString())) {
-					LOGGER.warn("Enter into Company Session {}",
-							CompanySession.containsKey(jsonbody.get("ids").toString()));
-					List<WebSocketSession> arrayOfSession = CompanySession.get(jsonbody.get("ids").toString());
+				if (ProgressSession.containsKey(jsonbody.get("ids").toString())) {
+					LOGGER.warn("Enter into Progress Session  {}",
+							ProgressSession.containsKey(jsonbody.get("ids").toString()));
+					List<WebSocketSession> arrayOfSession = ProgressSession.get(jsonbody.get("ids").toString());
 					for (int i = 0; i < arrayOfSession.size(); i++) {
-						sendsession(arrayOfSession.get(i), returnMes.toString(), "company",
+						sendsession(arrayOfSession.get(i), returnMes.toString(), "progress",
 								jsonbody.get("ids").toString());
 					}
-				} else if (AdminSession.containsKey(jsonbody.get("ids").toString())) {
-					for (Entry<String, List<WebSocketSession>> data : AdminSession.entrySet()) {
-						List<WebSocketSession> arrayOfSession2 = data.getValue();
-						for (int i = 0; i < arrayOfSession2.size(); i++) {
-							sendsession(arrayOfSession2.get(i), returnMes.toString(), "Admin", data.getKey());
-						}
-					}
 				}
-			} else {
+
+			}
+
+			else {
+				if (CompanySession.isEmpty() && AdminSession.isEmpty()) {
+					LOGGER.warn("Socket Connection is empty");
+					return returnRes = "Socket is Not Connected,Connection is empty";
+				}
+
+				JSONObject returnMessage = new JSONObject();
+
+//			if (method.equalsIgnoreCase("progress")) {
+//				JSONObject returnMes = new JSONObject(fileuploadServices.getProgress().entrySet().stream()
+//						.filter(entry -> jsonbody.get("ids").toString().equalsIgnoreCase(entry.getKey().split("-")[0]))
+//						.collect(Collectors.toMap(entry -> entry.getKey().split("-")[1],
+//								entry -> entry.getValue().get())));
+//
+//				if (ProgressSession.containsKey(jsonbody.get("ids").toString())) {
+//					LOGGER.warn("Enter into Progress Session  {}",
+//							ProgressSession.containsKey(jsonbody.get("ids").toString()));
+//					List<WebSocketSession> arrayOfSession = ProgressSession.get(jsonbody.get("ids").toString());
+//					for (int i = 0; i < arrayOfSession.size(); i++) {
+//						sendsession(arrayOfSession.get(i), returnMes.toString(), "progress",
+//								jsonbody.get("ids").toString());
+//					}
+//				}
+
+//				if (CompanySession.containsKey(jsonbody.get("ids").toString())) {
+//					LOGGER.warn("Enter into Company Session {}",
+//							CompanySession.containsKey(jsonbody.get("ids").toString()));
+//					List<WebSocketSession> arrayOfSession = CompanySession.get(jsonbody.get("ids").toString());
+//					for (int i = 0; i < arrayOfSession.size(); i++) {
+//						sendsession(arrayOfSession.get(i), returnMes.toString(), "company",
+//								jsonbody.get("ids").toString());
+//					}
+//				} else if (AdminSession.containsKey(jsonbody.get("ids").toString())) {
+//					for (Entry<String, List<WebSocketSession>> data : AdminSession.entrySet()) {
+//						List<WebSocketSession> arrayOfSession2 = data.getValue();
+//						for (int i = 0; i < arrayOfSession2.size(); i++) {
+//							sendsession(arrayOfSession2.get(i), returnMes.toString(), "Admin", data.getKey());
+//						}
+//					}
+//				}
+//		}
+//			else {
 				String role = jsonObject.getString("rolename");
 				JSONObject displaydata = DisplaySingleton.memoryDispObjs2.getJSONObject("websocket");
 
