@@ -524,7 +524,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 
 			String value = jsonbody.get(Splitter_primary_id).toString();
 
-			String geturl = pgresturl + "pdf_splitter?select=total_pages&primary_id_pdf=eq." + value;
+			String geturl = pgresturl + "pdf_splitter?select=total_pages,id&primary_id_pdf=eq." + value;
 			JSONObject datavalue = new JSONObject(dataTransmit.transmitDataspgrest(geturl).get(0).toString());
 			int total_pages = datavalue.getInt("total_pages");
 			int primary_id = datavalue.getInt("id");
@@ -543,7 +543,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 			try (PDDocument document = new PDDocument()) {
 				path = fileuploadServices.writeImage(base64Images, PDFpath, filename, document, files);
 				if (path.has("error")) {
-					return path.toString();
+					return new JSONObject().put("error", "Failed to upload s3bucket!").toString();
 				}
 				jsonbody.put(column.get(0).toString(), path);
 			}
@@ -597,7 +597,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
 			return new JSONObject().put("error", "Failed Please Retry").toString();
 		}
-		return data;
+		return returndata.toString();
 
 	}
 

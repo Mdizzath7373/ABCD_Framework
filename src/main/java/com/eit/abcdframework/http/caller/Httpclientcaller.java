@@ -264,7 +264,7 @@ public class Httpclientcaller {
 
 	private String getAccessToken() throws IOException {
 //		ClassPathResource classpathresource = new ClassPathResource("googleAuth.json");
-//		GoogleCredentials googleCredentials = GoogleCredentials.fromStream(new FileInputStream(writeJsonToFile(ConfigurationFile.getPushNotificationAuthJson(),)))
+//		GoogleCredentials googleCredentials = GoogleCredentials.fromStream(new 0000000(writeJsonToFile(ConfigurationFile.getPushNotificationAuthJson(),)))
 //				.createScoped(SCOPES);
 		GoogleCredentials googleCredentials;
 		try (InputStream serviceAccountStream = new ByteArrayInputStream(

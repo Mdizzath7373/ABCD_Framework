@@ -483,21 +483,22 @@ public class FileuploadServices {
 
 	}
 
-	public JSONObject writeImage(Map<String, Object> base64Images, String PDFpath, String filename,
-			PDDocument document, MultipartFile file) {
+	public JSONObject writeImage(Map<String, Object> base64Images, String PDFpath, String filename, PDDocument document,
+			MultipartFile file) {
 
-		JSONObject res =new JSONObject();
+		JSONObject res = new JSONObject();
 		try {
 			String currentDir = System.getProperty("user.dir");
 
 			String nameofPDF = "split.pdf";
 
 			String splitPDFPath = currentDir + nameofPDF;
-			List<String> s3paths = new ArrayList<>();
-			s3paths.add(splitPDFPath);
+//			List<String> s3paths = new ArrayList<>();
+			Map<String, String> s3paths = new HashMap<>();
+			s3paths.put(nameofPDF.split("\\.")[0], splitPDFPath);
 
 			if (!PDFpath.equalsIgnoreCase("")) {
-				s3paths.add(PDFpath);
+				s3paths.put("original", PDFpath);
 			}
 
 			ExecutorService executorService = Executors.newFixedThreadPool(10);
@@ -604,17 +605,22 @@ public class FileuploadServices {
 				LOGGER.info("Original PDF Not save!!");
 			}
 
-			for (String path : s3paths) {
+			s3paths.entrySet().stream().forEach(entry -> {
 
-				String filePath = path + filename + "_" + path.indexOf(path) + "_" + dateFormat.format(new Date())
-						+ ".pdf";
-				if (PDFUploadS3(PDFpath, filePath)) {
-					res.put(path.split("\\.")[0],s3url + filePath);
-				} else {
+				String filePath = path + filename + entry.getKey() + dateFormat.format(new Date()) + ".pdf";
+				try {
+					System.err.println(entry.getValue()+"-------------------"+entry.getKey());
+					if (PDFUploadS3(entry.getValue(), filePath)) {
+						res.put(entry.getKey(), s3url + filePath);
+					} else {
+//						res = new JSONObject();
+						res.put("error", "Failed to save a S3Bucket..");
+					}
+				} catch (Exception e) {
+					LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
 					res.put("error", "Failed to save a S3Bucket..");
 				}
-
-			}
+			});
 
 		} catch (Exception e) {
 			res.put("error", "Failed to split PDF,Please Retry");
