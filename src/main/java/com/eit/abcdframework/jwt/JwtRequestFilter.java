@@ -45,38 +45,42 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
 		String username = null;
 		String jwtToken = null;
-		String ischecktoken = null;
-		;
+		String oldToken = null;
 		if (requestTokenHeader != null && requestTokenHeader.startsWith("Bearer ")) {
 			jwtToken = requestTokenHeader.substring(7);
 			try {
-				if (ConfigurationFile.getBooleanConfig("jwt.refreshtoken")
-						&& jwtTokenUtil.getIdFromToken(jwtToken).equalsIgnoreCase("web")) {
+
+				if (ConfigurationFile.getBooleanConfig("jwt.refreshtoken")) {
 					if (lastupdToken.isEmpty() || !lastupdToken.containsKey(jwtToken)) {
-						ischecktoken = jwtTokenUtil.getIdFromToken(jwtToken);
-						if (ischecktoken.equalsIgnoreCase("web")) {
+						if (jwtTokenUtil.getIdFromToken(jwtToken).equalsIgnoreCase("web")) {
 							username = jwtTokenUtil.getUsernameFromToken(jwtToken);
 							if (jwtTokenUtil.canTokenBeRefreshed(jwtToken)) {
-								lastupdToken.put(jwtToken, jwtTokenUtil.updateToken(jwtToken, ischecktoken, username));
+								lastupdToken.put(jwtToken, jwtTokenUtil.updateToken(jwtToken, jwtTokenUtil.getIdFromToken(jwtToken), username));
 								jwtToken = lastupdToken.get(jwtToken);
 							}
 						}
 					} else {
-						ischecktoken = jwtTokenUtil.getIdFromToken(jwtToken);
-						if (ischecktoken.equalsIgnoreCase("web")) {
-							username = jwtTokenUtil.getUsernameFromToken(lastupdToken.get(jwtToken));
-							if (jwtTokenUtil.canTokenBeRefreshed(lastupdToken.get(jwtToken))) {
-								lastupdToken.put(jwtToken,
-										jwtTokenUtil.updateToken(lastupdToken.get(jwtToken), "web", username));
-								jwtToken = lastupdToken.get(jwtToken);
+						LOGGER.info("Enter into Refresh Token");
+						oldToken = jwtToken;
+						jwtToken = lastupdToken.get(jwtToken);
+						if (jwtTokenUtil.getIdFromToken(jwtToken).equalsIgnoreCase("web")) {
+							username = jwtTokenUtil.getUsernameFromToken(jwtToken);
+							if (jwtTokenUtil.canTokenBeRefreshed(jwtToken)) {
+								LOGGER.info("Token is Valid,Next process Refresh Token");
+								lastupdToken.put(oldToken, jwtTokenUtil.updateToken(jwtToken, jwtTokenUtil.getIdFromToken(jwtToken), username));
+								jwtToken = lastupdToken.get(oldToken);
 							} else {
-								lastupdToken.remove(username + "" + jwtToken);
+								LOGGER.info("Token is Invalid!!");
+								lastupdToken.remove(username + "" + oldToken);
 							}
+
 						}
 					}
+
 				} else {
 					username = jwtTokenUtil.getUsernameFromToken(jwtToken);
 				}
+
 			} catch (IllegalArgumentException e) {
 				System.out.println("Unable to get JWT Token");
 			} catch (ExpiredJwtException e) {

@@ -103,6 +103,7 @@ public class JwtTokenUtil {
 	}
 
 	public Boolean canTokenBeRefreshed(String token) {
+		System.err.println(token);
 		return (!isTokenExpired(token) || ignoreTokenExpiration(token));
 	}
 
