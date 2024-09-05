@@ -71,18 +71,34 @@ public class JwtTokenUtil {
 //JWT_TOKEN_VALIDITY*1000
 		long currTimeMillis = System.currentTimeMillis();
 		Date isuuedTime = new Date(currTimeMillis);
-		Date expiredTime = new Date(
-				currTimeMillis + (!ismoblie.equalsIgnoreCase("web") ? JWT_TOKEN_VALIDITY_MOBLIE : JWT_TOKEN_VALIDITY));
-		System.out.println(" currTimeMillis :: " + currTimeMillis + ", isuuedTime :: " + isuuedTime
-				+ ", expiredTime :: " + expiredTime);
-		if (ismoblie.equalsIgnoreCase("mobile")) {
-			return Jwts.builder().setClaims(claims).setSubject(subject).setId(ismoblie).setIssuedAt(isuuedTime)
+//		Date expiredTime = new Date(
+//				currTimeMillis + (!ismoblie.equalsIgnoreCase("web") ? JWT_TOKEN_VALIDITY_MOBLIE : JWT_TOKEN_VALIDITY));
+		if (!ismoblie.equalsIgnoreCase("web")
+				&& ConfigurationFile.getStringConfig("jwt.JWT_TOKEN_VALIDITY_MOBLIE").equalsIgnoreCase("")) {
+			return Jwts.builder().setSubject(subject).setId(ismoblie).setIssuedAt(isuuedTime)
 					.signWith(SignatureAlgorithm.HS512, ConfigurationFile.getStringConfig("jwt.secret")).compact();
-		} else {
-			return Jwts.builder().setClaims(claims).setSubject(subject).setId(ismoblie).setIssuedAt(isuuedTime)
-					.setExpiration(expiredTime)
+		} else if (!ismoblie.equalsIgnoreCase("web")
+				&& !ConfigurationFile.getStringConfig("jwt.JWT_TOKEN_VALIDITY_MOBLIE").equalsIgnoreCase("")) {
+			long validTo = Long.parseLong(ConfigurationFile.getStringConfig("jwt.JWT_TOKEN_VALIDITY_MOBLIE"));
+			Date expiredTime = new Date(currTimeMillis + validTo);
+			System.out.println(" currTimeMillis :: " + currTimeMillis + ", isuuedTime :: " + isuuedTime
+					+ ", expiredTime :: " + expiredTime);
+			return Jwts.builder().setSubject(subject).setId(ismoblie).setIssuedAt(isuuedTime).setExpiration(expiredTime)
+					.signWith(SignatureAlgorithm.HS512, ConfigurationFile.getStringConfig("jwt.secret")).compact();
+		} else if (ismoblie.equalsIgnoreCase("web")
+				&& ConfigurationFile.getStringConfig("jwt.JWT_TOKEN_VALIDITY").equalsIgnoreCase("")) {
+			return Jwts.builder().setSubject(subject).setId(ismoblie).setIssuedAt(isuuedTime)
+					.signWith(SignatureAlgorithm.HS512, ConfigurationFile.getStringConfig("jwt.secret")).compact();
+		} else if (ismoblie.equalsIgnoreCase("web")
+				&& !ConfigurationFile.getStringConfig("jwt.JWT_TOKEN_VALIDITY").equalsIgnoreCase("")) {
+			long validTo = Long.parseLong(ConfigurationFile.getStringConfig("jwt.JWT_TOKEN_VALIDITY"));
+			Date expiredTime = new Date(currTimeMillis + validTo);
+			System.out.println(" currTimeMillis :: " + currTimeMillis + ", isuuedTime :: " + isuuedTime
+					+ ", expiredTime :: " + expiredTime);
+			return Jwts.builder().setSubject(subject).setId(ismoblie).setIssuedAt(isuuedTime).setExpiration(expiredTime)
 					.signWith(SignatureAlgorithm.HS512, ConfigurationFile.getStringConfig("jwt.secret")).compact();
 		}
+		return "";
 
 	}
 
@@ -91,9 +107,6 @@ public class JwtTokenUtil {
 	}
 
 	public Boolean validateToken(String token, UserDetails userDetails) {
-		System.err.println(getUsernameFromToken(token));
-		System.err.println(URLDecoder.decode(getUsernameFromToken(token), StandardCharsets.UTF_8));
-		
 		final String username = URLDecoder
 				.decode((Integer.parseInt((ConfigurationFile.getStringConfig("jwt.primaryValue"))) > 1
 						? getUsernameFromToken(token).split("#")[0]
@@ -104,26 +117,36 @@ public class JwtTokenUtil {
 			return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
 	}
 
-	public String updateToken(String token, String ismoblie,String subject) {
+	public String updateToken(String token, String ismoblie, String subject) {
 		String updatedToken = "";
 		try {
 			long currTimeMillis = System.currentTimeMillis();
 			Date isuuedTime = new Date(currTimeMillis);
-			Date expiredTime = new Date(currTimeMillis
-					+ (!ismoblie.equalsIgnoreCase("web") ? JWT_TOKEN_VALIDITY_MOBLIE : JWT_TOKEN_VALIDITY));
-			LOGGER.info("Update Token--> currTimeMillis :: " + currTimeMillis + ", isuuedTime :: " + isuuedTime
-					+ ", expiredTime :: " + expiredTime);
-			if (ismoblie.equalsIgnoreCase("moblie")) {
-				updatedToken =  Jwts.builder().setSubject(subject).setId(ismoblie).setIssuedAt(isuuedTime)
+
+			if (!ismoblie.equalsIgnoreCase("web")
+					&& ConfigurationFile.getStringConfig("jwt.JWT_TOKEN_VALIDITY_MOBLIE").equalsIgnoreCase("")) {
+
+				updatedToken = Jwts.builder().setSubject(subject).setId(ismoblie).setIssuedAt(isuuedTime)
 						.signWith(SignatureAlgorithm.HS512, ConfigurationFile.getStringConfig("jwt.secret")).compact();
-			} else {
-				updatedToken =  Jwts.builder().setSubject(subject).setId(ismoblie).setIssuedAt(isuuedTime)
+			} else if (!ismoblie.equalsIgnoreCase("web")
+					&& !ConfigurationFile.getStringConfig("jwt.JWT_TOKEN_VALIDITY_MOBLIE").equalsIgnoreCase("")) {
+				long validTo = Long.parseLong(ConfigurationFile.getStringConfig("jwt.JWT_TOKEN_VALIDITY_MOBLIE"));
+				Date expiredTime = new Date(currTimeMillis + validTo);
+				updatedToken = Jwts.builder().setSubject(subject).setId(ismoblie).setIssuedAt(isuuedTime)
+						.setExpiration(expiredTime)
+						.signWith(SignatureAlgorithm.HS512, ConfigurationFile.getStringConfig("jwt.secret")).compact();
+			} else if (ismoblie.equalsIgnoreCase("web")
+					&& ConfigurationFile.getStringConfig("jwt.JWT_TOKEN_VALIDITY").equalsIgnoreCase("")) {
+				updatedToken = Jwts.builder().setSubject(subject).setId(ismoblie).setIssuedAt(isuuedTime)
+						.signWith(SignatureAlgorithm.HS512, ConfigurationFile.getStringConfig("jwt.secret")).compact();
+			} else if (ismoblie.equalsIgnoreCase("web")
+					&& !ConfigurationFile.getStringConfig("jwt.JWT_TOKEN_VALIDITY").equalsIgnoreCase("")) {
+				long validTo = Long.parseLong(ConfigurationFile.getStringConfig("jwt.JWT_TOKEN_VALIDITY"));
+				Date expiredTime = new Date(currTimeMillis + validTo);
+				updatedToken = Jwts.builder().setSubject(subject).setId(ismoblie).setIssuedAt(isuuedTime)
 						.setExpiration(expiredTime)
 						.signWith(SignatureAlgorithm.HS512, ConfigurationFile.getStringConfig("jwt.secret")).compact();
 			}
-//			Jwts.builder().setSubject(username).setId(ismoblie).setIssuedAt(isuuedTime)
-//					.setExpiration(expiredTime)
-//					.signWith(SignatureAlgorithm.HS512, ConfigurationFile.getStringConfig("jwt.secret")).compact();
 			System.out.println(updatedToken);
 		} catch (Exception e) {
 			e.printStackTrace();

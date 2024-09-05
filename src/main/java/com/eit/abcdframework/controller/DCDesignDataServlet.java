@@ -2,13 +2,12 @@ package com.eit.abcdframework.controller;
 
 import java.util.List;
 
+import org.joda.time.Instant;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.InputStreamResource;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,7 +19,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.S3Object;
 import com.eit.abcdframework.dto.CommonUtilDto;
 import com.eit.abcdframework.serverbo.FileuploadServices;
 import com.eit.abcdframework.service.DCDesignDataService;
@@ -98,6 +96,12 @@ public class DCDesignDataServlet {
 	@PostMapping("/UpdatePDFImage")
 	public ResponseEntity<String> UpdatePDFImage(@RequestBody String data) {
 		return ResponseEntity.ok(dcDesignDataService.SplitterPDFChanges(data));
+	}
+	
+	@PostMapping(value = "/testfileupload", produces = { "application/json" })
+	public String testfileupload(@RequestPart("files") List<MultipartFile> files) {
+		LOGGER.error("Entered into Fileupload ---------{}",Instant.now());
+		return String.valueOf(Instant.now());
 	}
 
 //	@PostMapping("/test")
