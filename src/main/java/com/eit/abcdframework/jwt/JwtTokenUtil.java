@@ -7,9 +7,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
@@ -22,10 +19,10 @@ import io.jsonwebtoken.SignatureAlgorithm;
 @Component
 public class JwtTokenUtil {
 
-	public static final long JWT_TOKEN_VALIDITY = 3600000;
-	public static final long JWT_TOKEN_VALIDITY_MOBLIE = 60000;
+//	public static final long JWT_TOKEN_VALIDITY = 3600000;
+//	public static final long JWT_TOKEN_VALIDITY_MOBLIE = 60000;
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(JwtTokenUtil.class);
+//	private static final Logger LOGGER = LoggerFactory.getLogger(JwtTokenUtil.class);
 
 	public String getUsernameFromToken(String token) {
 		return getClaimFromToken(token, Claims::getSubject);

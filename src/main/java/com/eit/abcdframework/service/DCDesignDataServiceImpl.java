@@ -616,7 +616,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 				jsonObject1 = new JSONObject(data);
 
 			Map<String, Object> base64Images = commonServices.loadBase64(jsonObject1.getString("primary_id_pdf"),
-					jsonObject1.getInt("total_page"));
+					jsonObject1.getInt("total_pages"));
 			JSONObject jsonObject = jsonObject1.getJSONObject("document");
 
 			jsonObject.keys().forEachRemaining(key -> {

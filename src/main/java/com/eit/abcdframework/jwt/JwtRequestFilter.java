@@ -50,12 +50,14 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 			jwtToken = requestTokenHeader.substring(7);
 			try {
 
-				if (ConfigurationFile.getBooleanConfig("jwt.refreshtoken")) {
+//				if (ConfigurationFile.getBooleanConfig("jwt.refreshtoken")) {
+				if (ConfigurationFile.getBooleanConfig("jwt.FindUser." + jwtTokenUtil.getIdFromToken(jwtToken))) {
 					if (lastupdToken.isEmpty() || !lastupdToken.containsKey(jwtToken)) {
 						if (jwtTokenUtil.getIdFromToken(jwtToken).equalsIgnoreCase("web")) {
 							username = jwtTokenUtil.getUsernameFromToken(jwtToken);
 							if (jwtTokenUtil.canTokenBeRefreshed(jwtToken)) {
-								lastupdToken.put(jwtToken, jwtTokenUtil.updateToken(jwtToken, jwtTokenUtil.getIdFromToken(jwtToken), username));
+								lastupdToken.put(jwtToken, jwtTokenUtil.updateToken(jwtToken,
+										jwtTokenUtil.getIdFromToken(jwtToken), username));
 								jwtToken = lastupdToken.get(jwtToken);
 							}
 						}
@@ -67,7 +69,8 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 							username = jwtTokenUtil.getUsernameFromToken(jwtToken);
 							if (jwtTokenUtil.canTokenBeRefreshed(jwtToken)) {
 								LOGGER.info("Token is Valid,Next process Refresh Token");
-								lastupdToken.put(oldToken, jwtTokenUtil.updateToken(jwtToken, jwtTokenUtil.getIdFromToken(jwtToken), username));
+								lastupdToken.put(oldToken, jwtTokenUtil.updateToken(jwtToken,
+										jwtTokenUtil.getIdFromToken(jwtToken), username));
 								jwtToken = lastupdToken.get(oldToken);
 							} else {
 								LOGGER.info("Token is Invalid!!");

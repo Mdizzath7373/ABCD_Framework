@@ -53,7 +53,7 @@ public class JwtServices implements UserDetailsService {
 			String name = "";
 			String pass = "";
 		String getValueOf=istokencheck.equalsIgnoreCase("mobile")?"Mobile":"Web";
-		System.out.println("jwt.FindUser"+getValueOf+".function");
+//		System.out.println("jwt.FindUser"+getValueOf+".function");
 		
 			boolean function = ConfigurationFile.getBooleanConfig("jwt.FindUser"+getValueOf+".function");
 			JSONArray params = new JSONArray(ConfigurationFile.getRequestMatcherConfig("jwt.FindUser"+getValueOf+".param"));
