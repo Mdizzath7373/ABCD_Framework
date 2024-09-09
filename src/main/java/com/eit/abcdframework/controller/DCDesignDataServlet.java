@@ -3,6 +3,7 @@ package com.eit.abcdframework.controller;
 import java.util.List;
 
 import org.joda.time.Instant;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.eit.abcdframework.dto.CommonUtilDto;
+import com.eit.abcdframework.serverbo.CommonServices;
 import com.eit.abcdframework.serverbo.FileuploadServices;
 import com.eit.abcdframework.service.DCDesignDataService;
 
@@ -33,7 +35,7 @@ public class DCDesignDataServlet {
 
 	@Autowired
 	FileuploadServices fileuploadServices;
-	
+
 	@Autowired
 	AmazonS3 amazonS3;
 
@@ -94,13 +96,21 @@ public class DCDesignDataServlet {
 	}
 
 	@PostMapping("/UpdatePDFImage")
-	public ResponseEntity<String> UpdatePDFImage(@RequestBody String data) {
-		return ResponseEntity.ok(dcDesignDataService.SplitterPDFChanges(data));
+	public ResponseEntity<String> UpdatePDFImage(@RequestBody String data) throws JSONException, Exception {
+		if (data.equalsIgnoreCase("") && !data.startsWith("{")) {
+			return ResponseEntity.ok(new JSONObject().put("error", "Please Check Your Data Object!").toString());
+		}
+		JSONObject jsonObject1;
+		if (!data.startsWith("{"))
+			jsonObject1 = new JSONObject(CommonServices.decrypt(data));
+		else
+			jsonObject1 = new JSONObject(data);
+		return ResponseEntity.ok(dcDesignDataService.SplitterPDFChanges(jsonObject1));
 	}
-	
+
 	@PostMapping(value = "/testfileupload", produces = { "application/json" })
 	public String testfileupload(@RequestPart("files") List<MultipartFile> files) {
-		LOGGER.error("Entered into Fileupload ---------{}",Instant.now());
+		LOGGER.error("Entered into Fileupload ---------{}", Instant.now());
 		return String.valueOf(Instant.now());
 	}
 

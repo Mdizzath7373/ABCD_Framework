@@ -41,10 +41,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.InputStreamResource;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -487,29 +483,27 @@ public class FileuploadServices {
 			MultipartFile file) {
 
 		JSONObject res = new JSONObject();
-		try {
-			String currentDir = System.getProperty("user.dir");
+		String currentDir = System.getProperty("user.dir");
 
-			String nameofPDF = "split.pdf";
+		String nameofPDF = "split.pdf";
 
-			String splitPDFPath = currentDir + nameofPDF;
-//			List<String> s3paths = new ArrayList<>();
-			Map<String, String> s3paths = new HashMap<>();
-			s3paths.put(nameofPDF.split("\\.")[0], splitPDFPath);
+		String splitPDFPath = currentDir + nameofPDF;
+		Map<String, String> s3paths = new HashMap<>();
+		s3paths.put(nameofPDF.split("\\.")[0], splitPDFPath);
 
-			if (!PDFpath.equalsIgnoreCase("")) {
-				s3paths.put("original", PDFpath);
-			}
+		if (!PDFpath.equalsIgnoreCase("")) {
+			s3paths.put("original", PDFpath);
+		}
 
-			ExecutorService executorService = Executors.newFixedThreadPool(10);
-			List<Future<Boolean>> futures = new ArrayList<>();
+		ExecutorService executorService = Executors.newFixedThreadPool(10);
 
-			boolean IsFirst = true;
+		boolean IsFirst = true;
 
-			if (IsFirst && !file.isEmpty()) {
+		if (IsFirst && !file.isEmpty()) {
 
-				String paramImagePath = currentDir + "/MaterialPage." + file.getOriginalFilename().split("\\.")[1];
-				File convFile = new File(paramImagePath);
+			String paramImagePath = currentDir + "/MaterialPage." + file.getOriginalFilename().split("\\.")[1];
+			File convFile = new File(paramImagePath);
+			try {
 				file.transferTo(convFile);
 
 				S3Object s3Object = amazonS3.getObject("goldenelement", "download22.png");
@@ -548,51 +542,60 @@ public class FileuploadServices {
 						LOGGER.info("Image file does not exist.");
 					}
 				}
-
+			} catch (Exception e) {
+				res.put("error", "Failed to split PDF, please retry.");
+				LOGGER.error("Failed to process PDF", e);
 			}
-			base64Images.entrySet().stream()
-					.sorted(Map.Entry.comparingByKey(Comparator.comparingInt(Integer::parseInt))).forEach(entry -> {
-						String imageName = entry.getKey();
-						String base64Image = (String) entry.getValue();
-						byte[] imageBytes = Base64.getDecoder()
-								.decode(base64Image.replace("data:image/jpeg;base64,", ""));
 
-						futures.add(executorService.submit(() -> {
-							File outputfile = null;
-							try (ByteArrayInputStream bis = new ByteArrayInputStream(imageBytes)) {
+		}
+		List<Future<String>> futures = new ArrayList<>();
 
-								BufferedImage bufferedImage = ImageIO.read(bis);
+		base64Images.entrySet().stream().sorted(Map.Entry.comparingByKey(Comparator.comparingInt(Integer::parseInt)))
+				.forEach(entry -> {
+					String imageName = entry.getKey();
+					String base64Image = (String) entry.getValue();
+					byte[] imageBytes = Base64.getDecoder().decode(base64Image.replace("data:image/jpeg;base64,", ""));
+					futures.add(executorService.submit(() -> {
+						File outputfile = null;
+						try (ByteArrayInputStream bis = new ByteArrayInputStream(imageBytes)) {
+							BufferedImage bufferedImage = ImageIO.read(bis);
+							String imagePath = currentDir + imageName + ".jpeg";
+							outputfile = new File(imagePath);
+							ImageIO.write(bufferedImage, "JPEG", outputfile);
+							return imagePath; 
+						} catch (IOException e) {
+							LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+							return null;
+						}
+					}));
+				});
 
-								String imagePath = currentDir + imageName + ".jpeg";
-								outputfile = new File(imagePath);
-
-								ImageIO.write(bufferedImage, "JPEG", outputfile);
-
-								List<String> paths = new ArrayList<>();
-								paths.add(imagePath);
-								writePDF(document, paths);
-
-							} catch (IOException e) {
-								LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
-							} finally {
-								if (outputfile.exists()) {
-									// Attempt to delete the file
-									if (outputfile.delete()) {
-										LOGGER.info("Image deleted successfully.");
-									} else {
-										LOGGER.info("Failed to delete the image.");
-									}
-								} else {
-									LOGGER.info("Image file does not exist.");
-								}
-							}
-							return true;
-						}));
-					});
-
-			for (Future<Boolean> future : futures) {
-				future.get();
+		try {
+			List<String> imagePaths = new ArrayList<>();
+			for (Future<String> future : futures) {
+				String imagePath = future.get();
+				if (imagePath != null) {
+					imagePaths.add(imagePath);
+				}
 			}
+
+			imagePaths.stream().forEach(entryData -> {
+				File removeImge = null;
+				try {
+					List<String> path = new ArrayList<String>();
+					path.add(entryData);
+					removeImge = new File(entryData);
+					writePDF(document, path);
+				} finally {
+					if (removeImge != null && removeImge.exists()) {
+						if (removeImge.delete()) {
+							LOGGER.info("Image deleted successfully.");
+						} else {
+							LOGGER.info("Failed to delete the image.");
+						}
+					}
+				}
+			});
 
 			document.save(splitPDFPath);
 
@@ -602,30 +605,28 @@ public class FileuploadServices {
 			} else if (file.isEmpty() && PDFpath.equalsIgnoreCase("")) {
 				document.save(PDFpath);
 			} else {
-				LOGGER.info("Original PDF Not save!!");
+				LOGGER.info("Original PDF Not saved!");
 			}
-
-			s3paths.entrySet().stream().forEach(entry -> {
-
-				String filePath = path + filename + entry.getKey() + dateFormat.format(new Date()) + ".pdf";
+			s3paths.forEach((key, value) -> {
+				String filePath = path + filename + key + dateFormat.format(new Date()) + ".pdf";
 				try {
-					System.err.println(entry.getValue()+"-------------------"+entry.getKey());
-					if (PDFUploadS3(entry.getValue(), filePath)) {
-						res.put(entry.getKey(), s3url + filePath);
+					if (PDFUploadS3(value, filePath)) {
+						res.put(key, s3url + filePath);
 					} else {
-//						res = new JSONObject();
-						res.put("error", "Failed to save a S3Bucket..");
+						res.put("error", "Failed to save to S3 bucket.");
 					}
 				} catch (Exception e) {
-					LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
-					res.put("error", "Failed to save a S3Bucket..");
+					LOGGER.error("Failed to upload to S3", e);
+					res.put("error", "Failed to save to S3 bucket.");
 				}
 			});
-
 		} catch (Exception e) {
-			res.put("error", "Failed to split PDF,Please Retry");
-			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+			res.put("error", "Failed to split PDF, please retry.");
+			LOGGER.error("Failed to process PDF", e);
+		} finally {
+			executorService.shutdown();
 		}
+
 		return res;
 	}
 

@@ -1,10 +1,14 @@
 package com.eit.abcdframework.service;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -586,10 +590,10 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 						returndata.put("error", res);
 				}
 
-				if (returndata.has("reflex")) {
-					String delUrl = pgresturl + "pdf_splitter?id=eq." + primary_id;
-					dataTransmit.transmitDataspgrestDel(delUrl);
-				}
+//				if (returndata.has("reflex")) {
+//					String delUrl = pgresturl + "pdf_splitter?id=eq." + primary_id;
+//					dataTransmit.transmitDataspgrestDel(delUrl);
+//				}
 
 			}
 
@@ -602,37 +606,35 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 	}
 
 	@Override
-	public String SplitterPDFChanges(String data) {
-		JSONObject jsonObject1 = new JSONObject();
-		String res = "";
+	public String SplitterPDFChanges(JSONObject jsonObject1) {
+//		JSONObject jsonObject1 = new JSONObject();
+		JSONObject res = new JSONObject();
 		try {
+			JSONObject setValues=new JSONObject();
+			
 
-			if (data.equalsIgnoreCase("") && !data.startsWith("{")) {
-				return "Please Check Your Data Object!";
-			}
-			if (!data.startsWith("{"))
-				jsonObject1 = new JSONObject(CommonServices.decrypt(data));
-			else
-				jsonObject1 = new JSONObject(data);
-
-			Map<String, Object> base64Images = commonServices.loadBase64(jsonObject1.getString("primary_id_pdf"),
-					jsonObject1.getInt("total_pages"));
 			JSONObject jsonObject = jsonObject1.getJSONObject("document");
 
 			jsonObject.keys().forEachRemaining(key -> {
-				base64Images.put(key, jsonObject.getString(key));
+				String url = pgresturl + "rpc/update_base64";
+				JSONObject jsondata=new JSONObject();
+				jsondata.put("key", key);
+				jsondata.put("datavalue", jsonObject.getString(key));
+				jsondata.put("primary", jsonObject1.get("id"));
+						
+				setValues.put("datas", jsondata);
+				
+				dataTransmit.transmitDataspgrestpost(url, setValues.toString(), false);
+				
 			});
-			jsonObject1.put("document", base64Images);
-
-			String url = pgresturl + "pdf_splitter?id=eq." + jsonObject1.get("id");
-			res = dataTransmit.transmitDataspgrestput(url, jsonObject1.toString(), false);
+			res.put("reflex", "Success");
 
 		} catch (Exception e) {
 			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
 			return new JSONObject().put("error", "Failed Please Retry").toString();
 		}
 
-		return res;
+		return res.toString();
 
 	}
 

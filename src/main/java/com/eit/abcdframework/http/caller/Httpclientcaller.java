@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.http.HttpEntity;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
@@ -31,6 +32,60 @@ import com.google.auth.oauth2.GoogleCredentials;
 public class Httpclientcaller {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(Httpclientcaller.class);
+	
+	
+	public JSONArray test(String toUrl) throws IOException {
+	    PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
+	    connectionManager.setMaxTotal(250); // Maximum total connections
+	    connectionManager.setDefaultMaxPerRoute(20);
+
+	    RequestConfig requestConfig = RequestConfig.custom()
+	        .setConnectTimeout(30 * 1000)  // 30 seconds to establish the connection
+	        .setSocketTimeout(60 * 1000)   // 60 seconds to receive data
+	        .setConnectionRequestTimeout(30 * 1000)  // Timeout for requesting a connection from the pool
+	        .build();
+
+	    try (CloseableHttpClient httpClient = HttpClients.custom()
+	            .setMaxConnPerRoute(10000)
+	            .setConnectionManager(connectionManager)
+	            .setMaxConnTotal(10000)
+	            .setDefaultRequestConfig(requestConfig)
+	            .build()) {
+
+	        // Encode URL
+	        if (toUrl.contains("{")) {
+	            toUrl = toUrl.replace("{", "%7B").replace("}", "%7D");
+	        }
+
+	        if (toUrl.contains(">") || toUrl.contains("<")) {
+	            toUrl = toUrl.contains(">") ? toUrl.replace(">", "%3E") : toUrl;
+	            toUrl = toUrl.contains("<") ? toUrl.replace("<", "%3C") : toUrl;
+	        }
+
+	        HttpGet httpGet = new HttpGet(toUrl);
+	        httpGet.setHeader("Connection", "keep-alive");
+	        httpGet.setHeader("Accept-Encoding", "gzip");
+
+	        try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
+	            int statusCode = response.getStatusLine().getStatusCode();
+	            HttpEntity responseEntity = response.getEntity();
+
+	            if (statusCode >= 200 && statusCode < 300 && responseEntity != null) {
+	                String responseBody = EntityUtils.toString(responseEntity);
+	                if (responseBody.startsWith("{")) {
+	                    return new JSONArray().put(new JSONObject(responseBody));
+	                }
+	                return new JSONArray(responseBody);
+	            } else {
+	                LOGGER.error("Failed request, Status Code: {}, Response Body: {}",
+	                    statusCode, EntityUtils.toString(response.getEntity()));
+	                return new JSONArray(); // Return an empty array on failure
+	            }
+	        }
+	    }
+	}
+	
+	
 
 	public JSONArray transmitDataspgrest(String toUrl) throws IOException {
 		PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();

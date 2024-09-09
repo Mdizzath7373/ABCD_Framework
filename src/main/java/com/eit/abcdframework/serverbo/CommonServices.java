@@ -560,10 +560,12 @@ public class CommonServices {
 		return messageServices
 				.MsegatsmsService(datavalue.get(smsObject.getJSONObject("fetchby").getString("getby")).toString(), msg);
 	}
+	
 
 	public Map<String, Object> loadBase64(String value, int total_pages) throws JSONException, IOException {
 		String url = "";
 		Map<String, Object> base64String = new HashMap<>();
+		LOGGER.info("Enter into fetch a base64!!");
 
 		if (total_pages <= 100) {
 			url = applicationurl + "pdf_splitter?select=document&primary_id_pdf=eq." + value;
@@ -572,14 +574,14 @@ public class CommonServices {
 
 		} else if (total_pages > 100) {
 			int start_page = 1;
-			ExecutorService executorService = Executors.newFixedThreadPool(10);
+			ExecutorService executorService = Executors.newFixedThreadPool(20);
 
 			try {
 				while (start_page < total_pages) {
 					final int current_start_page = start_page;
-					final int current_end_page = (start_page == 1 ? (start_page + 49) : (start_page + 50)) > total_pages
+					final int current_end_page = (start_page == 1 ? (start_page + 99) : (start_page + 100)) > total_pages
 							? total_pages
-							: start_page == 1 ? (start_page + 49) : (start_page + 50);
+							: start_page == 1 ? (start_page + 99) : (start_page + 100);
 
 					executorService.submit(() -> {
 

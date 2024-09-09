@@ -2,6 +2,7 @@ package com.eit.abcdframework.service;
 
 import java.util.List;
 
+import org.json.JSONObject;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.eit.abcdframework.dto.CommonUtilDto;
@@ -23,7 +24,7 @@ public interface DCDesignDataService {
 	void getProgress(String data);
 
 	
-	String SplitterPDFChanges(String data);
+	String SplitterPDFChanges(JSONObject jsonObject1);
 
 	String mergeToPDF(MultipartFile files, String data);
 
