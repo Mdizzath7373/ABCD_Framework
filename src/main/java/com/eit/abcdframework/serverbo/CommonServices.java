@@ -467,6 +467,7 @@ public class CommonServices {
 							jsonbody.put("to",
 									jsonbody.getString("companyname") + "-" + jsonbody.getString("username"));
 						} else {
+							jsonbody.put("userid", DisplaySingleton.memoryApplicationSetting.getString("AdminMail"));
 							jsonbody.put("to", DisplaySingleton.memoryApplicationSetting.getString("AdminName"));
 							jsonbody.put("from",
 									jsonbody.getString("companyname") + "-" + jsonbody.getString("username"));
