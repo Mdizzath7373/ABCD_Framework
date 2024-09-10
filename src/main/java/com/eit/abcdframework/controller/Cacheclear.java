@@ -1,7 +1,5 @@
 package com.eit.abcdframework.controller;
 
-import java.util.Base64;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,11 +28,6 @@ public class Cacheclear {
 	public void applictionsetting() {
 		displaySingleton.applictionsettingObj();
 	}
-
-//	@GetMapping("/form")
-//	public void form() {
-//		displaySingleton.applictionformObj();
-//	}
 
 	@GetMapping("/emailconfig")
 	public void emailconfig() {

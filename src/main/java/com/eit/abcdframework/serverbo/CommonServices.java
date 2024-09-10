@@ -466,6 +466,10 @@ public class CommonServices {
 							jsonbody.put("from", DisplaySingleton.memoryApplicationSetting.getString("AdminName"));
 							jsonbody.put("to",
 									jsonbody.getString("companyname") + "-" + jsonbody.getString("username"));
+
+							emailObject.put("mailid", false);
+							emailObject.put("table", jsonbody.getString("displaytab").toLowerCase());
+
 						} else {
 							jsonbody.put("userid", DisplaySingleton.memoryApplicationSetting.getString("AdminMail"));
 							jsonbody.put("to", DisplaySingleton.memoryApplicationSetting.getString("AdminName"));
@@ -560,7 +564,6 @@ public class CommonServices {
 		return messageServices
 				.MsegatsmsService(datavalue.get(smsObject.getJSONObject("fetchby").getString("getby")).toString(), msg);
 	}
-	
 
 	public Map<String, Object> loadBase64(String value, int total_pages) throws JSONException, IOException {
 		String url = "";
@@ -579,9 +582,9 @@ public class CommonServices {
 			try {
 				while (start_page < total_pages) {
 					final int current_start_page = start_page;
-					final int current_end_page = (start_page == 1 ? (start_page + 99) : (start_page + 100)) > total_pages
-							? total_pages
-							: start_page == 1 ? (start_page + 99) : (start_page + 100);
+					final int current_end_page = (start_page == 1 ? (start_page + 99)
+							: (start_page + 100)) > total_pages ? total_pages
+									: start_page == 1 ? (start_page + 99) : (start_page + 100);
 
 					executorService.submit(() -> {
 

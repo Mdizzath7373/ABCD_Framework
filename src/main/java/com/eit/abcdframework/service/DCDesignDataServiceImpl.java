@@ -1,14 +1,9 @@
 package com.eit.abcdframework.service;
 
-import java.io.File;
-import java.io.IOException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -34,8 +29,6 @@ import com.eit.abcdframework.serverbo.ResponcesHandling;
 import com.eit.abcdframework.util.AmazonSMTPMail;
 import com.eit.abcdframework.util.TimeZoneServices;
 import com.eit.abcdframework.websocket.WebSocketService;
-
-import flexjson.JSON;
 
 @Service
 public class DCDesignDataServiceImpl implements DCDesignDataService {
@@ -590,10 +583,10 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 						returndata.put("error", res);
 				}
 
-//				if (returndata.has("reflex")) {
-//					String delUrl = pgresturl + "pdf_splitter?id=eq." + primary_id;
-//					dataTransmit.transmitDataspgrestDel(delUrl);
-//				}
+				if (returndata.has("reflex")) {
+					String delUrl = pgresturl + "pdf_splitter?id=eq." + primary_id;
+					dataTransmit.transmitDataspgrestDel(delUrl);
+				}
 
 			}
 

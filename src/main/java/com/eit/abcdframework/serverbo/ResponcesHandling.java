@@ -1,6 +1,5 @@
 package com.eit.abcdframework.serverbo;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,11 +12,9 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.eit.abcdframework.http.caller.Httpclientcaller;
 import com.eit.abcdframework.service.FormdataServiceImpl;
 import com.eit.abcdframework.util.AmazonSMTPMail;
 import com.eit.abcdframework.websocket.WebSocketService;
@@ -37,23 +34,23 @@ public class ResponcesHandling {
 	static FormdataServiceImpl formdataServiceImpl;
 
 	@Autowired
-	public void setProductService(CommonServices commonServices) {
-		this.commonServices = commonServices;
+	public  void setProductService(CommonServices commonServices) {
+		ResponcesHandling.commonServices = commonServices;
 	}
 
 	@Autowired
 	public void setProductService(WebSocketService socketService) {
-		this.socketService = socketService;
+		ResponcesHandling.socketService = socketService;
 	}
 
 	@Autowired
 	public void setProductService(AmazonSMTPMail amazonSMTPMail) {
-		this.amazonSMTPMail = amazonSMTPMail;
+		ResponcesHandling.amazonSMTPMail = amazonSMTPMail;
 	}
 
 	@Autowired
 	public void setProductService(FormdataServiceImpl formdataServiceImpl) {
-		this.formdataServiceImpl = formdataServiceImpl;
+		ResponcesHandling.formdataServiceImpl = formdataServiceImpl;
 	}
 
 //	
