@@ -45,19 +45,50 @@ public class CronServices {
 				String subject = "Remainder Of Documents";
 				if (where == "milestone") {
 					String expiryDate = LocalDate.now().plusMonths(1).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+					String[] primaryDataParts = jsondata.getString("primarydata").split("\\+");
+					String companyName = primaryDataParts[1];
 					subject = "Remainder Of Permission";
-					body = "<div style='font-weight:500;font-size:15px'><b>" + jsondata.getString("primarydata")
-							+ "</b><p> Your Milestone Expiry Remainder</p><b><p>We kindly inform you that your </b>"
-							+ jsondata.getString("docsname") + " for the Fleet ID-" + jsondata.get("primarydata")
-							+ " will expire on " + expiryDate + ". Please address this matter promptly.</p></div>";
+//					body = "<div style='font-weight:500;font-size:15px'><b>" + jsondata.getString("primarydata")
+//							+ "</b><p> Your Milestone Expiry Remainder</p><b><p>We kindly inform you that your </b>"
+//							+ jsondata.getString("docsname") + " for the Fleet ID-" + jsondata.get("primarydata")
+//							+ " will expire on " + expiryDate + ". Please address this matter promptly.</p></div>";
+					body = "<div style='font-family: Arial, sans-serif; color: #333;'>"
+						    + "<p>Dear <b>" + companyName + "</b>,</p>"
+						    + "<p>This is a reminder that your Milestone document is approaching its expiry date. Please review and update the document as needed.</p>"
+						    + "<p><b>Document Name:</b> " + jsondata.getString("docsname") + "</p>"
+						    + "<p><b>Expiry Date:</b> " + expiryDate + "</p>"
+						    + "<p>Kindly ensure that all necessary updates are made before the expiration date. If you have any questions or need assistance, feel free to reach out.</p>"
+						    + "</div>";
 				} else if (jsondata.getString("primarydata").equalsIgnoreCase("fleet")) {
-					body = "<div style='font-weight:500;font-size:15px'><b>" + jsondata.getString("primarydata")
-							+ "</b><p> Your Fleet Documents has Expiry Remainder,Please Check Your Documents</p>,<b><p>Document Name:</b>"
-							+ jsondata.getString("docsname") + "-" + jsondata.get("expriydate") + "</p></div>";
+//					body = "<div style='font-weight:500;font-size:15px'><b>" + jsondata.getString("primarydata")
+//							+ "</b><p> Your Fleet Documents has Expiry Remainder,Please Check Your Documents</p>,<b><p>Document Name:</b>"
+//							+ jsondata.getString("docsname") + "-" + jsondata.get("expriydate") + "</p></div>";
+					String[] primaryDataParts = jsondata.getString("primarydata").split("\\+");
+					String fleetID = primaryDataParts[0];
+					String companyName = primaryDataParts[1];
+					String expiryDate = primaryDataParts[2];
+					body = "<div style='font-family: Arial, sans-serif; color: #333;'>"
+						    + "<p>Dear <b>" + companyName + "</b>,</p>"
+						    + "<p>This is a reminder that your company document is approaching its expiry date. Please review and update the document as needed.</p>"
+						    + "<p><b>Document Name:</b> " + jsondata.getString("docsname") + "</p>"
+						    + "<p><b>Expiry Date:</b> " + expiryDate + "</p>"
+						    + "<p>Kindly ensure that all necessary updates are made before the expiration date. If you have any questions or need assistance, feel free to reach out.</p>"
+						    + "</div>";
 				} else {
-					body = "<div style='font-weight:500;font-size:15px'><b>" + jsondata.getString("primarydata")
-							+ "</b><p> Your Company Documents has Expiry Remainder,Please Check Your Documents</p>,<b><p>Document Name:</b>"
-							+ jsondata.getString("docsname") + "-" + jsondata.get("expriydate") + "</p></div>";
+//					body = "<div style='font-weight:500;font-size:15px'><b>" +"Dear "+ jsondata.getString("primarydata")
+//							+ "</b><p> Your Company Documents has Expiry Remainder,Please Check Your Documents</p>,<b><p>Document Name:</b>"
+//							+ jsondata.getString("docsname") + "-" + jsondata.get("expriydate") + "</p></div>";
+					String[] primaryDataParts = jsondata.getString("primarydata").split("\\+");
+					String companyName = primaryDataParts[0];
+					String expiryDate = primaryDataParts[1];
+					body = "<div style='font-family: Arial, sans-serif; color: #333;'>"
+						    + "<p>Dear <b>" + companyName + "</b>,</p>"
+						    + "<p>This is a reminder that your company document is approaching its expiry date. Please review and update the document as needed.</p>"
+						    + "<p><b>Document Name:</b> " + jsondata.getString("docsname") + "</p>"
+						    + "<p><b>Expiry Date:</b> " + expiryDate + "</p>"
+						    + "<p>Kindly ensure that all necessary updates are made before the expiration date. If you have any questions or need assistance, feel free to reach out.</p>"
+						    + "</div>";
+
 				}
 				resultOfMail = amazonSMTPMail.sendEmail(smtpMail.getString("amazonverifiedfromemail"),
 						jsondata.getString("email"), subject, body, smtpMail.getString("amazonsmtpusername"),
