@@ -27,82 +27,59 @@ public class CronServices {
 
 	@Autowired
 	MessageServices messageServices;
+	
+	@Autowired
+	AmazonSMTPMail amazonSMTPMail;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger("CronServices");
 
-	public String remainderThroughEmail(String where) {
-		String resultOfMail = "";
-		String body = "";
-		JSONObject smtpMail = new JSONObject(
-				DisplaySingleton.memoryApplicationSetting.get("smptAmazonMail").toString());
-		try {
-			AmazonSMTPMail amazonSMTPMail = new AmazonSMTPMail();
-			Httpclientcaller dataTrans = new Httpclientcaller();
-			String url = applicationurl + "rpc/getremainderdata?datas=" + where;
-			JSONArray json = dataTrans.transmitDataspgrest(url);
-			for (int i = 0; i < json.length(); i++) {
-				JSONObject jsondata = new JSONObject(json.get(i).toString());
-				String subject = "Remainder Of Documents";
-				if (where == "milestone") {
-					String expiryDate = LocalDate.now().plusMonths(1).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-					String[] primaryDataParts = jsondata.getString("primarydata").split("\\+");
-					String companyName = primaryDataParts[1];
-					subject = "Remainder Of Permission";
-//					body = "<div style='font-weight:500;font-size:15px'><b>" + jsondata.getString("primarydata")
-//							+ "</b><p> Your Milestone Expiry Remainder</p><b><p>We kindly inform you that your </b>"
-//							+ jsondata.getString("docsname") + " for the Fleet ID-" + jsondata.get("primarydata")
-//							+ " will expire on " + expiryDate + ". Please address this matter promptly.</p></div>";
-					body = "<div style='font-family: Arial, sans-serif; color: #333;'>"
-						    + "<p>Dear <b>" + companyName + "</b>,</p>"
-						    + "<p>This is a reminder that your Milestone document is approaching its expiry date. Please review and update the document as needed.</p>"
-						    + "<p><b>Document Name:</b> " + jsondata.getString("docsname") + "</p>"
-						    + "<p><b>Expiry Date:</b> " + expiryDate + "</p>"
-						    + "<p>Kindly ensure that all necessary updates are made before the expiration date. If you have any questions or need assistance, feel free to reach out.</p>"
-						    + "</div>";
-				} else if (jsondata.getString("primarydata").equalsIgnoreCase("fleet")) {
-//					body = "<div style='font-weight:500;font-size:15px'><b>" + jsondata.getString("primarydata")
-//							+ "</b><p> Your Fleet Documents has Expiry Remainder,Please Check Your Documents</p>,<b><p>Document Name:</b>"
-//							+ jsondata.getString("docsname") + "-" + jsondata.get("expriydate") + "</p></div>";
-					String[] primaryDataParts = jsondata.getString("primarydata").split("\\+");
-					String fleetID = primaryDataParts[0];
-					String companyName = primaryDataParts[1];
-					String expiryDate = primaryDataParts[2];
-					body = "<div style='font-family: Arial, sans-serif; color: #333;'>"
-						    + "<p>Dear <b>" + companyName + "</b>,</p>"
-						    + "<p>This is a reminder that your company document is approaching its expiry date. Please review and update the document as needed.</p>"
-						    + "<p><b>Document Name:</b> " + jsondata.getString("docsname") + "</p>"
-						    + "<p><b>Expiry Date:</b> " + expiryDate + "</p>"
-						    + "<p>Kindly ensure that all necessary updates are made before the expiration date. If you have any questions or need assistance, feel free to reach out.</p>"
-						    + "</div>";
-				} else {
-//					body = "<div style='font-weight:500;font-size:15px'><b>" +"Dear "+ jsondata.getString("primarydata")
-//							+ "</b><p> Your Company Documents has Expiry Remainder,Please Check Your Documents</p>,<b><p>Document Name:</b>"
-//							+ jsondata.getString("docsname") + "-" + jsondata.get("expriydate") + "</p></div>";
-					String[] primaryDataParts = jsondata.getString("primarydata").split("\\+");
-					String companyName = primaryDataParts[0];
-					String expiryDate = primaryDataParts[1];
-					body = "<div style='font-family: Arial, sans-serif; color: #333;'>"
-						    + "<p>Dear <b>" + companyName + "</b>,</p>"
-						    + "<p>This is a reminder that your company document is approaching its expiry date. Please review and update the document as needed.</p>"
-						    + "<p><b>Document Name:</b> " + jsondata.getString("docsname") + "</p>"
-						    + "<p><b>Expiry Date:</b> " + expiryDate + "</p>"
-						    + "<p>Kindly ensure that all necessary updates are made before the expiration date. If you have any questions or need assistance, feel free to reach out.</p>"
-						    + "</div>";
+	public String remainderThroughEmail() {
+	    String resultOfMail = "";
+	    JSONObject smtpMail = new JSONObject(DisplaySingleton.memoryApplicationSetting.get("smptAmazonMail").toString());
+	    try {
+	        Httpclientcaller dataTrans = new Httpclientcaller();
+	        JSONObject jobScheduler = new JSONObject(DisplaySingleton.memoryApplicationSetting.get("JobScheduler").toString());
+	        JSONArray listOfJob = jobScheduler.getJSONArray("listOfJob");
+	        
+	        for (int i = 0; i < listOfJob.length(); i++) {
+	            try {
+	                String job = listOfJob.getString(i);
+	                String subject = jobScheduler.getJSONObject(job).getString("subject");
+	                String bodyTemplate = jobScheduler.getJSONObject(job).getString("body");
+	                String url = applicationurl + "rpc/getremainderdata?datas=" + job;
+	                JSONArray json = dataTrans.transmitDataspgrest(url);
 
-				}
-				resultOfMail = amazonSMTPMail.sendEmail(smtpMail.getString("amazonverifiedfromemail"),
-						jsondata.getString("email"), subject, body, smtpMail.getString("amazonsmtpusername"),
-						smtpMail.getString("amazonsmtppassword"), smtpMail.getString("amazonhostaddress"),
-						smtpMail.getString("amazonport"));
+	                for (int list = 0; list < json.length(); list++) {
+	                    JSONObject jsondata = new JSONObject(json.get(list).toString());
+	                    String companyName = jsondata.getString("primarydata").split("\\+")[0];
+	                    String docsname = jsondata.getString("docsname");
+	                    String expiryDate = jsondata.getString("primarydata").split("\\+")[1];
+	                    String body = bodyTemplate
+	                        .replace("{companyName}", companyName)
+	                        .replace("{docsname}", docsname)
+	                        .replace("{expiryDate}", expiryDate);
+	                    
+	                    if (job.equals("fleet")) {
+	                        String fleetID = jsondata.getString("primarydata").split("\\+")[2];
+	                        body = body.replace("{fleetID}", fleetID);
+	                    }
+	                    resultOfMail = amazonSMTPMail.sendEmail(smtpMail.getString("amazonverifiedfromemail"),
+	    						jsondata.getString("email"), subject, body, smtpMail.getString("amazonsmtpusername"),
+	    						smtpMail.getString("amazonsmtppassword"), smtpMail.getString("amazonhostaddress"),
+	    						smtpMail.getString("amazonport"));
+	                }
+	            } catch (Exception e) {
+	                LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+	            }
+	        }
+	    } catch (Exception e) {
+	        LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+	    }
+	    return resultOfMail;
+}
 
-			}
-		} catch (Exception e) {
-			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
-		}
-
-		return resultOfMail;
-	}
-
+	
+	
 	public String triggerCorn() {
 		String res = "";
 		String sendto = "mobile";
