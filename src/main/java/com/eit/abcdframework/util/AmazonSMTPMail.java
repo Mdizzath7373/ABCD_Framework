@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -209,8 +210,7 @@ public class AmazonSMTPMail {
 						emails = new ArrayList();
 						emails.add("nadim@eitworks.com");
 					} else
-						emails = new ArrayList(Arrays.asList(email.split(",")));
-
+						emails = Arrays.stream(email.split(",")).distinct().collect(Collectors.toList());
 					for (int m = 0; m < emails.size(); m++) {
 						int k = 0;
 						do {
