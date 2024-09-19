@@ -6,9 +6,11 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
@@ -25,6 +27,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.eit.abcdframework.http.caller.Httpclientcaller;
+import com.eit.abcdframework.service.FormdataServiceImpl;
 import com.eit.abcdframework.util.AmazonSMTPMail;
 import com.eit.abcdframework.util.MessageServices;
 import com.eit.abcdframework.util.TimeZoneServices;
@@ -47,6 +50,15 @@ public class CommonServices {
 
 	@Autowired
 	MessageServices messageServices;
+	
+//	@Autowired
+	static	FormdataServiceImpl formdataServiceImpl;
+	
+	
+	@Autowired
+	public void setProductService(FormdataServiceImpl formdataServiceImpl) {
+		CommonServices.formdataServiceImpl = formdataServiceImpl;
+	}
 
 	private static final Logger LOGGER = LoggerFactory.getLogger("CommonServices");
 
@@ -60,144 +72,9 @@ public class CommonServices {
 	private static final String SECRET_KEY = "ABCDFRAM09876543"; // 16-byte key for AES
 	private static final String IV = "ABCDFRAMIV098765"; // 16-byte IV for AES
 
-	public String addactivitylog(JSONObject getvalue, String status, JSONObject jsonbody, String rolename,
-			String message, boolean notification) {
-		String returndata = "";
-		try {
+	
 
-			JSONArray param = getvalue.getJSONArray("param");
-			JSONObject setvalue = getvalue.getJSONObject("setvalue");
-			setvalue.put("logs", message);
-			setvalue.put("createdby", rolename);
-			setvalue.put("activitytype", status);
-			setvalue.put("createdtime", TimeZoneServices.getDateInTimeZoneforSKT("Asia/Riyadh"));
-			for (int i = 0; i < param.length(); i++) {
-				setvalue.put(param.getString(i),
-						jsonbody.get(getvalue.getJSONObject("getvalues").get(param.get(i).toString()).toString()));
-			}
-			String url = applicationurl + "activitylog";
-			String response = dataTransmit.transmitDataspgrestpost(url, setvalue.toString(), false);
-			if (Integer.parseInt(response) >= 200 && Integer.parseInt(response) <= 226) {
-				if (notification) {
-					sendPushNotification(setvalue, "activitylog", rolename, new JSONObject());
-				}
-				JSONObject header = new JSONObject();
-				header.put("name", "activitylogs");
-				header.put("rolename", rolename);
-				socketService.pushSocketData(header, setvalue, "");
-				returndata = "Success";
-			}
-
-		} catch (Exception e) {
-			returndata = e.getMessage();
-			LOGGER.error("Exception in addactivitylog : ", e);
-		}
-		return returndata;
-	}
-
-	private String sendnotification(JSONObject jsonBody, String tablename, JSONObject getJsonObject) {
-		try {
-
-			String url = applicationurl + getJsonObject.getString("getToken") + "?status=eq.login";
-			JSONArray jsonArray = dataTransmit.transmitDataspgrest(url);
-			if (jsonArray.isEmpty()) {
-				return "No token Found";
-			}
-
-			JSONObject setvalueofnotification = new JSONObject();
-			JSONObject notificationbody = new JSONObject();
-			if (getJsonObject.getJSONObject(tablename).getBoolean("setdata")) {
-				JSONArray columnarray = getJsonObject.getJSONObject(tablename).getJSONArray("column");
-				JSONArray getvalue = getJsonObject.getJSONObject(tablename).getJSONArray("getvalues");
-				JSONObject dataJson = new JSONObject();
-				for (int j = 0; j < columnarray.length(); j++) {
-					dataJson.put(columnarray.get(j).toString(), jsonBody.get(getvalue.get(j).toString()).toString());
-				}
-				setvalueofnotification.put("data", dataJson);
-			}
-
-			JSONArray titlevalue = getJsonObject.getJSONObject(tablename).getJSONArray("title");
-
-			if (titlevalue.length() > 1) {
-				String data = "";
-				for (int t = 0; t < titlevalue.length(); t++) {
-
-					if (t + 1 == titlevalue.length())
-						data = data + jsonBody.get(titlevalue.get(t).toString()).toString();
-					else if (t != 0)
-						data = data + jsonBody.get(titlevalue.get(t).toString()) + "-";
-					else
-						data = jsonBody.get(titlevalue.get(t).toString()) + "-";
-				}
-
-				setvalueofnotification.put("notification", notificationbody.put("title", data));
-			} else {
-				setvalueofnotification.put("notification",
-						notificationbody.put("title", jsonBody.get(titlevalue.get(0).toString())));
-			}
-			JSONArray body = getJsonObject.getJSONObject(tablename).getJSONArray("body");
-			if (body.length() > 1) {
-				String data = "";
-				for (int t = 0; t < body.length(); t++) {
-					if (t + 1 == body.length())
-						data = data + jsonBody.get(body.get(t).toString()).toString();
-					else if (t != 0)
-						data = data + jsonBody.get(body.get(t).toString()) + "-";
-					else
-						data = jsonBody.get(body.get(t).toString()) + "-";
-				}
-
-				setvalueofnotification.put("notification", notificationbody.put("body", data));
-
-			} else {
-				setvalueofnotification.put("notification",
-						notificationbody.put("body", jsonBody.get(body.get(0).toString())));
-			}
-			// Onborad
-//			setvalueofnotification.put("priority", "high");
-
-			for (int i = 0; i < jsonArray.length(); i++) {
-				if (!new JSONObject(jsonArray.get(i).toString()).getString("status").equalsIgnoreCase("login")) {
-					if (jsonBody.has("appnotification") && jsonBody.getBoolean("appnotification")) {
-						setvalueofnotification.put("token",
-								new JSONObject(jsonArray.get(i).toString()).getString("pushnotificationtoken"));
-						dataTransmit.transmitDataPushNotification(getJsonObject.getString("api"),
-								new JSONObject().put("message", setvalueofnotification).toString());
-					}
-				} else {
-//					System.err.println(jsonBody.get(getJsonObject.getJSONObject(tablename).getString("checkUser")));
-//					System.err.println(new JSONObject(jsonArray.get(i).toString()).get("userid"));
-					if (getJsonObject.getJSONObject(tablename).has("checkUser")
-							&& jsonBody.get(getJsonObject.getJSONObject(tablename).getString("checkUser"))
-									.equals(new JSONObject(jsonArray.get(i).toString()).get("userid"))) {
-						setvalueofnotification.put("token",
-								new JSONObject(jsonArray.get(i).toString()).getString("pushnotificationtoken"));
-						dataTransmit.transmitDataPushNotification(getJsonObject.getString("api"),
-								new JSONObject().put("message", setvalueofnotification).toString());
-					} else if (!getJsonObject.getJSONObject(tablename).has("checkUser")) {
-						setvalueofnotification.put("token",
-								new JSONObject(jsonArray.get(i).toString()).getString("pushnotificationtoken"));
-						dataTransmit.transmitDataPushNotification(getJsonObject.getString("api"),
-								new JSONObject().put("message", setvalueofnotification).toString());
-						// Onborad
-//						setvalueofnotification.put("to",
-//								new JSONObject(jsonArray.get(i).toString()).getString("pushnotificationtoken"));
-//						dataTransmit.transmitDataPushNotification("https://fcm.googleapis.com/fcm/send",
-//								setvalueofnotification.toString());
-					}
-				}
-//				https://fcm.googleapis.com/v1/projects/refa-f55bd/messages:send
-//					https://fcm.googleapis.com/fcm/send
-
-			}
-		} catch (
-
-		Exception e) {
-			LOGGER.error("Exception at Send Notification::", e);
-		}
-		return "success";
-
-	}
+	
 
 	public String userstatusupdate(String updationform, JSONObject user, String id) {
 		JSONObject returndata = new JSONObject();
@@ -423,76 +300,7 @@ public class CommonServices {
 		return "";
 	}
 
-	public String sendPushNotification(JSONObject jsonbody, String tablename, String rolename,
-			JSONObject getPushNotificationJsonObject) {
-		String res = "success";
-
-		try {
-			String sendingdata = getPushNotificationJsonObject.getJSONObject(tablename).getString("sendingdata");
-			String Findcolumn = getPushNotificationJsonObject.getJSONObject(tablename).getString("Findcolumn");
-			if (!sendingdata.equalsIgnoreCase("all")) {
-				if (jsonbody.getString(Findcolumn).equalsIgnoreCase(sendingdata)) {
-					if (getPushNotificationJsonObject.getBoolean("sendbyrole")
-							&& getPushNotificationJsonObject.getJSONArray("rolename").toList().contains(rolename))
-						sendnotification(jsonbody, tablename, getPushNotificationJsonObject);
-					else if (!getPushNotificationJsonObject.getBoolean("sendbyrole"))
-						sendnotification(jsonbody, tablename, getPushNotificationJsonObject);
-				}
-			} else {
-				if (getPushNotificationJsonObject.getBoolean("sendbyrole")
-						&& getPushNotificationJsonObject.getJSONArray("rolename").toList().contains(rolename))
-					sendnotification(jsonbody, tablename, getPushNotificationJsonObject);
-				else if (!getPushNotificationJsonObject.getBoolean("sendbyrole"))
-					sendnotification(jsonbody, tablename, getPushNotificationJsonObject);
-			}
-			System.err.println();
-
-			if (getPushNotificationJsonObject.getJSONObject(tablename).has("email")) {
-				JSONObject emailObject = new JSONObject(
-						getPushNotificationJsonObject.getJSONObject(tablename).get("email").toString());
-
-				if (emailObject.getBoolean("Toggle")) {
-					String api = emailObject.getJSONObject("FindToggle").getString("tablename");
-					String where = emailObject.getJSONObject("FindToggle").getJSONObject("where").getString("condition")
-							+ jsonbody.get(
-									emailObject.getJSONObject("FindToggle").getJSONObject("where").getString("value"));
-					String url = (applicationurl + api + "?" + where).replaceAll(" ", "%20");
-
-					String toogleData = new JSONObject(dataTransmit.transmitDataspgrest(url).get(0).toString())
-							.getString(emailObject.getJSONObject("FindToggle").getString("columnkey"));
-					if (toogleData.equalsIgnoreCase("On")) {
-
-						if (!rolename.equalsIgnoreCase("Company Admin")) {
-							jsonbody.put("from", DisplaySingleton.memoryApplicationSetting.getString("AdminName"));
-							jsonbody.put("to",
-									jsonbody.getString("companyname") + "-" + jsonbody.getString("username"));
-
-							emailObject.put("mailid", false);
-							emailObject.put("table", jsonbody.getString("displaytab").toLowerCase());
-
-						} else {
-							jsonbody.put("userid", DisplaySingleton.memoryApplicationSetting.getString("AdminMail"));
-							jsonbody.put("to", DisplaySingleton.memoryApplicationSetting.getString("AdminName"));
-							jsonbody.put("from",
-									jsonbody.getString("companyname") + "-" + jsonbody.getString("username"));
-						}
-						amazonSMTPMail.emailconfig(emailObject, jsonbody, new ArrayList<>(), "en", "POST");
-						jsonbody.remove("from");
-						jsonbody.remove("to");
-
-					}
-
-				}
-
-			}
-
-		} catch (Exception e) {
-			LOGGER.error("Exception at " + Thread.currentThread().getStackTrace()[1].getMethodName(), e.getMessage());
-			return "Failed";
-		}
-		LOGGER.info(res);
-		return res;
-	}
+	
 
 	public String whereFormation(JSONObject jsonbody, JSONObject whereFormation) {
 		String whereCondition = "";
@@ -542,28 +350,6 @@ public class CommonServices {
 		return new String(decryptedBytes);
 	}
 
-	public String smsService(JSONObject jsonbody, JSONObject getdata, String msg) {
-		JSONObject datavalue = null;
-		JSONObject smsObject = null;
-		try {
-			smsObject = new JSONObject(getdata.get("sms").toString());
-			if (smsObject.has("fetchby") && !smsObject.getJSONObject("fetchby").isEmpty()) {
-				smsObject.getJSONObject("fetchby").getString("tablename");
-				smsObject.getJSONObject("fetchby").getJSONArray("param");
-				smsObject.getJSONObject("fetchby").getJSONArray("value");
-				String url = applicationurl + smsObject.getJSONObject("fetchby").getString("tablename") + "?"
-						+ smsObject.getJSONObject("fetchby").getJSONArray("param").get(0) + "=eq."
-						+ jsonbody.get(smsObject.getJSONObject("fetchby").getJSONArray("value").get(0).toString());
-				datavalue = new JSONObject(dataTransmit.transmitDataspgrest(url).get(0).toString());
-
-			}
-		} catch (Exception e) {
-			LOGGER.error("Exception at " + Thread.currentThread().getStackTrace()[1].getMethodName(), e);
-			return "Failed";
-		}
-		return messageServices
-				.MsegatsmsService(datavalue.get(smsObject.getJSONObject("fetchby").getString("getby")).toString(), msg);
-	}
 
 	public Map<String, Object> loadBase64(String value, int total_pages) throws JSONException, IOException {
 		String url = "";
@@ -626,6 +412,41 @@ public class CommonServices {
 		System.err.println(base64String.size());
 		return base64String;
 
+	}
+	
+	public static String MappedCurdOperation(JSONObject getdataObject, String data) {
+		String res = "";
+		try {
+			Map<String, Boolean> formDataResponces = new HashMap<>();
+			JSONArray methods = getdataObject.getJSONObject("synchronizedCurdOperation").getJSONArray("Methods");
+			JSONArray bodJson = getdataObject.getJSONObject("synchronizedCurdOperation").getJSONArray("bodyJson");
+			JSONObject body = new JSONObject(data);
+			for (int method = 0; method < methods.length(); method++) {
+				String keyofmethods = methods.get(method).toString();
+				if (keyofmethods.equalsIgnoreCase("post")) {
+					res = formdataServiceImpl.transmittingToMethod(body.getJSONObject(bodJson.get(method).toString()).toString(), "POST");
+					formDataResponces.put(bodJson.get(method).toString(),
+							(new JSONObject(res).has("reflex") ? true : false));
+				} else if (keyofmethods.equalsIgnoreCase("put")) {
+					res =formdataServiceImpl.transmittingToMethod(body.getJSONObject(bodJson.get(method).toString()).toString(), "PUT");
+					formDataResponces.put(bodJson.get(method).toString(),
+							(new JSONObject(res).has("reflex") ? true : false));
+				} else {
+
+				}
+
+				Set<String> Failed = formDataResponces.entrySet().stream().filter(entry -> !entry.getValue())
+						.map(Map.Entry::getKey).collect(Collectors.toSet());
+				res = Failed.isEmpty() ? "Success" : "Missed Api" + Failed;
+				LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName() + "-->{}", res);
+
+			}
+
+		} catch (Exception e) {
+			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+		}
+
+		return res;
 	}
 
 }

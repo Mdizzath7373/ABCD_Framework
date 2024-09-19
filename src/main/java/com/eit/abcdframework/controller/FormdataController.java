@@ -2,7 +2,10 @@ package com.eit.abcdframework.controller;
 
 import java.io.IOException;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -19,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.S3Object;
+import com.eit.abcdframework.http.caller.Httpclientcaller;
 import com.eit.abcdframework.service.FormdataService;
 
 @RestController
@@ -32,39 +36,66 @@ public class FormdataController {
 	@Autowired
 	AmazonS3 amazonS3;
 
+	@Value("${applicationurl}")
+	private String pgrest;
+
 	@GetMapping("/form")
 	public String transmittingDataget(@RequestParam String name, @RequestParam String primary,
 			@RequestParam String where) {
-		return formdataService.transmittingDataget(name, primary, where);
+		return formdataService.transmittingToMethod("GET",name, primary, where,false);
 	}
 
 	@PostMapping("/form")
 	public String transmittingDatapost(@RequestBody String data) {
-		return formdataService.transmittingDatapost(data);
+//		return formdataService.transmittingDatapost(data);
+		return formdataService.transmittingToMethod("POST", data);
 	}
 
 	@PutMapping("/form")
 	public String transmittingDataput(@RequestBody String data) {
-		return formdataService.transmittingDataput(data);
+//		return formdataService.transmittingDataput(data);
+		return formdataService.transmittingToMethod("PUT", data);
 	}
 
 	@DeleteMapping("/form")
 	public String transmittingDataDel(@RequestParam String name, @RequestParam String primary,
 			@RequestParam String where, boolean isdeleteall) {
-		return formdataService.transmittingDataDel(name, primary, where, isdeleteall);
+		return formdataService.transmittingToMethod("Delete",name, primary, where, isdeleteall);
 	}
 
 	@GetMapping("/download")
 	public ResponseEntity<InputStreamResource> downloadFileFromS3(String url) throws IOException {
 		url = url.split("onboard/")[1];
-		S3Object s3Object = amazonS3.getObject("goldenelement", "onboard/"+url);
-		
+		S3Object s3Object = amazonS3.getObject("goldenelement", "onboard/" + url);
 
 		InputStreamResource resource = new InputStreamResource(s3Object.getObjectContent());
 
 		HttpHeaders headers = new HttpHeaders();
-		headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + "onboard/"+url);
+		headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + "onboard/" + url);
 
 		return ResponseEntity.ok().headers(headers).contentType(MediaType.APPLICATION_OCTET_STREAM).body(resource);
 	}
+
+	@GetMapping("/test")
+	public void test() throws IOException {
+		 JSONObject json = new JSONObject();
+	        json.put("curd", new String[]{"POST", "PUT", "GET"});
+	        json.put("UniqueColumn", "users_id");
+	        json.put("FindTable", "users");
+	        json.put("FetchColumn", "status");
+	        json.put("MatchBy", "Suspended");
+	        json.put("Message", "your account has been Suspended by REFA");
+		   Httpclientcaller ddaaa=new Httpclientcaller();
+		  ddaaa.transmitDataspgrest(pgrest+"configs").forEach(entry->{
+			 int id =new JSONObject(entry.toString()).getInt("id");
+            JSONObject data= new JSONObject(new JSONObject(entry.toString()).getString("datas"));
+            if(data.has("sms")) {
+            	System.err.println(new JSONObject(entry.toString()).getString("alias"));
+            }
+            
+            data.put("checkAPI", json);
+//            System.err.println(data);
+		  });
+	}
+
 }

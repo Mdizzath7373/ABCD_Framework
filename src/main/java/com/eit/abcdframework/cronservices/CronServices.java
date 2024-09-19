@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import com.eit.abcdframework.http.caller.Httpclientcaller;
 import com.eit.abcdframework.serverbo.CommonServices;
 import com.eit.abcdframework.serverbo.DisplaySingleton;
+import com.eit.abcdframework.serverbo.ResponcesHandling;
 import com.eit.abcdframework.util.AmazonSMTPMail;
 import com.eit.abcdframework.util.MessageServices;
 import com.eit.abcdframework.util.TimeZoneServices;
@@ -26,67 +27,63 @@ public class CronServices {
 	private String applicationurl;
 
 	@Autowired
-	MessageServices messageServices;
-	
-	@Autowired
 	AmazonSMTPMail amazonSMTPMail;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger("CronServices");
 
 	public String remainderThroughEmail() {
-	    String resultOfMail = "";
-	    JSONObject smtpMail = new JSONObject(DisplaySingleton.memoryApplicationSetting.get("smptAmazonMail").toString());
-	    try {
-	        Httpclientcaller dataTrans = new Httpclientcaller();
-	        JSONObject jobScheduler = new JSONObject(DisplaySingleton.memoryApplicationSetting.get("JobScheduler").toString());
-	        JSONArray listOfJob = jobScheduler.getJSONArray("listOfJob");
-	        
-	        for (int i = 0; i < listOfJob.length(); i++) {
-	            try {
-	                String job = listOfJob.getString(i);
-	                String subject = jobScheduler.getJSONObject(job).getString("subject");
-	                String bodyTemplate = jobScheduler.getJSONObject(job).getString("body");
-	                String url = applicationurl + "rpc/getremainderdata?datas=" + job;
-	                JSONArray json = dataTrans.transmitDataspgrest(url);
+		String resultOfMail = "";
+		JSONObject smtpMail = new JSONObject(
+				DisplaySingleton.memoryApplicationSetting.get("smptAmazonMail").toString());
+		try {
+			Httpclientcaller dataTrans = new Httpclientcaller();
+			JSONObject jobScheduler = new JSONObject(
+					DisplaySingleton.memoryApplicationSetting.get("JobScheduler").toString());
+			JSONArray listOfJob = jobScheduler.getJSONArray("listOfJob");
 
-	                for (int list = 0; list < json.length(); list++) {
-	                    JSONObject jsondata = new JSONObject(json.get(list).toString());
-	                    String companyName = jsondata.getString("primarydata").split("\\+")[0];
-	                    String docsname = jsondata.getString("docsname");
-	                    String expiryDate = jsondata.getString("primarydata").split("\\+")[1];
-	                    String body = bodyTemplate
-	                        .replace("{companyName}", companyName)
-	                        .replace("{docsname}", docsname)
-	                        .replace("{expiryDate}", expiryDate);
-	                    
-	                    if (job.equals("fleet")) {
-	                        String fleetID = jsondata.getString("primarydata").split("\\+")[2];
-	                        body = body.replace("{fleetID}", fleetID);
-	                    }
-	                    resultOfMail = amazonSMTPMail.sendEmail(smtpMail.getString("amazonverifiedfromemail"),
-	    						jsondata.getString("email"), subject, body, smtpMail.getString("amazonsmtpusername"),
-	    						smtpMail.getString("amazonsmtppassword"), smtpMail.getString("amazonhostaddress"),
-	    						smtpMail.getString("amazonport"));
-	                }
-	            } catch (Exception e) {
-	                LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
-	            }
-	        }
-	    } catch (Exception e) {
-	        LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
-	    }
-	    return resultOfMail;
-}
+			for (int i = 0; i < listOfJob.length(); i++) {
+				try {
+					String job = listOfJob.getString(i);
+					String subject = jobScheduler.getJSONObject(job).getString("subject");
+					String bodyTemplate = jobScheduler.getJSONObject(job).getString("body");
+					String url = applicationurl + "rpc/getremainderdata?datas=" + job;
+					JSONArray json = dataTrans.transmitDataspgrest(url);
 
-	
-	
+					for (int list = 0; list < json.length(); list++) {
+						JSONObject jsondata = new JSONObject(json.get(list).toString());
+						String companyName = jsondata.getString("primarydata").split("\\+")[0];
+						String docsname = jsondata.getString("docsname");
+						String expiryDate = jsondata.getString("primarydata").split("\\+")[1];
+						String body = bodyTemplate.replace("{companyName}", companyName).replace("{docsname}", docsname)
+								.replace("{expiryDate}", expiryDate);
+
+						if (job.equals("fleet")) {
+							String fleetID = jsondata.getString("primarydata").split("\\+")[2];
+							body = body.replace("{fleetID}", fleetID);
+						}
+						resultOfMail = amazonSMTPMail.sendEmail(smtpMail.getString("amazonverifiedfromemail"),
+								jsondata.getString("email"), subject, body, smtpMail.getString("amazonsmtpusername"),
+								smtpMail.getString("amazonsmtppassword"), smtpMail.getString("amazonhostaddress"),
+								smtpMail.getString("amazonport"));
+					}
+				} catch (Exception e) {
+					LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+				}
+			}
+		} catch (Exception e) {
+			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+		}
+		return resultOfMail;
+	}
+
 	public String triggerCorn() {
 		String res = "";
 		String sendto = "mobile";
 		try {
 			Httpclientcaller dataTrans = new Httpclientcaller();
 			CommonServices commonServices = new CommonServices();
-			String url = applicationurl + "rpc/list_properties_with_expiring_rentals?datas=e.enddate='"+TimeZoneServices.getDate(new Date())+"'";
+			String url = applicationurl + "rpc/list_properties_with_expiring_rentals?datas=e.enddate='"
+					+ TimeZoneServices.getDate(new Date()) + "'";
 			JSONArray json = dataTrans.transmitDataspgrest(url);
 			if (!json.isEmpty()) {
 				for (int i = 0; i < json.length(); i++) {
@@ -107,9 +104,9 @@ public class CronServices {
 						setvalue.put("createdtime", TimeZoneServices.getDateInTimeZoneforSKT("Asia/Riyadh"));
 						url = applicationurl + "activitylog";
 						dataTrans.transmitDataspgrestpost(url, setvalue.toString(), false);
-						res = commonServices.sendPushNotification(setvalue, "activitylog", "tenant",new JSONObject());
+						res = ResponcesHandling.sendPushNotification(setvalue, "activitylog", "tenant", new JSONObject());
 					}
-					messageServices.MsegatsmsService(datavalue.getString("mobile"),
+					MessageServices.MsegatsmsService(datavalue.getString("mobile"),
 							"Dear " + datavalue.get("username") + ", Your contract is going to end by ["
 									+ datavalue.get("enddate") + "] for the property  ["
 									+ datavalue.get("property_name")

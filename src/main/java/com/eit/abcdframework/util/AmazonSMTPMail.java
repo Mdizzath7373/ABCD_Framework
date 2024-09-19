@@ -108,7 +108,7 @@ public class AmazonSMTPMail {
 			Session session = Session.getDefaultInstance(props);
 			MimeMessage msg = new MimeMessage(session);
 
-//			MimeMultipart multipart = new MimeMultipart();
+// MimeMultipart multipart = new MimeMultipart();
 			msg.setFrom(new InternetAddress(from, fromOfMail));
 			msg.setRecipient(Message.RecipientType.TO, new InternetAddress(to));
 			msg.setSubject(subject);
@@ -182,8 +182,8 @@ public class AmazonSMTPMail {
 										.getJSONArray("column");
 								for (int r = 0; r < replaceData.length(); r++) {
 									if (r == 0) {
-//										body = new JSONObject(jsondata.getString("contenttype").replace(replaceData.getString(r),
-//												jsonBody.getString(column.getString(r)));
+// body = new JSONObject(jsondata.getString("contenttype").replace(replaceData.getString(r),
+// jsonBody.getString(column.getString(r)));
 										body = new JSONObject(jsondata.get("contenttype").toString()).getString(lang)
 												.replace(replaceData.getString(r),
 														jsonBody.getString(column.getString(r)));
@@ -207,7 +207,7 @@ public class AmazonSMTPMail {
 					}
 					List<String> emails = null;
 					if (jsondata.getString("sentto").equalsIgnoreCase("Airport Admin")) {
-						emails = new ArrayList();
+						emails = new ArrayList<String>();
 						emails.add("nadim@eitworks.com");
 					} else
 						emails = Arrays.stream(email.split(",")).distinct().collect(Collectors.toList());
@@ -221,14 +221,14 @@ public class AmazonSMTPMail {
 							if (jsondata.getBoolean("withattachment") && !files.isEmpty()) {
 								resultOfMail = sendEmailWithFile(smtpMail.getString("amazonverifiedfromemail"),
 										emails.get(m),
-//										new JSONObject(jsondata.get("subject").toString()).getString(lang), body,
+// new JSONObject(jsondata.get("subject").toString()).getString(lang), body,
 										jsondata.getString("subject"), body, smtpMail.getString("amazonsmtpusername"),
 										smtpMail.getString("amazonsmtppassword"),
 										smtpMail.getString("amazonhostaddress"), smtpMail.getString("amazonport"),
 										files);
 							} else {
 								resultOfMail = sendEmail(smtpMail.getString("amazonverifiedfromemail"), emails.get(m),
-//										new JSONObject(jsondata.get("subject").toString()).getString(lang), body,
+// new JSONObject(jsondata.get("subject").toString()).getString(lang), body,
 										jsondata.getString("subject"), body, smtpMail.getString("amazonsmtpusername"),
 										smtpMail.getString("amazonsmtppassword"),
 										smtpMail.getString("amazonhostaddress"), smtpMail.getString("amazonport"));
@@ -309,12 +309,12 @@ public class AmazonSMTPMail {
 						if (j == 3) {
 							return resultOfMail = "Failed";
 						}
-//					for (int m = 0; m < emails.length; m++) {
+// for (int m = 0; m < emails.length; m++) {
 						resultOfMail = amazonSMTPMail.sendEmail(smtpMail.getString("amazonverifiedfromemail"), email,
 								mailContent.getString("subject"), body, smtpMail.getString("amazonsmtpusername"),
 								smtpMail.getString("amazonsmtppassword"), smtpMail.getString("amazonhostaddress"),
 								smtpMail.getString("amazonport"));
-//					}
+// }
 
 					} while (!resultOfMail.equalsIgnoreCase("success"));
 				}
@@ -360,7 +360,7 @@ public class AmazonSMTPMail {
 			Session session = Session.getDefaultInstance(props);
 			MimeMessage msg = new MimeMessage(session);
 
-//			MimeMultipart multipart = new MimeMultipart();
+// MimeMultipart multipart = new MimeMultipart();
 			msg.setFrom(new InternetAddress(from, "Onboard-RAC"));
 			msg.setRecipient(Message.RecipientType.TO, new InternetAddress(to));
 			msg.setSubject(subject);
@@ -458,15 +458,6 @@ public class AmazonSMTPMail {
 				return returndata = "No Email Through";
 			}
 
-//			for (int i = 0; i < email.getJSONArray("getContantType").length(); i++) {
-//				if (jsonbody.get(email.getString("getContentNameColumn"))
-//						.equals(email.getJSONArray("getContantType").get(i))) {
-//					mail = email.getJSONObject("mail")
-//							.getJSONArray(email.getJSONArray("getContantType").get(i).toString());
-//
-//				} else
-//					return returndata = "No Email Through";
-//			}
 			returndata = mailSender2(mail, mailid, email, jsonbody, files, lang);
 
 		} catch (Exception e) {

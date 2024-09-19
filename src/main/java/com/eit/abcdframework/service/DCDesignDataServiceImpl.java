@@ -148,37 +148,6 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 			res = ResponcesHandling.curdMethodResponceHandle(response, jsonbody, jsonheader, gettabledata, method,
 					files);
 
-//			if (Integer.parseInt(response) >= 200 && Integer.parseInt(response) <= 226) {
-//
-//				String socketRes = socketService.pushSocketData(jsonheader, jsonbody, method);
-//				if (!socketRes.equalsIgnoreCase("Success")) {
-//					LOGGER.error("Push Socket responce::{}", socketRes);
-//				}
-//				if (gettabledata.has("email")) {
-//					email = new JSONObject(gettabledata.get("email").toString());
-//					System.err.println(email.getJSONObject("mail").isEmpty());
-//					if (!email.getJSONObject("mail").isEmpty())
-//						amazonSMTPMail.emailconfig(email, jsonbody, files,
-//								jsonheader.has("lang") ? jsonheader.getString("lang") : "en", method);
-//				}
-//				if (gettabledata.has("activityLogs")) {
-//					String resp = "";
-//					if (jsonheader.has("message") && jsonheader.getString("message").equalsIgnoreCase("")
-//							&& jsonheader.has("status") && jsonheader.getString("status").equalsIgnoreCase("")) {
-//						resp = commonServices.addactivitylog(gettabledata.getJSONObject("activityLogs"),
-//								jsonheader.getString("status"), jsonbody,
-//								jsonheader.has("rolename") ? jsonheader.getString("rolename") : "",
-//								jsonheader.getString("message"),
-//								jsonheader.has("notification") ? jsonheader.getBoolean("notification") : false);
-//					}
-//					LOGGER.error("ActivityLogs-->:: {}", resp);
-//				}
-//				returndata.put("reflex", "Success");
-//			} else {
-//				res = HttpStatus.getStatusText(Integer.parseInt(response));
-//				returndata.put(ERROR, res);
-//			}
-
 		} catch (
 
 		Exception e) {
@@ -227,7 +196,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 			List<JSONObject> checkjson = new ArrayList<>();
 			String url = "";
 			JSONArray datavalues = null;
-			String regex = "[^a-zA-Z0-9=&?_  -><]";// DisplaySingleton.memoryApplicationSetting.getString("UrlEncodeExcept");
+			String regex = "[^a-zA-Z0-9=&?_  -><\\u0600-\\u06FF]";// DisplaySingleton.memoryApplicationSetting.getString("UrlEncodeExcept");
 			StringBuilder result = new StringBuilder();
 			for (int i = 0; i < where.length(); i++) {
 				char c = where.charAt(i);
@@ -457,7 +426,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 							.getJSONArray("type");
 					for (int typeOfMehod = 0; typeOfMehod < typeOfMehods.length(); typeOfMehod++) {
 						if (typeOfMehods.get(typeOfMehod).toString().equalsIgnoreCase("Map")) {
-							res = ResponcesHandling.MappedCurdOperation(gettabledata, data);
+							res = CommonServices.MappedCurdOperation(gettabledata, data);
 						}
 					}
 					if (res.equalsIgnoreCase("Success"))
@@ -574,7 +543,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 							.getJSONArray("type");
 					for (int typeOfMehod = 0; typeOfMehod < typeOfMehods.length(); typeOfMehod++) {
 						if (typeOfMehods.get(typeOfMehod).toString().equalsIgnoreCase("Map")) {
-							res = ResponcesHandling.MappedCurdOperation(gettabledata, data);
+							res = CommonServices.MappedCurdOperation(gettabledata, data);
 						}
 					}
 					if (res.equalsIgnoreCase("Success"))

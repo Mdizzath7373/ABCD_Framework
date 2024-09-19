@@ -192,10 +192,10 @@ public class WebSocketService extends TextWebSocketHandler {
 		JSONObject datavalues = null;
 		String returnRes = "Success";
 		try {
-			LOGGER.error("Enter Into pushSocketData Method::");
+			LOGGER.error("Enter Into pushSocketData Method!");
 			if (method.equalsIgnoreCase("progress")) {
 				if (ProgressSession.isEmpty()) {
-					LOGGER.warn("Socket Connection is empty");
+//					LOGGER.warn("Socket Connection is empty");
 					return returnRes = "Socket is Not Connected,Connection is empty";
 				}
 				JSONObject returnMes = new JSONObject(fileuploadServices.getProgress().entrySet().stream()
@@ -217,46 +217,12 @@ public class WebSocketService extends TextWebSocketHandler {
 
 			else {
 				if (CompanySession.isEmpty() && AdminSession.isEmpty()) {
-					LOGGER.warn("Socket Connection is empty");
+//					LOGGER.warn("Socket Connection is empty");
 					return returnRes = "Socket is Not Connected,Connection is empty";
 				}
 
 				JSONObject returnMessage = new JSONObject();
 
-//			if (method.equalsIgnoreCase("progress")) {
-//				JSONObject returnMes = new JSONObject(fileuploadServices.getProgress().entrySet().stream()
-//						.filter(entry -> jsonbody.get("ids").toString().equalsIgnoreCase(entry.getKey().split("-")[0]))
-//						.collect(Collectors.toMap(entry -> entry.getKey().split("-")[1],
-//								entry -> entry.getValue().get())));
-//
-//				if (ProgressSession.containsKey(jsonbody.get("ids").toString())) {
-//					LOGGER.warn("Enter into Progress Session  {}",
-//							ProgressSession.containsKey(jsonbody.get("ids").toString()));
-//					List<WebSocketSession> arrayOfSession = ProgressSession.get(jsonbody.get("ids").toString());
-//					for (int i = 0; i < arrayOfSession.size(); i++) {
-//						sendsession(arrayOfSession.get(i), returnMes.toString(), "progress",
-//								jsonbody.get("ids").toString());
-//					}
-//				}
-
-//				if (CompanySession.containsKey(jsonbody.get("ids").toString())) {
-//					LOGGER.warn("Enter into Company Session {}",
-//							CompanySession.containsKey(jsonbody.get("ids").toString()));
-//					List<WebSocketSession> arrayOfSession = CompanySession.get(jsonbody.get("ids").toString());
-//					for (int i = 0; i < arrayOfSession.size(); i++) {
-//						sendsession(arrayOfSession.get(i), returnMes.toString(), "company",
-//								jsonbody.get("ids").toString());
-//					}
-//				} else if (AdminSession.containsKey(jsonbody.get("ids").toString())) {
-//					for (Entry<String, List<WebSocketSession>> data : AdminSession.entrySet()) {
-//						List<WebSocketSession> arrayOfSession2 = data.getValue();
-//						for (int i = 0; i < arrayOfSession2.size(); i++) {
-//							sendsession(arrayOfSession2.get(i), returnMes.toString(), "Admin", data.getKey());
-//						}
-//					}
-//				}
-//		}
-//			else {
 				String role = jsonObject.getString("rolename");
 				JSONObject displaydata = DisplaySingleton.memoryDispObjs2.getJSONObject("websocket");
 
