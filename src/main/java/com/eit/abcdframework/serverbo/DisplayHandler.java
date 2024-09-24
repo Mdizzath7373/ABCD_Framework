@@ -288,7 +288,7 @@ public class DisplayHandler {
 				commonUtilDtoValue.setGridheight(gridHeight);
 				commonUtilDtoValue.setEntity(api);
 
-				if (function && extraDatas.getBoolean("preDefined")) {
+				if (function && extraDatas.has("preDefined") && extraDatas.getBoolean("preDefined")) {
 					url = pgrest + extraDatas.getString("Function") + "?basequery=" + extraDatas.getJSONObject("Query");
 				} else if (function && !where.isEmpty()) {
 					if (extraDatas.has("name"))
@@ -306,7 +306,7 @@ public class DisplayHandler {
 					url = pgrest + api;
 				}
 				url = url.replaceAll(" ", "%20");
-				if (extraDatas.getBoolean("preDefined")) {
+				if (extraDatas.has("preDefined") && extraDatas.getBoolean("preDefined")) {
 					res = new JSONObject(new JSONArray(dataTransmits.transmitDataspgrest(url).get(0).toString()))
 							.getJSONArray("datavalues");
 				} else {
@@ -410,7 +410,7 @@ public class DisplayHandler {
 					}
 				}
 
-				if (function && extraDatas.getBoolean("preDefined")) {
+				if (function && extraDatas.has("preDefined") && extraDatas.getBoolean("preDefined")) {
 					url = pgrest + extraDatas.getString("Function") + "?basequery=" + extraDatas.getJSONObject("Query");
 				} else if (function && !where.isEmpty()) {
 					if (extraDatas.has("name"))
@@ -429,7 +429,7 @@ public class DisplayHandler {
 				}
 				url = url.replace(" ", "%20");
 
-				if (extraDatas.getBoolean("preDefined")) {
+				if (extraDatas.has("preDefined") && extraDatas.getBoolean("preDefined")) {
 					res = new JSONObject(new JSONArray(dataTransmits.transmitDataspgrest(url).get(0).toString()))
 							.getJSONArray("datavalues");
 				} else {

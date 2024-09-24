@@ -339,7 +339,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 				JSONArray jsonArray = new JSONArray(jsononbj.getJSONArray(extraDatas.getString("name")).toString());
 
 				returnJson.put("jqxdetails", jsononbj.toString());
-				if (function && extraDatas.getBoolean("preDefined")) {
+				if (function && extraDatas.has("preDefined") && extraDatas.getBoolean("preDefined")) {
 					url = pgresturl + extraDatas.getString("Function") + "?basequery=" + extraDatas.getJSONObject("Query");
 				} else {
 					url = pgresturl + extraDatas.getString(method);
@@ -363,7 +363,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 					url += where;
 				}
 				url = url.replace(" ", "%20");
-				if (extraDatas.getBoolean("preDefined")) {
+				if (extraDatas.has("preDefined") && extraDatas.getBoolean("preDefined")) {
 					datavalues = new JSONObject(new JSONArray(dataTransmit.transmitDataspgrest(url).get(0).toString()))
 							.getJSONArray("datavalues");
 				} else {
