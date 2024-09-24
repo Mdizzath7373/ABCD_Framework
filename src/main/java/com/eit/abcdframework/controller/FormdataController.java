@@ -2,7 +2,6 @@ package com.eit.abcdframework.controller;
 
 import java.io.IOException;
 
-import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -87,7 +86,7 @@ public class FormdataController {
 	        json.put("Message", "your account has been Suspended by REFA");
 		   Httpclientcaller ddaaa=new Httpclientcaller();
 		  ddaaa.transmitDataspgrest(pgrest+"configs").forEach(entry->{
-			 int id =new JSONObject(entry.toString()).getInt("id");
+//			 int id =new JSONObject(entry.toString()).getInt("id");
             JSONObject data= new JSONObject(new JSONObject(entry.toString()).getString("datas"));
             if(data.has("sms")) {
             	System.err.println(new JSONObject(entry.toString()).getString("alias"));

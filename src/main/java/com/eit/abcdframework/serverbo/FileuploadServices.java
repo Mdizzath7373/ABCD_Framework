@@ -72,6 +72,9 @@ public class FileuploadServices {
 	@Autowired
 	AmazonS3 amazonS3;
 
+	@Autowired
+	CommonServices commonServices;
+
 	@Value("${applicationurl}")
 	private String pgresturl;
 
@@ -82,12 +85,15 @@ public class FileuploadServices {
 	private static Map<String, AtomicInteger> progress = new HashMap<>();
 
 	public void setProgress(Map<String, AtomicInteger> progress) {
-		this.progress = progress;
+		FileuploadServices.progress = progress;
 	}
 
 	public Map<String, AtomicInteger> getProgress() {
 		return progress;
 	}
+
+	private static final int maxRetries = 3;
+	private static final int retryDelayMillis = 2000;
 
 	public JSONObject fileupload(JSONObject gettabledata, List<MultipartFile> files, JSONObject jsonbody,
 			JSONObject documentdata) {
@@ -236,52 +242,17 @@ public class FileuploadServices {
 		} catch (IllegalAccessException | NoSuchFieldException e) {
 			LOGGER.info(e.getMessage());
 		}
-//			JSONObject getjson = new JSONObject();
-//			try {
-//				Field changeMap = json.getClass().getDeclaredField("map");
-//				changeMap.setAccessible(true);
-//				changeMap.set(json, new TreeMap<>());
-//				changeMap.setAccessible(false);
-//			} catch (IllegalAccessException | NoSuchFieldException e) {
-//				LOGGER.info(e.getMessage());
-//			}
 		return json;
 	}
 
-//	public Map<String, String> convertPdfToMultipart(MultipartFile multipartFile) throws Exception {
-//		Map<String, String> data = new HashMap<>();
-//		try (InputStream inputStream = multipartFile.getInputStream();
-//				PDDocument document = PDDocument.load(inputStream)) {
-//
-//			PDFRenderer pdfRenderer = new PDFRenderer(document);
-//			int pageCount = document.getNumberOfPages();
-//
-//			for (int pageIndex = 0; pageIndex < pageCount; pageIndex++) {
-//				BufferedImage bufferedImage = pdfRenderer.renderImageWithDPI(pageIndex, 300); // 300 DPI for high
-//																								// quality
-//				File imageFile = new File("page_" + (pageIndex + 1) + ".png"); // Output file name
-//				
-//					ImageIO.write(bufferedImage, "PNG", imageFile);// Save as PNG image
-//				System.err.println(imageFile.getAbsolutePath());
-//					String filePath = path + "page_" + (pageIndex + 1) + dateFormat.format(new Date()) + "." + "png";
-//					if (uploadFile(imageFile, filePath)) {
-//						String path = s3url + filePath;
-//						data.put("page_" + (pageIndex + 1), path);
-//					}
-//				System.out.println("Page " + (pageIndex + 1) + " saved as " + imageFile.getAbsolutePath());
-//			}
-//		}
-
-//		return data;
-//	}
-
-	public String convertPdfToMultipart(MultipartFile multipartFile, String primaryKey, String id, JSONObject jsonbody)
+	public String convertPdfToMultipart(MultipartFile multipartFile, JSONObject gettabledata, JSONObject jsonbody)
 			throws IOException {
+		String Splitter_primary_id = gettabledata.getJSONObject("Splitter").getString("Splitter_primary_id");
+
+		String primaryKey = jsonbody.get(Splitter_primary_id).toString();
 
 		ExecutorService executorService = Executors.newFixedThreadPool(20);
 
-		int maxRetries = 3;
-		int retryDelayMillis = 2000;
 		int pageCount = 0;
 		Instant startTime = Instant.now();
 		AtomicInteger progressCount = new AtomicInteger(0);
@@ -296,16 +267,16 @@ public class FileuploadServices {
 			List<Future<Boolean>> futures = new ArrayList<>();
 			for (int pageIndex = 0; pageIndex < pageCount; pageIndex++) {
 				int currentIndex = pageIndex;
-				futures.add(executorService.submit(() -> processPage(document, pdfRenderer, currentIndex, base64String,
-						maxRetries, retryDelayMillis, primaryKey, progressCount, FaildPages, id, jsonbody,
-						preProgresCount)));
+				futures.add(executorService
+						.submit(() -> processPage(document, pdfRenderer, currentIndex, base64String, primaryKey,
+								progressCount, FaildPages, jsonbody.get("ids").toString(), jsonbody, preProgresCount)));
 			}
 
 			for (Future<Boolean> future : futures) {
 				try {
 					future.get();
 				} catch (Exception e) {
-					e.printStackTrace();
+					LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(),e);
 				}
 			}
 		} finally {
@@ -317,11 +288,12 @@ public class FileuploadServices {
 			} catch (InterruptedException ex) {
 				executorService.shutdownNow();
 				Thread.currentThread().interrupt();
+				return "Failed";
 			}
 		}
 
 		LOGGER.warn("ENTER INTO saveOrUpdateData {BASE64iMAGES}---------->" + Instant.now());
-		saveOrUpdateData(base64String, primaryKey, progressCount, id, jsonbody);
+		saveOrUpdateData(base64String, primaryKey, progressCount, jsonbody.get("ids").toString(), jsonbody);
 		LOGGER.warn("EXIT saveOrUpdateData {BASE64iMAGES}------->" + Instant.now());
 
 		Instant endTime = Instant.now();
@@ -332,9 +304,8 @@ public class FileuploadServices {
 	}
 
 	private boolean processPage(PDDocument document, PDFRenderer pdfRenderer, int pageIndex,
-			Map<Integer, String> base64String, int maxRetries, int retryDelayMillis, String primaryKey,
-			AtomicInteger progressCount, List<Integer> FaildPages, String id, JSONObject jsonbody,
-			AtomicInteger preProgresCount) {
+			Map<Integer, String> base64String, String primaryKey, AtomicInteger progressCount, List<Integer> FaildPages,
+			String id, JSONObject jsonbody, AtomicInteger preProgresCount) {
 		for (int attempt = 0; attempt <= maxRetries; attempt++) {
 			try {
 
@@ -394,18 +365,9 @@ public class FileuploadServices {
 
 	private void saveOrUpdateData(Map<Integer, String> base64String, String primarykey, AtomicInteger progressCount,
 			String id, JSONObject jsonbody) {
-//		final int BATCH_SIZE = 700;
 		String res = "";
 		try {
 			int total = base64String.size();
-
-//			int start = 0;
-
-//			while (start < total) {
-//				int end = Math.min(start + BATCH_SIZE, total);
-//				Map<Integer, String> batch = new HashMap<>(base64String).entrySet().stream().skip(start)
-//						.limit(BATCH_SIZE).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
 			JSONObject savePDF = new JSONObject();
 			savePDF.put("primary_id_pdf", primarykey);
 			savePDF.put("document", base64String);
@@ -423,9 +385,6 @@ public class FileuploadServices {
 				socketService.pushSocketData(new JSONObject(), jsonbody, "progress");
 			}
 			LOGGER.warn(daHttpclientcaller.transmitDataspgrestpost(url, savePDF.toString(), false));
-
-//				start = end;
-//			}
 
 		} catch (Exception e) {
 			LOGGER.error("Error during save/update", e);
@@ -562,7 +521,7 @@ public class FileuploadServices {
 							String imagePath = currentDir + imageName + ".jpeg";
 							outputfile = new File(imagePath);
 							ImageIO.write(bufferedImage, "JPEG", outputfile);
-							return imagePath; 
+							return imagePath;
 						} catch (IOException e) {
 							LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
 							return null;
@@ -641,180 +600,46 @@ public class FileuploadServices {
 		}
 	}
 
-	public void test(MultipartFile files) {
-
+	public int mergebase64ToPDF(JSONObject gettabledata, JSONObject jsonbody, MultipartFile files) {
+		int primary_id = 0;
 		try {
-			File convFile = new File("F:\\image1.png");
-			files.transferTo(convFile);
-//			BufferedImage localImage = ImageIO.read(convFile);
 
-			// Retrieve the second image from S3
-			S3Object s3Object = amazonS3.getObject("goldenelement", "download22.png");
-			InputStream inputStream = s3Object.getObjectContent();
-			BufferedImage localImage = ImageIO.read(inputStream);
+			JSONArray jarr = new JSONArray(gettabledata.getJSONArray("filepathname").toString());
+			JSONArray column = new JSONArray(gettabledata.getJSONArray("column").toString());
+			String filename = "";
 
-			// Define local file path
-			File file = new File("F:\\image2.png");
+			String Splitter_primary_id = gettabledata.getJSONObject("Splitter").getString("Splitter_primary_id");
 
-			ImageIO.write(localImage, "png", file);
+			String value = jsonbody.get(Splitter_primary_id).toString();
 
-			// Create a new PDF document
-			PDDocument document = new PDDocument();
-			PDPage page = new PDPage(PDRectangle.A4);
-			document.addPage(page);
-
-			// Create PDImageXObject for both images
-			PDImageXObject pdImage1 = PDImageXObject.createFromFile("F:\\image1.png", document);
-			PDImageXObject pdImage2 = PDImageXObject.createFromFile("F:\\image2.png", document);
-
-			float width = page.getMediaBox().getWidth();
-			float height = page.getMediaBox().getHeight();
-
-			PDPageContentStream contentStream = new PDPageContentStream(document, page);
-//			float imageWidth2 = pdImage2.getWidth();
-//		    float imageHeight2 = pdImage2.getHeight();
-//		    float scaleFactor2 = Math.min(width / imageWidth2, height / imageHeight2);
-//		    float scaledWidth2 = imageWidth2 * scaleFactor2;
-//		    float scaledHeight2 = imageHeight2 * scaleFactor2;
-//		    float x2 = (width - scaledWidth2) / 2;
-//		    float y2 = (height - scaledHeight2) / 2;
-//
-//			float imageWidth1 = pdImage1.getWidth();
-//		    float imageHeight1 = pdImage1.getHeight();
-//		    float scaleFactor1 = Math.min(width / imageWidth1, height / imageHeight1);
-//		    float scaledWidth1 = imageWidth1 * scaleFactor1;
-//		    float scaledHeight1 = imageHeight1 * scaleFactor1;
-//		    float x1 = (width - scaledWidth1) / 2;
-//		    float y1 = (height - scaledHeight1) / 2 ;
-
-			float imageWidth1 = pdImage1.getWidth();
-			float imageHeight1 = pdImage1.getHeight();
-			float scaleFactor1 = Math.min(width / imageWidth1, height / imageHeight1);
-			float scaledWidth1 = imageWidth1 * scaleFactor1;
-			float scaledHeight1 = imageHeight1 * scaleFactor1;
-			float x1 = (width - scaledWidth1) / 2;
-			float y1 = height - scaledHeight1; // Position at the top of the page
-			contentStream.drawImage(pdImage1, x1, y1, scaledWidth1, scaledHeight1);
-
-			// Draw the second image (from S3) on the PDF page
-			float imageWidth2 = pdImage2.getWidth();
-			float imageHeight2 = pdImage2.getHeight();
-			float scaleFactor2 = Math.min(width / imageWidth2, height / imageHeight2);
-			float scaledWidth2 = imageWidth2 * scaleFactor2;
-			float scaledHeight2 = imageHeight2 * scaleFactor2;
-
-			// Calculate y-coordinate to position the second image below the first
-			float y2 = y1 - scaledHeight2;
-
-			// Ensure that the image fits within the page
-			if (y2 < 0) {
-				y2 = 0; // Adjust if necessary to ensure the image fits within the page
+			for (int i = 0; i < jarr.length(); i++) {
+				filename += jsonbody.get(jarr.get(i).toString());
 			}
-//		    
+			String currentDir = System.getProperty("user.dir");
+			String PDFpath = "";
 
-			contentStream.drawImage(pdImage2, x1, y2, scaledWidth2, scaledHeight2);
-			// Close the content stream
-			contentStream.close();
+			if (gettabledata.getJSONObject("Splitter").has("original")
+					&& gettabledata.getJSONObject("Splitter").getBoolean("original")) {
+				PDFpath = currentDir + "original.pdf";
+			}
+			String geturl = pgresturl + "pdf_splitter?select=total_pages,id&primary_id_pdf=eq." + value;
+			JSONObject datavalue = new JSONObject(daHttpclientcaller.transmitDataspgrest(geturl).get(0).toString());
+			int total_pages = datavalue.getInt("total_pages");
+			primary_id = datavalue.getInt("id");
 
-			// Save the PDF to a file
-			document.save("F:\\newTest.pdf");
-
-			// Close the document
-			document.close();
-
-			// Close the S3 input stream
-			inputStream.close();
-			// TODO Auto-generated method stub
-
+			Map<String, Object> base64Images = commonServices.loadBase64(value, total_pages);
+			JSONObject path = null;
+			try (PDDocument document = new PDDocument()) {
+				path = writeImage(base64Images, PDFpath, filename, document, files);
+				if (path.has("error")) {
+					return 0;
+				}
+				jsonbody.put(column.get(0).toString(), path);
+			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
 		}
-
+		return primary_id;
 	}
-
-//
-//	public boolean uploadFile(File file, String path) throws Exception {
-////			File file = convertMultiPartFileToFile(mFile);
-////			S3Upload s3Upload = new S3Upload();
-//		if (s3Upload.NewuploadFile(ConfigurationFile.getStringConfig("s3bucket.bucketName").toString(), path, file,
-//				true)) {
-//			file.delete();
-//			return true;
-//		} else {
-//			return false;
-//		}
-//	}
-//
-//	public void dara(MultipartFile file) {
-//		File tempFile = null;
-//		try {
-//			// Save MultipartFile to a temporary file
-//			tempFile = File.createTempFile("input", ".pdf");
-//			file.transferTo(tempFile);
-//
-//			System.out.println("Temp file path: " + tempFile.getAbsolutePath());
-//			System.out.println("File exists: " + tempFile.exists());
-//
-//			// Generate output file path
-//			String bucketName = "goldenelement";
-//			String outputFilePath = "output.png";
-//			String s3FilePath = "refa/" + outputFilePath;
-//
-//			// Prepare commands
-//			String[] convertCommand = { "convert", "-density", "300", tempFile.getAbsolutePath(), "output.png" };
-//			String[] uploadCommand = { "aws", "s3", "cp", "output.png",
-//					"https://goldenelement.s3.ap-southeast-1.amazonaws.com/" + bucketName + "/" + s3FilePath };
-//
-//			// Run the commands
-//			runCommand(convertCommand);
-//			runCommand(uploadCommand);
-//
-//			// Generate and print the S3 URL
-//			String s3Url = generateS3Url(bucketName, s3FilePath);
-//			System.out.println("File uploaded to S3. Accessible at: " + s3Url);
-//
-//		} catch (IOException | InterruptedException e) {
-//			e.printStackTrace();
-//		} finally {
-//			// Clean up temporary file
-//			if (tempFile != null && tempFile.exists()) {
-//				tempFile.delete();
-//			}
-//		}
-//	}
-//
-//	public static void runCommand(String[] command) throws IOException, InterruptedException {
-//		ProcessBuilder processBuilder = new ProcessBuilder(command);
-//		processBuilder.redirectErrorStream(true);
-//
-//		// Start the process
-//		Process process = processBuilder.start();
-//
-//		// Capture output and error
-//		try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-//			String line;
-//			while ((line = reader.readLine()) != null) {
-//				System.out.println(line); // Print output for debugging purposes
-//			}
-//		}
-//
-//		// Wait for the process to finish and check the exit code
-//		int exitCode = process.waitFor();
-//		if (exitCode != 0) {
-//			// Print error message from stderr if available
-//			try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
-//				String errorLine;
-//				while ((errorLine = errorReader.readLine()) != null) {
-//					System.err.println(errorLine); // Print error for debugging purposes
-//				}
-//			}
-//			throw new RuntimeException("Command failed with exit code: " + exitCode);
-//		}
-//	}
-//
-//	private String generateS3Url(String bucketName, String filePath) {
-//		// Implement this method to generate the S3 URL
-//		return "https://" + bucketName + ".s3.amazonaws.com/" + filePath;
-//	}
 
 }

@@ -246,9 +246,7 @@ public class DisplayHandler {
 			JSONObject whereCondition = (JSONObject) dataBody.get(0);
 
 			where = whereCondition.getString("Where");
-//			JSONObject condition=whereCondition.getJSONObject("condition");
 			String displayAlias = whereCondition.getString("Name");
-//			String pgrest = DisplaySingleton.memoryApplicationSetting.get("pgresturl").toString();
 
 			LOGGER.info("display alias = {}", displayAlias);
 			displayConfig = DisplaySingleton.memoryDispObjs2.getJSONObject(displayAlias);
@@ -290,25 +288,9 @@ public class DisplayHandler {
 				commonUtilDtoValue.setGridheight(gridHeight);
 				commonUtilDtoValue.setEntity(api);
 
-//				if(!where.equalsIgnoreCase("")) {
-//					where=whereFormation.whereCheck(where, function, displayAlias,condition);
-//				}
-
-//				String regex = DisplaySingleton.memoryApplicationSetting.getString("UrlEncodeExcept");;
-//				StringBuilder result = new StringBuilder();
-//				for (int i = 0; i < where.length(); i++) {
-//					char c = where.charAt(i);
-//					if (String.valueOf(c).matches(regex)) {
-//						// URL encode the special character
-//						String encodedChar = URLEncoder.encode(String.valueOf(c), "UTF-8");
-//						result.append(encodedChar);
-//					} else {
-//						result.append(c);
-//					}
-//				}
-//				System.err.println(result);
-
-				if (function && !where.isEmpty()) {
+				if (function && extraDatas.getBoolean("preDefined")) {
+					url = pgrest + extraDatas.getString("Function") + "?basequery=" + extraDatas.getJSONObject("Query");
+				} else if (function && !where.isEmpty()) {
 					if (extraDatas.has("name"))
 						url = pgrest + api + where + "&" + "name=" + extraDatas.getString("name");
 					else
@@ -323,8 +305,13 @@ public class DisplayHandler {
 				} else {
 					url = pgrest + api;
 				}
-				url = url.replace(" ", "%20");
-				res = dataTransmits.transmitDataspgrest(url);
+				url = url.replaceAll(" ", "%20");
+				if (extraDatas.getBoolean("preDefined")) {
+					res = new JSONObject(new JSONArray(dataTransmits.transmitDataspgrest(url).get(0).toString()))
+							.getJSONArray("datavalues");
+				} else {
+					res = dataTransmits.transmitDataspgrest(url);
+				}
 				JSONObject jsonObject2;
 				JSONArray jsonArray = new JSONArray();
 				for (int i = 0; i < res.length(); i++) {
@@ -404,7 +391,7 @@ public class DisplayHandler {
 //				} else if(chartType.equalsIgnoreCase("barchart")) {
 //					chart = "piechart";
 //				}
-				chart=chartType;
+				chart = chartType;
 				JSONArray jsonArray2 = object.getJSONArray(chart);
 
 				String api = function ? extraDatas.getString("Function") : extraDatas.getString("api");
@@ -422,9 +409,10 @@ public class DisplayHandler {
 						result.append(c);
 					}
 				}
-				System.err.println(result);
 
-				if (function && !where.isEmpty()) {
+				if (function && extraDatas.getBoolean("preDefined")) {
+					url = pgrest + extraDatas.getString("Function") + "?basequery=" + extraDatas.getJSONObject("Query");
+				} else if (function && !where.isEmpty()) {
 					if (extraDatas.has("name"))
 						url = pgrest + api + where + "&" + "name=" + extraDatas.getString("name");
 					else
@@ -440,8 +428,13 @@ public class DisplayHandler {
 					url = pgrest + api;
 				}
 				url = url.replace(" ", "%20");
-				res = dataTransmits.transmitDataspgrest(url);
 
+				if (extraDatas.getBoolean("preDefined")) {
+					res = new JSONObject(new JSONArray(dataTransmits.transmitDataspgrest(url).get(0).toString()))
+							.getJSONArray("datavalues");
+				} else {
+					res = dataTransmits.transmitDataspgrest(url);
+				}
 				if (chartType.equalsIgnoreCase("barchart")) {
 					List<Object> showgirddata = new JSONObject(object.get("showchartbyrole").toString())
 							.getJSONArray(role).toList();

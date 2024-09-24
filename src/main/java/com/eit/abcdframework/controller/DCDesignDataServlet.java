@@ -52,7 +52,7 @@ public class DCDesignDataServlet {
 	@PostMapping(value = "/fileupload", produces = { "application/json" })
 	public String fileupload(@RequestPart("files") List<MultipartFile> files, @RequestParam String data) {
 		LOGGER.error("Entered into Fileupload");
-		return dcDesignDataService.fileupload(files, data);
+		return dcDesignDataService.fileUpload(files, data,"Upload");
 	}
 
 	@PostMapping(value = "/getwidgets", produces = { "application/json" })
@@ -60,12 +60,6 @@ public class DCDesignDataServlet {
 		return dcDesignDataService.getwidgetsdata(data);
 	}
 
-	@PostMapping(value = "/fileuploadforgeneratedpdf", produces = { "application/json" })
-	public String fileuploadforgeneratedpdf(@RequestParam String file, @RequestParam String data) {
-		JSONObject json = new JSONObject(file);
-		String base64 = json.getString("file");
-		return dcDesignDataService.fileuploadforgeneratedpdf(base64, data);
-	}
 
 	@PostMapping(value = "/singlefileupload", produces = { "application/json" })
 	public String fileupload(@RequestPart("files") MultipartFile files) {
@@ -79,8 +73,8 @@ public class DCDesignDataServlet {
 	}
 
 	@PostMapping("/fileuploadwithprogress")
-	public String test(@RequestPart("files") MultipartFile files, @RequestParam String data) throws Exception {
-		return dcDesignDataService.fileuploadwithprogress(files, data);
+	public String test(@RequestPart("files") List<MultipartFile> files, @RequestParam String data)  {
+		return dcDesignDataService.fileUpload(files, data,"UploadWithProgress");
 //		return fileuploadServices.convertPdfToMultipart(files, data);
 	}
 
@@ -91,8 +85,8 @@ public class DCDesignDataServlet {
 	}
 
 	@PostMapping("/mergeToPDF")
-	public ResponseEntity<String> mergeToPDF(@RequestPart("files") MultipartFile files, @RequestParam String data) {
-		return ResponseEntity.ok(dcDesignDataService.mergeToPDF(files, data));
+	public ResponseEntity<String> mergeToPDF(@RequestPart("files") List<MultipartFile> files, @RequestParam String data) {
+		return ResponseEntity.ok(dcDesignDataService.fileUpload(files, data,"MergeFile"));
 	}
 
 	@PostMapping("/UpdatePDFImage")
@@ -108,11 +102,11 @@ public class DCDesignDataServlet {
 		return ResponseEntity.ok(dcDesignDataService.SplitterPDFChanges(jsonObject1));
 	}
 
-	@PostMapping(value = "/testfileupload", produces = { "application/json" })
-	public String testfileupload(@RequestPart("files") List<MultipartFile> files) {
-		LOGGER.error("Entered into Fileupload ---------{}", Instant.now());
-		return String.valueOf(Instant.now());
-	}
+//	@PostMapping(value = "/testfileupload", produces = { "application/json" })
+//	public String testfileupload(@RequestPart("files") List<MultipartFile> files) {
+//		LOGGER.error("Entered into Fileupload ---------{}", Instant.now());
+//		return String.valueOf(Instant.now());
+//	}
 
 //	@PostMapping("/test")
 //	public ResponseEntity<String> test(@RequestPart("files") MultipartFile files) {

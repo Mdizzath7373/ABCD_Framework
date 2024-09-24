@@ -25,7 +25,6 @@ import com.eit.abcdframework.websocket.WebSocketService;
 @Service
 public class FormdataServiceImpl implements FormdataService {
 
-
 	@Autowired
 	Httpclientcaller dataTransmit;
 
@@ -75,7 +74,6 @@ public class FormdataServiceImpl implements FormdataService {
 				jsonbody = new JSONObject(jsonObject1.getJSONObject("body").toString());
 			}
 
-			boolean function = jsonheader.has("function") ? jsonheader.getBoolean("function") : false;
 			String displayAlias = jsonheader.getString("name");
 			displayConfig = DisplaySingleton.memoryDispObjs2.getJSONObject(displayAlias);
 			JSONObject gettabledata = new JSONObject(displayConfig.get("datas").toString());
@@ -99,6 +97,8 @@ public class FormdataServiceImpl implements FormdataService {
 
 			// Map to body Json
 			jsonbody = mappingJson(gettabledata, jsonbody);
+
+			boolean function = jsonheader.has("function") ? jsonheader.getBoolean("function") : false;
 
 			//
 			if (method.equalsIgnoreCase("POST")) {
@@ -155,7 +155,6 @@ public class FormdataServiceImpl implements FormdataService {
 		return jsonbody;
 
 	}
-
 
 	private String transmittingDatatopgrestpost(JSONObject gettabledata, JSONObject jsonbody, boolean function,
 			JSONObject jsonheader) {
@@ -238,15 +237,16 @@ public class FormdataServiceImpl implements FormdataService {
 			String url = "";
 			String which = gettabledata.has("method") ? gettabledata.getString("method") : "GET";
 
-			if (primary != null && !primary.equalsIgnoreCase("")) {
-
+			if (method.startsWith("rpc") && gettabledata.getBoolean("preDefined")) {
+				url = pgrest + gettabledata.getString("Function") + "?basequery=" + gettabledata.getJSONObject("Query");
+			} else if (primary != null && !primary.equalsIgnoreCase("")) {
 				url = pgrest + gettabledata.getString(method.toUpperCase()) + "?" + columnprimarykey + "=eq." + primary;
-
 			} else if (primary != null && primary.equalsIgnoreCase("") && !where.equalsIgnoreCase("")) {
 				url = pgrest + gettabledata.getString(method.toUpperCase()) + URLEncode(where);
 			} else {
 				url = pgrest + gettabledata.getString("GET");
 			}
+			
 			if (which.equalsIgnoreCase("post")) {
 				temparay = new JSONArray();
 				JSONObject json = null;

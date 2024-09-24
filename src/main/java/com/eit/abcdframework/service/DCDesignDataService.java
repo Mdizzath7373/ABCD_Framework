@@ -11,21 +11,22 @@ public interface DCDesignDataService {
 
 	CommonUtilDto getDCDesignData(String data);
 
-	String fileupload(List<MultipartFile> files, String data);
+//	String fileupload(List<MultipartFile> files, String data);
 
 	String getwidgetsdata(String data);
 
-	String fileuploadforgeneratedpdf(String base64, String data);
 
 	String getDCDesignChart(String data);
 	
-	String fileuploadwithprogress(MultipartFile files, String data);
+//	String fileuploadwithprogress(MultipartFile files, String data);
 
 	void getProgress(String data);
 
 	
 	String SplitterPDFChanges(JSONObject jsonObject1);
 
-	String mergeToPDF(MultipartFile files, String data);
+//	String mergeToPDF(MultipartFile files, String data);
+
+	String fileUpload(List<MultipartFile> files, String data,String transmitMethod);
 
 }
