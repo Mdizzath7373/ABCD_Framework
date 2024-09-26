@@ -153,7 +153,7 @@ public class AmazonSMTPMail {
 	}
 
 	public String mailSender2(JSONArray mail, String email, JSONObject getJson, JSONObject jsonBody,
-			List<MultipartFile> files, String lang) {
+			List<MultipartFile> files, String lang,String schema) {
 		String resultOfMail = "";
 		String body = "";
 		JSONArray mailContent = null;
@@ -162,7 +162,7 @@ public class AmazonSMTPMail {
 					DisplaySingleton.memoryApplicationSetting.get("smptAmazonMail").toString());
 			for (int c = 0; c < mail.length(); c++) {
 				String url = pgrest + "emailconfig?name=eq." + mail.get(c);
-				mailContent = dataTransmit.transmitDataspgrest(url.replace(" ", "%20"));
+				mailContent = dataTransmit.transmitDataspgrest(url.replaceAll(" ", "%20"),schema);
 				for (int i = 0; i < mailContent.length(); i++) {
 					JSONObject jsondata = new JSONObject(mailContent.get(i).toString());
 					if (getJson != null && getJson.has("Key")) {
@@ -425,7 +425,7 @@ public class AmazonSMTPMail {
 	}
 
 	public String emailconfig(JSONObject email, JSONObject jsonbody, List<MultipartFile> files, String lang,
-			String method) {
+			String method,String schema) {
 		String returndata = "";
 		try {
 			JSONArray mail = null;
@@ -435,7 +435,7 @@ public class AmazonSMTPMail {
 				String geturl = pgrest + email.getString("api") + "?datas="
 						+ jsonbody.getString(email.getString("column")) + "&name=" + email.getString("table");
 				geturl = geturl.replace(" ", "%20");
-				mailid = new JSONObject(dataTransmit.transmitDataspgrest(geturl).get(0).toString()).getString("mailid");
+				mailid = new JSONObject(dataTransmit.transmitDataspgrest(geturl,schema).get(0).toString()).getString("mailid");
 			} else {
 				getcloumnname = new JSONObject(email.get("getcolumn").toString()).getString("columnname");
 				mailid = jsonbody.getString(getcloumnname);
@@ -458,7 +458,7 @@ public class AmazonSMTPMail {
 				return returndata = "No Email Through";
 			}
 
-			returndata = mailSender2(mail, mailid, email, jsonbody, files, lang);
+			returndata = mailSender2(mail, mailid, email, jsonbody, files, lang,schema);
 
 		} catch (Exception e) {
 			LOGGER.error("Exception at " + Thread.currentThread().getStackTrace()[0].getMethodName(), e);

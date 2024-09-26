@@ -75,26 +75,26 @@ public class FormdataController {
 		return ResponseEntity.ok().headers(headers).contentType(MediaType.APPLICATION_OCTET_STREAM).body(resource);
 	}
 
-	@GetMapping("/test")
-	public void test() throws IOException {
-		 JSONObject json = new JSONObject();
-	        json.put("curd", new String[]{"POST", "PUT", "GET"});
-	        json.put("UniqueColumn", "users_id");
-	        json.put("FindTable", "users");
-	        json.put("FetchColumn", "status");
-	        json.put("MatchBy", "Suspended");
-	        json.put("Message", "your account has been Suspended by REFA");
-		   Httpclientcaller ddaaa=new Httpclientcaller();
-		  ddaaa.transmitDataspgrest(pgrest+"configs").forEach(entry->{
-//			 int id =new JSONObject(entry.toString()).getInt("id");
-            JSONObject data= new JSONObject(new JSONObject(entry.toString()).getString("datas"));
-            if(data.has("sms")) {
-            	System.err.println(new JSONObject(entry.toString()).getString("alias"));
-            }
-            
-            data.put("checkAPI", json);
-//            System.err.println(data);
-		  });
-	}
-
+//	@GetMapping("/test")
+//	public void test() throws IOException {
+//		 JSONObject json = new JSONObject();
+//	        json.put("curd", new String[]{"POST", "PUT", "GET"});
+//	        json.put("UniqueColumn", "users_id");
+//	        json.put("FindTable", "users");
+//	        json.put("FetchColumn", "status");
+//	        json.put("MatchBy", "Suspended");
+//	        json.put("Message", "your account has been Suspended by REFA");
+//		   Httpclientcaller ddaaa=new Httpclientcaller();
+//		  ddaaa.transmitDataspgrest(pgrest+"configs").forEach(entry->{
+////			 int id =new JSONObject(entry.toString()).getInt("id");
+//            JSONObject data= new JSONObject(new JSONObject(entry.toString()).getString("datas"));
+//            if(data.has("sms")) {
+//            	System.err.println(new JSONObject(entry.toString()).getString("alias"));
+//            }
+//            
+//            data.put("checkAPI", json);
+////            System.err.println(data);
+//		  });
+//	}
+//
 }

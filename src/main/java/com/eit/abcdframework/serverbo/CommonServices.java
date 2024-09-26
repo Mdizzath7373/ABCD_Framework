@@ -2,7 +2,6 @@ package com.eit.abcdframework.serverbo;
 
 import java.io.IOException;
 import java.security.SecureRandom;
-import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
@@ -72,7 +71,8 @@ public class CommonServices {
 	private static final String SECRET_KEY = "ABCDFRAM09876543"; // 16-byte key for AES
 	private static final String IV = "ABCDFRAMIV098765"; // 16-byte IV for AES
 
-	
+	@Value("${schema}")
+	private String schema;
 
 	
 
@@ -100,9 +100,9 @@ public class CommonServices {
 			}
 			url = applicationurl + tablename;
 			if (sendby.equalsIgnoreCase("post"))
-				response = dataTransmit.transmitDataspgrestpost(url, json.toString(), false);
+				response = dataTransmit.transmitDataspgrestpost(url, json.toString(), false,schema);
 			else
-				response = dataTransmit.transmitDataspgrestput(url, json.toString(), false);
+				response = dataTransmit.transmitDataspgrestput(url, json.toString(), false,schema);
 
 			if (Integer.parseInt(response) <= 200 || Integer.parseInt(response) >= 226) {
 				String res = HttpStatus.getStatusText(Integer.parseInt(response));
@@ -125,7 +125,7 @@ public class CommonServices {
 
 			String url = applicationurl + getconfigofactivation.getString("tablename") + "?"
 					+ getconfigofactivation.getString("verificationcolumn") + "=eq." + key;
-			JSONArray userData = dataTransmit.transmitDataspgrest(url);
+			JSONArray userData = dataTransmit.transmitDataspgrest(url,schema);
 			if (!userData.isEmpty()) {
 				JSONObject datas = new JSONObject(userData.get(0).toString());
 				if (!datas.getBoolean("mailverification")) {
@@ -133,7 +133,7 @@ public class CommonServices {
 					url = applicationurl + getconfigofactivation.getString("tablename") + "?"
 							+ getconfigofactivation.getString("primarykey") + "=eq."
 							+ datas.get(getconfigofactivation.getString("primarykey"));
-					String result = dataTransmit.transmitDataspgrestput(url, datas.toString(), false);
+					String result = dataTransmit.transmitDataspgrestput(url, datas.toString(), false,schema);
 					if (Integer.parseInt(result) >= 200 && Integer.parseInt(result) <= 226) {
 						returnMessage.put("reflex", "Successfully Verified");
 					}
@@ -190,10 +190,10 @@ public class CommonServices {
 				jsonbody.put("user_id", id);
 				jsonbody.put("otp_code", OTP);
 				String url = applicationurl + "/otp_verification?user_id=eq." + id;
-				JSONArray dataArray = dataTransmit.transmitDataspgrest(url);
+				JSONArray dataArray = dataTransmit.transmitDataspgrest(url,schema);
 				if (dataArray.isEmpty()) {
 					url = applicationurl + "/otp_verification";
-					dataTransmit.transmitDataspgrestpost(url, jsonbody.toString(), false);
+					dataTransmit.transmitDataspgrestpost(url, jsonbody.toString(), false,schema);
 				} else {
 //					JSONObject jsonData=new JSONObject(dataArray.get(0).toString());
 //					if(jsonData.getInt("attempts")<3) {
@@ -203,7 +203,7 @@ public class CommonServices {
 					jsonbody.put("id", new JSONObject(dataArray.get(0).toString()).get("id"));
 					url = applicationurl + "/otp_verification?id=eq."
 							+ new JSONObject(dataArray.get(0).toString()).get("id");
-					dataTransmit.transmitDataspgrestput(url, jsonbody.toString(), false);
+					dataTransmit.transmitDataspgrestput(url, jsonbody.toString(), false,schema);
 				}
 			}
 		} catch (Exception e) {
@@ -218,7 +218,7 @@ public class CommonServices {
 		String res = "";
 		try {
 			String url = applicationurl + "/otp_verification?user_id=eq." + id;
-			JSONArray dataArray = dataTransmit.transmitDataspgrest(url);
+			JSONArray dataArray = dataTransmit.transmitDataspgrest(url,schema);
 			if (!dataArray.isEmpty()) {
 				jsonBody = new JSONObject(dataArray.get(0).toString());
 				if (jsonBody.getInt("attempts") < 3) {
@@ -226,13 +226,13 @@ public class CommonServices {
 						jsonBody.put("attempts", jsonBody.getInt("attempts") + 1);
 						jsonBody.put("verified", true);
 						url = applicationurl + "/otp_verification?id=eq." + jsonBody.get("id");
-						dataTransmit.transmitDataspgrestput(url, jsonBody.toString(), false);
+						dataTransmit.transmitDataspgrestput(url, jsonBody.toString(), false,schema);
 						res = "Verified";
 					} else {
 						jsonBody.put("attempts", jsonBody.getInt("attempts") + 1);
 						res = "Retry Verification OTP Dose not Match";
 						url = applicationurl + "/otp_verification?id=eq." + jsonBody.get("id");
-						dataTransmit.transmitDataspgrestput(url, jsonBody.toString(), false);
+						dataTransmit.transmitDataspgrestput(url, jsonBody.toString(), false,schema);
 					}
 				} else {
 					return "Too Many Attempt,So Please Retry After 24Hrs";
@@ -292,7 +292,7 @@ public class CommonServices {
 				}
 
 			}
-			dataTransmit.transmitDataspgrestpost(applicationurl + "rpc/storedFunction", storedData.toString(), false);
+			dataTransmit.transmitDataspgrestpost(applicationurl + "rpc/storedFunction", storedData.toString(), false,schema);
 
 		} catch (Exception e) {
 			// TODO: handle exception
@@ -358,7 +358,7 @@ public class CommonServices {
 
 		if (total_pages <= 100) {
 			url = applicationurl + "pdf_splitter?select=document&primary_id_pdf=eq." + value;
-			return new JSONObject(dataTransmit.transmitDataspgrest(url).get(0).toString()).getJSONObject("document")
+			return new JSONObject(dataTransmit.transmitDataspgrest(url,schema).get(0).toString()).getJSONObject("document")
 					.toMap();
 
 		} else if (total_pages > 100) {
@@ -379,7 +379,7 @@ public class CommonServices {
 
 						try {
 							JSONObject jsonObject = new JSONObject(
-									dataTransmit.transmitDataspgrest(urls).get(0).toString()).getJSONObject("images");
+									dataTransmit.transmitDataspgrest(urls,schema).get(0).toString()).getJSONObject("images");
 
 							jsonObject.keys().forEachRemaining(key -> {
 								synchronized (base64String) {

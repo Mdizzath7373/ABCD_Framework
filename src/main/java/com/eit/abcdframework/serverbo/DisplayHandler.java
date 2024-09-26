@@ -307,10 +307,10 @@ public class DisplayHandler {
 				}
 				url = url.replaceAll(" ", "%20");
 				if (extraDatas.has("preDefined") && extraDatas.getBoolean("preDefined")) {
-					res = new JSONObject(new JSONArray(dataTransmits.transmitDataspgrest(url).get(0).toString()))
+					res = new JSONObject(new JSONArray(dataTransmits.transmitDataspgrest(url,extraDatas.getString("schema")).get(0).toString()))
 							.getJSONArray("datavalues");
 				} else {
-					res = dataTransmits.transmitDataspgrest(url);
+					res = dataTransmits.transmitDataspgrest(url,extraDatas.getString("schema"));
 				}
 				JSONObject jsonObject2;
 				JSONArray jsonArray = new JSONArray();
@@ -430,10 +430,10 @@ public class DisplayHandler {
 				url = url.replace(" ", "%20");
 
 				if (extraDatas.has("preDefined") && extraDatas.getBoolean("preDefined")) {
-					res = new JSONObject(new JSONArray(dataTransmits.transmitDataspgrest(url).get(0).toString()))
+					res = new JSONObject(new JSONArray(dataTransmits.transmitDataspgrest(url,extraDatas.getString("schema")).get(0).toString()))
 							.getJSONArray("datavalues");
 				} else {
-					res = dataTransmits.transmitDataspgrest(url);
+					res = dataTransmits.transmitDataspgrest(url,extraDatas.getString("schema"));
 				}
 				if (chartType.equalsIgnoreCase("barchart")) {
 					List<Object> showgirddata = new JSONObject(object.get("showchartbyrole").toString())

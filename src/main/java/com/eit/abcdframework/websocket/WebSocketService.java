@@ -247,11 +247,11 @@ public class WebSocketService extends TextWebSocketHandler {
 						} else {
 							url = applicationurl + "rpc/overviewofdashboard";
 						}
-						datavalues = new JSONObject(dataTransmit.transmitDataspgrest(url).get(0).toString());
+						datavalues = new JSONObject(dataTransmit.transmitDataspgrest(url,getdatas.getString("schema")).get(0).toString());
 						datavalues.put("companyname",
 								new JSONObject(dataTransmit
 										.transmitDataspgrest(applicationurl + "company?id=eq."
-												+ jsonbody.get("ids").toString() + "&select=companyname")
+												+ jsonbody.get("ids").toString() + "&select=companyname",getdatas.getString("schema"))
 										.get(0).toString()).getString("companyname"));
 						datavalues.put("companyid", jsonbody.get("ids").toString());
 						orignalJson = getConfigjson.getJSONObject(name).getJSONArray("push");

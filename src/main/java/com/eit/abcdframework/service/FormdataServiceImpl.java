@@ -85,7 +85,7 @@ public class FormdataServiceImpl implements FormdataService {
 				if (checkingFunc.getJSONArray("curd").toList().contains(method)) {
 					String valueOF = new JSONObject(dataTransmit
 							.transmitDataspgrest(
-									pgrest + checkingFunc.getString("FindTable") + jsonheader.get("UniqueColumn"))
+									pgrest + checkingFunc.getString("FindTable") + jsonheader.get("UniqueColumn"),gettabledata.getString("schema"))
 							.get(0).toString()).getString("FetchColumn");
 
 					if (valueOF.equalsIgnoreCase("MatchBy")) {
@@ -163,7 +163,7 @@ public class FormdataServiceImpl implements FormdataService {
 
 			String url = (pgrest + gettabledata.getString("POST")).replaceAll(" ", "%20");
 			response = dataTransmit.transmitDataspgrestpost(url, jsonbody.toString(),
-					jsonheader.has("primaryvalue") ? jsonheader.getBoolean("primaryvalue") : false);
+					jsonheader.has("primaryvalue") ? jsonheader.getBoolean("primaryvalue") : false,gettabledata.getString("schema"));
 
 		} catch (
 
@@ -186,7 +186,7 @@ public class FormdataServiceImpl implements FormdataService {
 				url = url.replace(" ", "%20");
 
 				response = dataTransmit.transmitDataspgrestput(url, jsonbody.toString(),
-						jsonheader.has("primaryvalue") ? jsonheader.getBoolean("primaryvalue") : false);
+						jsonheader.has("primaryvalue") ? jsonheader.getBoolean("primaryvalue") : false,gettabledata.getString("schema"));
 			} else {
 				response = "PrimaryKey is Missing!!";
 			}
@@ -264,11 +264,11 @@ public class FormdataServiceImpl implements FormdataService {
 					json = new JSONObject();
 				}
 				url = url.replaceAll(" ", "%20");
-				getdata = new JSONObject(dataTransmit.transmitDataspgrestpost(url, json.toString(), false));
+				getdata = new JSONObject(dataTransmit.transmitDataspgrestpost(url, json.toString(), false,gettabledata.getString("schema")));
 				returndata.put(DATAVALUE, temparay.put(getdata));
 			} else {
 				url = url.replaceAll(" ", "%20");
-				temparay = dataTransmit.transmitDataspgrest(url);
+				temparay = dataTransmit.transmitDataspgrest(url,gettabledata.getString("schema"));
 				returndata.put(DATAVALUE, temparay);
 			}
 
@@ -299,7 +299,7 @@ public class FormdataServiceImpl implements FormdataService {
 				return returndata.put(ERROR, "Please check the data").toString();
 			}
 
-			response = dataTransmit.transmitDataspgrestDel(url);
+			response = dataTransmit.transmitDataspgrestDel(url,gettabledata.getString("schema"));
 
 			if (response >= 200 && response <= 226) {
 				returndata.put(REFLEX, SUCCESS);

@@ -69,6 +69,9 @@ public class BaseLoginController {
 
 	@Autowired
 	Location location;
+	
+	@Value("${schema}")
+	private String schema;
 
 //	
 	@PostMapping(value = "/company", produces = { "application/json" })
@@ -81,7 +84,7 @@ public class BaseLoginController {
 			String name = commonJson.getString("username");
 			String pass = commonJson.getString("password");
 			String pgrest = pgresturl + "comuser";
-			user = dataTransmits.transmitDataspgrest(pgrest);
+			user = dataTransmits.transmitDataspgrest(pgrest,schema);
 			if (user.isEmpty()) {
 				return returnMessage.put("error", "No user was found,Please Enter the vaild credential").toString();
 			}
@@ -152,14 +155,14 @@ public class BaseLoginController {
 						DisplaySingleton.memoryApplicationSetting.get("forgotpassConfig").toString());
 				String url = (pgresturl + "/" + forgotJson.getString("tablename") + "?"
 						+ forgotJson.getString("Findcolumn") + "=eq." + id).replace(" ", "%20");
-				JSONObject jsonbody = new JSONObject(dataTransmits.transmitDataspgrest(url).get(0).toString());
+				JSONObject jsonbody = new JSONObject(dataTransmits.transmitDataspgrest(url,schema).get(0).toString());
 				byte[] decodedBytes = Base64.getDecoder().decode(pass);
 				String decodedString = new String(decodedBytes);
 				jsonbody.put(forgotJson.getString("columnname"),
 						forgotJson.getBoolean("encode") ? encoder.encode(decodedString) : decodedString);
 				url = (pgresturl + "/" + forgotJson.getString("tablename") + "?" + forgotJson.getString("primarycolumn")
 						+ "=eq." + jsonbody.get(forgotJson.getString("primarycolumn"))).replace(" ", "%20");
-				response = dataTransmits.transmitDataspgrestput(url, jsonbody.toString(), false);
+				response = dataTransmits.transmitDataspgrestput(url, jsonbody.toString(), false,schema);
 				if (Integer.parseInt(response) >= 200 && Integer.parseInt(response) <= 226) {
 					returnMessage.put("reflex", "Change Successfully");
 				} else {
@@ -192,7 +195,7 @@ public class BaseLoginController {
 				whereFormationJson = notification.getJSONObject("TokenSetByUser").getJSONObject("FindUser");
 				String where = commonServices.whereFormation(commonJson, whereFormationJson);
 				String pgrest = pgresturl + whereFormationJson.getString("tablename") + where;
-				user = new JSONObject(dataTransmits.transmitDataspgrest(pgrest).get(0).toString());
+				user = new JSONObject(dataTransmits.transmitDataspgrest(pgrest,schema).get(0).toString());
 				System.err.println(user);
 			}
 			res = loginservice.pushNotificationUpdate(commonJson.getBoolean("tokenOn"), user, id, notifitoke,

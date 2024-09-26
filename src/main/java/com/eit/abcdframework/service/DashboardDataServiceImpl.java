@@ -85,7 +85,7 @@ public class DashboardDataServiceImpl implements DashboardDataService {
 					JSONObject jsonObject = new JSONObject();
 					for (int k = 0; k < keys.length; k++) {
 						url = pgrest + name + mulitWhere.getString(keys[k].toString()).replace(" ", "%20");
-						JSONArray datas = datatransmit.transmitDataspgrest(url);
+						JSONArray datas = datatransmit.transmitDataspgrest(url,extradatas.getString("schema"));
 						JSONArray orignalJson = new JSONObject(configdatas.get(jsonname).toString())
 								.getJSONArray("orginalJson");
 						JSONArray changedJson = new JSONObject(configdatas.get(jsonname).toString())
@@ -123,7 +123,7 @@ public class DashboardDataServiceImpl implements DashboardDataService {
 
 					url = url.replace(" ", "%20");
 
-					JSONArray datas = datatransmit.transmitDataspgrest(url);
+					JSONArray datas = datatransmit.transmitDataspgrest(url,extradatas.getString("schema"));
 
 					JSONArray orignalJson = new JSONObject(configdatas.get(jsonname).toString())
 							.getJSONArray("orginalJson");

@@ -106,13 +106,28 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 			else
 				jsonObject1 = new JSONObject(data);
 
-			JSONObject jsonheader = new JSONObject(
-					jsonObject1.getJSONObject("PrimaryBody").getJSONObject("header").toString());
+			// Body Structure two types
+			JSONObject jsonheader = jsonObject1.has("PrimaryBody")
+					? new JSONObject(jsonObject1.getJSONObject("PrimaryBody").getJSONObject("header").toString())
+					: new JSONObject(jsonObject1.getJSONObject("header").toString());
+
+			JSONObject jsonbody = jsonObject1.has("PrimaryBody")
+					? new JSONObject(jsonObject1.getJSONObject("PrimaryBody").getJSONObject("body").toString())
+					: new JSONObject(jsonObject1.getJSONObject("body").toString());
+
+			if (jsonObject1.has("PrimaryBody")
+					&& new JSONObject(jsonObject1.getJSONObject("PrimaryBody")).has("documents")) {
+				documentdata = new JSONObject(
+						jsonObject1.getJSONObject("PrimaryBody").getJSONObject("documents").toString());
+			} else if (jsonObject1.has("documents")) {
+				documentdata = new JSONObject(jsonObject1.getJSONObject("documents").toString());
+			} else {
+				documentdata = new JSONObject();
+			}
+			
+
 			String displayAlias = jsonheader.getString("name");
 			String method = jsonheader.getString("method");
-
-			JSONObject jsonbody = new JSONObject(
-					jsonObject1.getJSONObject("PrimaryBody").getJSONObject("body").toString());
 
 			displayConfig = DisplaySingleton.memoryDispObjs2.getJSONObject(displayAlias);
 			JSONObject gettabledata = new JSONObject(displayConfig.get("datas").toString());
@@ -159,12 +174,14 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 
 			if (primary_id != 0) {
 				String delUrl = pgresturl + "pdf_splitter?id=eq." + primary_id;
-				dataTransmit.transmitDataspgrestDel(delUrl);
+				dataTransmit.transmitDataspgrestDel(delUrl, gettabledata.getString("schema"));
 			} else {
 				new JSONObject().put(ERROR, FAILURE).toString();
 			}
 
-		} catch (Exception e) {
+		} catch (
+
+		Exception e) {
 			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
 		}
 		return new JSONObject().put(REFLEX, SUCCESS).toString();
@@ -184,13 +201,15 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 							TimeZoneServices.getDateInTimeZoneforSKT("Asia/Riyadh"));
 				}
 				url = pgresturl + gettabledata.getString("api").replaceAll(" ", "%20");
-				response = dataTransmit.transmitDataspgrestpost(url, jsonbody.toString(), false);
+				response = dataTransmit.transmitDataspgrestpost(url, jsonbody.toString(), false,
+						gettabledata.getString("schema"));
 			} else if (method.equalsIgnoreCase("PUT")) {
 				if (jsonbody.has(columnprimarykey) && !jsonbody.get(columnprimarykey).toString().equalsIgnoreCase("")) {
 					// if use put method we need primary key (set primary key column name)
 					url = (pgresturl + gettabledata.getString("api") + "?" + columnprimarykey + "=eq."
 							+ (jsonbody.get(columnprimarykey)).toString()).replaceAll(" ", "%20");
-					response = dataTransmit.transmitDataspgrestput(url, jsonbody.toString(), false);
+					response = dataTransmit.transmitDataspgrestput(url, jsonbody.toString(), false,
+							gettabledata.getString("schema"));
 				} else {
 					return new JSONObject().put(ERROR, "primaryKey is Missing,Please Check this").toString();
 				}
@@ -251,14 +270,16 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 				}
 				url = pgresturl + gettabledata.getString("api");
 				url = url.replace(" ", "%20");
-				response = dataTransmit.transmitDataspgrestpost(url, jsonbody.toString(), false);
+				response = dataTransmit.transmitDataspgrestpost(url, jsonbody.toString(), false,
+						gettabledata.getString("schema"));
 			} else if (method.equalsIgnoreCase("PUT")) {
 				if (jsonbody.has(columnprimarykey) && !jsonbody.get(columnprimarykey).toString().equalsIgnoreCase("")) {
 					// if use put method we need primary key (set primary key column name)
 					url = pgresturl + gettabledata.getString("api") + "?" + columnprimarykey + "=eq."
 							+ (jsonbody.get(columnprimarykey)).toString();
 					url = url.replace(" ", "%20");
-					response = dataTransmit.transmitDataspgrestput(url, jsonbody.toString(), false);
+					response = dataTransmit.transmitDataspgrestput(url, jsonbody.toString(), false,
+							gettabledata.getString("schema"));
 				} else {
 					return returndata.put(ERROR, "primaryKey is Missing,Please Check this").toString();
 				}
@@ -340,7 +361,8 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 
 				returnJson.put("jqxdetails", jsononbj.toString());
 				if (function && extraDatas.has("preDefined") && extraDatas.getBoolean("preDefined")) {
-					url = pgresturl + extraDatas.getString("Function") + "?basequery=" + extraDatas.getJSONObject("Query");
+					url = pgresturl + extraDatas.getString("Function") + "?basequery="
+							+ extraDatas.getJSONObject("Query");
 				} else {
 					url = pgresturl + extraDatas.getString(method);
 				}
@@ -364,14 +386,15 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 				}
 				url = url.replace(" ", "%20");
 				if (extraDatas.has("preDefined") && extraDatas.getBoolean("preDefined")) {
-					datavalues = new JSONObject(new JSONArray(dataTransmit.transmitDataspgrest(url).get(0).toString()))
+					datavalues = new JSONObject(new JSONArray(
+							dataTransmit.transmitDataspgrest(url, extraDatas.getString("schema")).get(0).toString()))
 							.getJSONArray("datavalues");
 				} else {
-					datavalues = dataTransmit.transmitDataspgrest(url);
+					datavalues = dataTransmit.transmitDataspgrest(url, extraDatas.getString("schema"));
 				}
 //				datavalues = dataTransmit.transmitDataspgrest(url);
 				returnJson.put("datavalue", datavalues.toString());
-				
+
 				JSONObject coloumnsnew = new JSONObject();
 				if (role != null && !role.equalsIgnoreCase("")) {
 					JSONArray datas = jsononbj.getJSONArray(extraDatas.getString("name"));
@@ -568,7 +591,8 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 			String value = jsonbody.get(Splitter_primary_id).toString();
 
 			String geturl = pgresturl + "pdf_splitter?select=total_pages,id&primary_id_pdf=eq." + value;
-			JSONObject datavalue = new JSONObject(dataTransmit.transmitDataspgrest(geturl).get(0).toString());
+			JSONObject datavalue = new JSONObject(
+					dataTransmit.transmitDataspgrest(geturl, gettabledata.getString("schema")).get(0).toString());
 			int total_pages = datavalue.getInt("total_pages");
 			int primary_id = datavalue.getInt("id");
 
@@ -601,14 +625,16 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 				}
 				url = pgresturl + gettabledata.getString("api");
 				url = url.replace(" ", "%20");
-				response = dataTransmit.transmitDataspgrestpost(url, jsonbody.toString(), false);
+				response = dataTransmit.transmitDataspgrestpost(url, jsonbody.toString(), false,
+						gettabledata.getString("schema"));
 			} else if (method.equalsIgnoreCase("PUT")) {
 				if (jsonbody.has(columnprimarykey) && !jsonbody.get(columnprimarykey).toString().equalsIgnoreCase("")) {
 					// if use put method we need primary key (set primary key column name)
 					url = pgresturl + gettabledata.getString("api") + "?" + columnprimarykey + "=eq."
 							+ (jsonbody.get(columnprimarykey)).toString();
 					url = url.replace(" ", "%20");
-					response = dataTransmit.transmitDataspgrestput(url, jsonbody.toString(), false);
+					response = dataTransmit.transmitDataspgrestput(url, jsonbody.toString(), false,
+							gettabledata.getString("schema"));
 				} else {
 					return returndata.put(ERROR, "primaryKey is Missing,Please Check this").toString();
 				}
@@ -631,7 +657,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 
 				if (returndata.has("reflex")) {
 					String delUrl = pgresturl + "pdf_splitter?id=eq." + primary_id;
-					dataTransmit.transmitDataspgrestDel(delUrl);
+					dataTransmit.transmitDataspgrestDel(delUrl, gettabledata.getString("schema"));
 				}
 
 			}
@@ -652,6 +678,9 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 
 			JSONObject jsonObject = jsonObject1.getJSONObject("document");
 
+			JSONObject displayConfig = DisplaySingleton.memoryDispObjs2.getJSONObject(jsonObject.getString("name"));
+			JSONObject gettabledata = new JSONObject(displayConfig.get("datas").toString());
+
 			jsonObject.keys().forEachRemaining(key -> {
 				String url = pgresturl + "rpc/update_base64";
 				JSONObject jsondata = new JSONObject();
@@ -661,7 +690,8 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 
 				setValues.put("datas", jsondata);
 
-				dataTransmit.transmitDataspgrestpost(url, setValues.toString(), false);
+				dataTransmit.transmitDataspgrestpost(url, setValues.toString(), false,
+						gettabledata.getString("schema"));
 
 			});
 			res.put("reflex", "Success");

@@ -127,7 +127,7 @@ public class ResponcesHandling {
 			if (!getPushNotificationJsonObject.isEmpty() && getPushNotificationJsonObject.getJSONArray("tablename")
 					.toList().contains(gettabledata.getString("api"))) {
 				sendPushNotification(jsonbody, gettabledata.getString("api"), rolename,
-						getPushNotificationJsonObject);
+						getPushNotificationJsonObject,gettabledata.getString("schema"));
 			}
 
 			if (gettabledata.has("activityLogs")) {
@@ -135,7 +135,7 @@ public class ResponcesHandling {
 					String resp = "";
 					if (!message.equalsIgnoreCase("") && !status.equalsIgnoreCase("")) {
 						resp = addactivitylog(gettabledata.getJSONObject("activityLogs"), status,
-								jsonbody, rolename, message, notification);
+								jsonbody, rolename, message, notification,gettabledata.getString("schema"));
 						LOGGER.error("ActivityLogs-->:: {}", resp);
 					}
 
@@ -148,7 +148,7 @@ public class ResponcesHandling {
 					email = new JSONObject(gettabledata.get("email").toString());
 					if (!new JSONObject(email.get("mail").toString()).isEmpty()) {
 						amazonSMTPMail.emailconfig(email, jsonbody, files,
-								jsonheader.has("lang") ? jsonheader.getString("lang") : "en", method);
+								jsonheader.has("lang") ? jsonheader.getString("lang") : "en", method,gettabledata.getString("schema"));
 					}
 				} catch (Exception e) {
 					LOGGER.error("Throw Email Failure! -->:: {}", e.getMessage());
@@ -161,7 +161,7 @@ public class ResponcesHandling {
 	}
 	
 	private static String addactivitylog(JSONObject getvalue, String status, JSONObject jsonbody, String rolename,
-			String message, boolean notification) {
+			String message, boolean notification,String schema) {
 		String returndata = "";
 		try {
 
@@ -176,10 +176,10 @@ public class ResponcesHandling {
 						jsonbody.get(getvalue.getJSONObject("getvalues").get(param.get(i).toString()).toString()));
 			}
 			String url = applicationurl + "activitylog";
-			String response = dataTransmit.transmitDataspgrestpost(url, setvalue.toString(), false);
+			String response = dataTransmit.transmitDataspgrestpost(url, setvalue.toString(), false,schema);
 			if (Integer.parseInt(response) >= 200 && Integer.parseInt(response) <= 226) {
 				if (notification) {
-					sendPushNotification(setvalue, "activitylog", rolename, new JSONObject());
+					sendPushNotification(setvalue, "activitylog", rolename, new JSONObject(),schema);
 				}
 				JSONObject header = new JSONObject();
 				header.put("name", "activitylogs");
@@ -207,7 +207,7 @@ public class ResponcesHandling {
 				String url = applicationurl + smsObject.getJSONObject("fetchby").getString("tablename") + "?"
 						+ smsObject.getJSONObject("fetchby").getJSONArray("param").get(0) + "=eq."
 						+ jsonbody.get(smsObject.getJSONObject("fetchby").getJSONArray("value").get(0).toString());
-				datavalue = new JSONObject(dataTransmit.transmitDataspgrest(url).get(0).toString());
+				datavalue = new JSONObject(dataTransmit.transmitDataspgrest(url,getdata.getString("schema")).get(0).toString());
 
 			}
 		} catch (Exception e) {
@@ -223,7 +223,7 @@ public class ResponcesHandling {
 	
 	
 	public static String sendPushNotification(JSONObject jsonbody, String tablename, String rolename,
-			JSONObject getPushNotificationJsonObject) {
+			JSONObject getPushNotificationJsonObject,String schema) {
 		String res = "success";
 
 		try {
@@ -233,16 +233,16 @@ public class ResponcesHandling {
 				if (jsonbody.getString(Findcolumn).equalsIgnoreCase(sendingdata)) {
 					if (getPushNotificationJsonObject.getBoolean("sendbyrole")
 							&& getPushNotificationJsonObject.getJSONArray("rolename").toList().contains(rolename))
-						sendnotification(jsonbody, tablename, getPushNotificationJsonObject);
+						sendnotification(jsonbody, tablename, getPushNotificationJsonObject,schema);
 					else if (!getPushNotificationJsonObject.getBoolean("sendbyrole"))
-						sendnotification(jsonbody, tablename, getPushNotificationJsonObject);
+						sendnotification(jsonbody, tablename, getPushNotificationJsonObject,schema);
 				}
 			} else {
 				if (getPushNotificationJsonObject.getBoolean("sendbyrole")
 						&& getPushNotificationJsonObject.getJSONArray("rolename").toList().contains(rolename))
-					sendnotification(jsonbody, tablename, getPushNotificationJsonObject);
+					sendnotification(jsonbody, tablename, getPushNotificationJsonObject,schema);
 				else if (!getPushNotificationJsonObject.getBoolean("sendbyrole"))
-					sendnotification(jsonbody, tablename, getPushNotificationJsonObject);
+					sendnotification(jsonbody, tablename, getPushNotificationJsonObject,schema);
 			}
 			System.err.println();
 
@@ -257,7 +257,7 @@ public class ResponcesHandling {
 									emailObject.getJSONObject("FindToggle").getJSONObject("where").getString("value"));
 					String url = (applicationurl + api + "?" + where).replaceAll(" ", "%20");
 
-					String toogleData = new JSONObject(dataTransmit.transmitDataspgrest(url).get(0).toString())
+					String toogleData = new JSONObject(dataTransmit.transmitDataspgrest(url,schema).get(0).toString())
 							.getString(emailObject.getJSONObject("FindToggle").getString("columnkey"));
 					if (toogleData.equalsIgnoreCase("On")) {
 
@@ -275,7 +275,7 @@ public class ResponcesHandling {
 							jsonbody.put("from",
 									jsonbody.getString("companyname") + "-" + jsonbody.getString("username"));
 						}
-						amazonSMTPMail.emailconfig(emailObject, jsonbody, new ArrayList<>(), "en", "POST");
+						amazonSMTPMail.emailconfig(emailObject, jsonbody, new ArrayList<>(), "en", "POST",schema);
 						jsonbody.remove("from");
 						jsonbody.remove("to");
 
@@ -294,11 +294,11 @@ public class ResponcesHandling {
 	}
 	
 	
-	private static String sendnotification(JSONObject jsonBody, String tablename, JSONObject getJsonObject) {
+	private static String sendnotification(JSONObject jsonBody, String tablename, JSONObject getJsonObject,String schema) {
 		try {
 
 			String url = applicationurl + getJsonObject.getString("getToken") + "?status=eq.login";
-			JSONArray jsonArray = dataTransmit.transmitDataspgrest(url);
+			JSONArray jsonArray = dataTransmit.transmitDataspgrest(url,schema);
 			if (jsonArray.isEmpty()) {
 				return "No token Found";
 			}

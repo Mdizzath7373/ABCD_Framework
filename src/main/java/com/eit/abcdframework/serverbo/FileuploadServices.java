@@ -293,7 +293,7 @@ public class FileuploadServices {
 		}
 
 		LOGGER.warn("ENTER INTO saveOrUpdateData {BASE64iMAGES}---------->" + Instant.now());
-		saveOrUpdateData(base64String, primaryKey, progressCount, jsonbody.get("ids").toString(), jsonbody);
+		saveOrUpdateData(base64String, primaryKey, progressCount, jsonbody.get("ids").toString(), jsonbody,gettabledata.getString("schema"));
 		LOGGER.warn("EXIT saveOrUpdateData {BASE64iMAGES}------->" + Instant.now());
 
 		Instant endTime = Instant.now();
@@ -364,7 +364,7 @@ public class FileuploadServices {
 	}
 
 	private void saveOrUpdateData(Map<Integer, String> base64String, String primarykey, AtomicInteger progressCount,
-			String id, JSONObject jsonbody) {
+			String id, JSONObject jsonbody,String schema) {
 		String res = "";
 		try {
 			int total = base64String.size();
@@ -378,13 +378,13 @@ public class FileuploadServices {
 
 			LOGGER.warn("Enter into save");
 			String url = pgresturl + "pdf_splitter";
-			res = daHttpclientcaller.transmitDataspgrestpost(url, savePDF.toString(), false);
+			res = daHttpclientcaller.transmitDataspgrestpost(url, savePDF.toString(), false,schema);
 			if (Integer.parseInt(res) >= 200 && Integer.parseInt(res) <= 226) {
 				progressCount.set(85);
 				progress.put(id + "-" + primarykey, progressCount);
 				socketService.pushSocketData(new JSONObject(), jsonbody, "progress");
 			}
-			LOGGER.warn(daHttpclientcaller.transmitDataspgrestpost(url, savePDF.toString(), false));
+			LOGGER.warn(daHttpclientcaller.transmitDataspgrestpost(url, savePDF.toString(), false,schema));
 
 		} catch (Exception e) {
 			LOGGER.error("Error during save/update", e);
@@ -623,7 +623,7 @@ public class FileuploadServices {
 				PDFpath = currentDir + "original.pdf";
 			}
 			String geturl = pgresturl + "pdf_splitter?select=total_pages,id&primary_id_pdf=eq." + value;
-			JSONObject datavalue = new JSONObject(daHttpclientcaller.transmitDataspgrest(geturl).get(0).toString());
+			JSONObject datavalue = new JSONObject(daHttpclientcaller.transmitDataspgrest(geturl,gettabledata.getString("schema")).get(0).toString());
 			int total_pages = datavalue.getInt("total_pages");
 			primary_id = datavalue.getInt("id");
 

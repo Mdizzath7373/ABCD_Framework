@@ -32,7 +32,7 @@ public class Httpclientcaller {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(Httpclientcaller.class);
 
-	public JSONArray transmitDataspgrest(String toUrl) throws IOException {
+	public JSONArray transmitDataspgrest(String toUrl,String schema) throws IOException {
 		PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
 		connectionManager.setMaxTotal(250); // Maximum total connections
 		connectionManager.setDefaultMaxPerRoute(20);
@@ -49,6 +49,7 @@ public class Httpclientcaller {
 
 			HttpGet httpGet = new HttpGet(toUrl);
 			httpGet.setHeader("Connection", "close");
+			httpGet.setHeader("Accept-Profile",schema);
 			try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
 				String responseBody = "";
 				int statusCode = response.getStatusLine().getStatusCode();
@@ -70,7 +71,7 @@ public class Httpclientcaller {
 		}
 	}
 
-	public String transmitDataspgrestpost(String toUrl, String data, boolean addheader) {
+	public String transmitDataspgrestpost(String toUrl, String data, boolean addheader,String schema) {
 		int statusCode = 0;
 		String returndata = "";
 		PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
@@ -82,6 +83,7 @@ public class Httpclientcaller {
 
 			HttpPost http = new HttpPost(toUrl);
 			http.addHeader("Content-Type", "application/json;charset=utf-8");
+			http.addHeader("Accept-Profile",schema);
 			if (addheader)
 				http.addHeader("Prefer", "return=representation");
 			StringEntity requestEntity = new StringEntity(data, StandardCharsets.UTF_8);
@@ -99,6 +101,7 @@ public class Httpclientcaller {
 						return returndata = new JSONObject(responseBody.toString()).toString();
 					}
 					if (!responseBody.equalsIgnoreCase("[]") && !responseBody.equalsIgnoreCase("")) {
+						
 						if (new JSONObject(new JSONArray(responseBody).get(0).toString()).has("reflex"))
 							returndata = new JSONObject(new JSONArray(responseBody).get(0).toString())
 									.getString("reflex");
@@ -117,7 +120,7 @@ public class Httpclientcaller {
 		return returndata;
 	}
 
-	public String transmitDataspgrestput(String toUrl, String data, boolean addheader) {
+	public String transmitDataspgrestput(String toUrl, String data, boolean addheader,String schema) {
 		int statusCode = 0;
 		String returndata = "";
 		PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
@@ -129,6 +132,7 @@ public class Httpclientcaller {
 
 			HttpPut http = new HttpPut(toUrl);
 			http.addHeader("Content-Type", "application/json");
+			http.addHeader("Accept-Profile",schema);
 			if (addheader)
 				http.addHeader("Prefer", "return=representation");
 			StringEntity requestEntity = new StringEntity(data, StandardCharsets.UTF_8);
@@ -200,7 +204,7 @@ public class Httpclientcaller {
 		return returndata;
 	}
 
-	public int transmitDataspgrestDel(String toUrl) throws IOException {
+	public int transmitDataspgrestDel(String toUrl,String schema) throws IOException {
 		int statusCode = 0;
 		PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
 		connectionManager.setMaxTotal(250); // Maximum total connections
@@ -210,6 +214,7 @@ public class Httpclientcaller {
 				.setMaxConnTotal(10000).build()) {
 
 			HttpDelete httpDel = new HttpDelete(toUrl);
+			httpDel.addHeader("Accept-Profile",schema);
 			try (CloseableHttpResponse response = httpClient.execute(httpDel)) {
 				statusCode = response.getStatusLine().getStatusCode();
 				String status = String.valueOf(statusCode);

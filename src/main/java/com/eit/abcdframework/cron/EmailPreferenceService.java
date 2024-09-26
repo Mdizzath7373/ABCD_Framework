@@ -44,40 +44,42 @@ public class EmailPreferenceService {
 	private static String applicationurl = "http://localhost:3000/rpc/";
 	
 	
-	public String getCompanyEmailPre() {
-		try {
-			String url = applicationurl + "getcompanyemailpre";
-			JSONArray getArrayObj = dataTransmit.transmitDataspgrest(url);
-			for (int i = 0; i < getArrayObj.length(); i++) {
-				JSONObject json = new JSONObject(getArrayObj.get(i).toString());
-				System.out.println(json);
-				if( !json.isNull("emailpreference") && !json.isNull("fax")) {
-					System.out.println(json.get("emailpreference"));
-					
-					Object emailPreferenceValue = json.get("emailpreference");
-					String emailid = json.getString("fax");
-					if (emailPreferenceValue instanceof String) {
-						
-			            String emailPreferenceString = (String) emailPreferenceValue;
-			            JSONObject emailconfigjson = new JSONObject(emailPreferenceString);
-			            JSONObject durwhere = emailconfigjson.getJSONObject("staticdurationwhere");
-			            String[] valueTypes = {"warning", "recentcomments", "activitylogs"};
-
-			            for (String valueType : valueTypes) {
-			                String value = fetchStringValue(emailconfigjson, valueType, valueType+"value");
-			                JSONArray field = fetchStringField(emailconfigjson, valueType, valueType+"field");
-
-			                processValue(value,valueType,json.getString("companyname"),emailid,durwhere);
-			            }
-			        }
-				}
-			}
-
-		} catch (Exception e) {
-			LOGGER.error("Exception in getconfigsObj : ", e);
-		}
-		return "Success";
-	}
+	
+	
+//	public String getCompanyEmailPre() {
+//		try {
+//			String url = applicationurl + "getcompanyemailpre";
+//			JSONArray getArrayObj = dataTransmit.transmitDataspgrest(url);
+//			for (int i = 0; i < getArrayObj.length(); i++) {
+//				JSONObject json = new JSONObject(getArrayObj.get(i).toString());
+//				System.out.println(json);
+//				if( !json.isNull("emailpreference") && !json.isNull("fax")) {
+//					System.out.println(json.get("emailpreference"));
+//					
+//					Object emailPreferenceValue = json.get("emailpreference");
+//					String emailid = json.getString("fax");
+//					if (emailPreferenceValue instanceof String) {
+//						
+//			            String emailPreferenceString = (String) emailPreferenceValue;
+//			            JSONObject emailconfigjson = new JSONObject(emailPreferenceString);
+//			            JSONObject durwhere = emailconfigjson.getJSONObject("staticdurationwhere");
+//			            String[] valueTypes = {"warning", "recentcomments", "activitylogs"};
+//
+//			            for (String valueType : valueTypes) {
+//			                String value = fetchStringValue(emailconfigjson, valueType, valueType+"value");
+//			                JSONArray field = fetchStringField(emailconfigjson, valueType, valueType+"field");
+//
+//			                processValue(value,valueType,json.getString("companyname"),emailid,durwhere);
+//			            }
+//			        }
+//				}
+//			}
+//
+//		} catch (Exception e) {
+//			LOGGER.error("Exception in getconfigsObj : ", e);
+//		}
+//		return "Success";
+//	}
 	private String fetchStringValue(JSONObject jsonObject, String outerKey, String innerKey) {
 	    return jsonObject.getJSONObject(outerKey).getString(innerKey);
 	}
@@ -85,87 +87,87 @@ public class EmailPreferenceService {
 	private JSONArray fetchStringField(JSONObject jsonObject, String outerKey, String innerKey) {
 	    return jsonObject.getJSONObject(outerKey).getJSONArray(innerKey);
 	}
-	private void processValue(String value, String valueType, String companyname, String emailid,JSONObject durwhere) throws JSONException, MessagingException, IOException, DocumentException {
-		JSONObject smtpMail = new JSONObject(
-				DisplaySingleton.memoryApplicationSetting.get("smptAmazonMail").toString());
-		String result;
-		String body;
-		String durationwhere;
-		List<File> mailPdf = null;
-	    switch (value.toLowerCase()) {
-	        case "instantly":
-	        	
-	            break;
-	        case "daily":
-	        	 durationwhere = durwhere.getString("yesterdaywhere");
-	        	 body = writeContent(valueType,"","",durationwhere,companyname);
-	        	 if (body != null && !body.equals("[]") && !body.isEmpty()) {
-        		 mailPdf = writePdffile(valueType, body);
-	        	 result = amazonsmtpmail.sendEmail(smtpMail.getString("amazonverifiedfromemail"), emailid,
-						"Onboard "+value+" "+valueType+" Updates","find your file", smtpMail.getString("amazonsmtpusername"),
-						smtpMail.getString("amazonsmtppassword"), smtpMail.getString("amazonhostaddress"),
-						smtpMail.getString("amazonport"),mailPdf);
-	        	System.out.println(result+"-------mailsending");
-        		 }
-	            break;
-	        case "weekly":
-	        	 if (isLastDayOfWeek()) {
-	             durationwhere = durwhere.getString("lastweekwhere");
-	             body = writeContent(valueType,"","",durationwhere,companyname);
-	             if (body != null &&!body.equals("[]") && !body.isEmpty()) {
-	             mailPdf = writePdffile(valueType, body);
-	        	 result = amazonsmtpmail.sendEmail(smtpMail.getString("amazonverifiedfromemail"), emailid,
-	        			 "Onboard "+value+" "+valueType+" Updates","find your file", smtpMail.getString("amazonsmtpusername"),
-	 						smtpMail.getString("amazonsmtppassword"), smtpMail.getString("amazonhostaddress"),
-	 						smtpMail.getString("amazonport"),mailPdf);
-	 	        	System.out.println(result+"-------mailsending");
-	             }
-	             } else {
+//	private void processValue(String value, String valueType, String companyname, String emailid,JSONObject durwhere) throws JSONException, MessagingException, IOException, DocumentException {
+//		JSONObject smtpMail = new JSONObject(
+//				DisplaySingleton.memoryApplicationSetting.get("smptAmazonMail").toString());
+//		String result;
+//		String body;
+//		String durationwhere;
+//		List<File> mailPdf = null;
+//	    switch (value.toLowerCase()) {
+//	        case "instantly":
+//	        	
+//	            break;
+//	        case "daily":
+//	        	 durationwhere = durwhere.getString("yesterdaywhere");
+//	        	 body = writeContent(valueType,"","",durationwhere,companyname);
+//	        	 if (body != null && !body.equals("[]") && !body.isEmpty()) {
+//        		 mailPdf = writePdffile(valueType, body);
+//	        	 result = amazonsmtpmail.sendEmail(smtpMail.getString("amazonverifiedfromemail"), emailid,
+//						"Onboard "+value+" "+valueType+" Updates","find your file", smtpMail.getString("amazonsmtpusername"),
+//						smtpMail.getString("amazonsmtppassword"), smtpMail.getString("amazonhostaddress"),
+//						smtpMail.getString("amazonport"),mailPdf);
+//	        	System.out.println(result+"-------mailsending");
+//        		 }
+//	            break;
+//	        case "weekly":
+//	        	 if (isLastDayOfWeek()) {
+//	             durationwhere = durwhere.getString("lastweekwhere");
+//	             body = writeContent(valueType,"","",durationwhere,companyname);
+//	             if (body != null &&!body.equals("[]") && !body.isEmpty()) {
+//	             mailPdf = writePdffile(valueType, body);
+//	        	 result = amazonsmtpmail.sendEmail(smtpMail.getString("amazonverifiedfromemail"), emailid,
+//	        			 "Onboard "+value+" "+valueType+" Updates","find your file", smtpMail.getString("amazonsmtpusername"),
+//	 						smtpMail.getString("amazonsmtppassword"), smtpMail.getString("amazonhostaddress"),
+//	 						smtpMail.getString("amazonport"),mailPdf);
+//	 	        	System.out.println(result+"-------mailsending");
+//	             }
+//	             } else {
+////	            	 
+//	             }
+//	            break;
+//	        case "monthly":
+//	        	 if (isLastDayOfMonth()) {
+//	        		 durationwhere = durwhere.getString("lastmonthwhere");
+//	        		 body = writeContent(valueType,"","",durationwhere,companyname);
+//	        		 if (body != null &&!body.equals("[]") && !body.isEmpty()){
+//	        		 mailPdf = writePdffile(valueType, body);
+//	        		 result = amazonsmtpmail.sendEmail(smtpMail.getString("amazonverifiedfromemail"), emailid,
+//		        			 "Onboard "+value+" "+valueType+" Updates","find your file", smtpMail.getString("amazonsmtpusername"),
+//		 						smtpMail.getString("amazonsmtppassword"), smtpMail.getString("amazonhostaddress"),
+//		 						smtpMail.getString("amazonport"),mailPdf);
+//		 	        	System.out.println(result+"-------mailsending");
+//	        		 }
+//	             } else {
 //	            	 
-	             }
-	            break;
-	        case "monthly":
-	        	 if (isLastDayOfMonth()) {
-	        		 durationwhere = durwhere.getString("lastmonthwhere");
-	        		 body = writeContent(valueType,"","",durationwhere,companyname);
-	        		 if (body != null &&!body.equals("[]") && !body.isEmpty()){
-	        		 mailPdf = writePdffile(valueType, body);
-	        		 result = amazonsmtpmail.sendEmail(smtpMail.getString("amazonverifiedfromemail"), emailid,
-		        			 "Onboard "+value+" "+valueType+" Updates","find your file", smtpMail.getString("amazonsmtpusername"),
-		 						smtpMail.getString("amazonsmtppassword"), smtpMail.getString("amazonhostaddress"),
-		 						smtpMail.getString("amazonport"),mailPdf);
-		 	        	System.out.println(result+"-------mailsending");
-	        		 }
-	             } else {
-	            	 
-	             }
-	            break;
-	        default:
-	        	
-	            break;
-	    }
-	}
+//	             }
+//	            break;
+//	        default:
+//	        	
+//	            break;
+//	    }
+//	}
 	
-	public String writeContent(String contenttype, String fields, String value, String duration,String companyname) throws IOException {
-		String url = applicationurl;
-		JSONArray getArrayObj = null;
-		if(contenttype == "warning") {
-			return "";
-		}else if(contenttype == "recentcomments") {
-			url = url +"getcommentsforemail?in_companyname="+companyname+"&"+duration;
-			getArrayObj = dataTransmit.transmitDataspgrest(url);
-			System.out.println(getArrayObj);
-			return getArrayObj.toString();
-		}else if(contenttype == "activitylogs") {
-			url = url +"getactivityforemail?in_companyname="+companyname+"&"+duration;
-			getArrayObj = dataTransmit.transmitDataspgrest(url);
-			System.out.println(getArrayObj);
-			return getArrayObj.toString();
-		}else {
-			return "";
-		}
-		
-	}
+//	public String writeContent(String contenttype, String fields, String value, String duration,String companyname) throws IOException {
+//		String url = applicationurl;
+//		JSONArray getArrayObj = null;
+//		if(contenttype == "warning") {
+//			return "";
+//		}else if(contenttype == "recentcomments") {
+//			url = url +"getcommentsforemail?in_companyname="+companyname+"&"+duration;
+//			getArrayObj = dataTransmit.transmitDataspgrest(url);
+//			System.out.println(getArrayObj);
+//			return getArrayObj.toString();
+//		}else if(contenttype == "activitylogs") {
+//			url = url +"getactivityforemail?in_companyname="+companyname+"&"+duration;
+//			getArrayObj = dataTransmit.transmitDataspgrest(url);
+//			System.out.println(getArrayObj);
+//			return getArrayObj.toString();
+//		}else {
+//			return "";
+//		}
+//		
+//	}
 	
 	public String sendemailpreferencemail() {
 		return "";

@@ -22,6 +22,9 @@ public class DisplaySingleton {
 
 	@Value("${applicationurl}")
 	private String applicationurl;
+	
+	@Value("${schema}")
+	private String schema;
 
 	@Autowired
 	TimeZoneServices timeZoneServices;
@@ -55,7 +58,7 @@ public class DisplaySingleton {
 	public JSONObject configsObj() {
 		try {
 			String url = applicationurl + "configs";
-			JSONArray getArrayObj = dataTransmit.transmitDataspgrest(url);
+			JSONArray getArrayObj = dataTransmit.transmitDataspgrest(url,schema);
 			for (int i = 0; i < getArrayObj.length(); i++) {
 				JSONObject json = new JSONObject(getArrayObj.get(i).toString());
 				memoryDispObjs2.put(json.get("alias").toString(), getArrayObj.get(i));
@@ -73,7 +76,7 @@ public class DisplaySingleton {
 	public JSONObject applictionsettingObj() {
 		try {
 			String url = applicationurl + "applicationsetting";
-			JSONArray getArrayObj = dataTransmit.transmitDataspgrest(url);
+			JSONArray getArrayObj = dataTransmit.transmitDataspgrest(url,schema);
 			for (int i = 0; i < getArrayObj.length(); i++) {
 				JSONObject json = new JSONObject(getArrayObj.get(i).toString());
 				memoryApplicationSetting.put(json.getString("applicationkey"), json.getString("appvalue"));
@@ -106,7 +109,7 @@ public class DisplaySingleton {
 	public JSONObject emailConfigObj() {
 		try {
 			String url = applicationurl + "emailconfig";
-			JSONArray getArrayObj = dataTransmit.transmitDataspgrest(url);
+			JSONArray getArrayObj = dataTransmit.transmitDataspgrest(url,schema);
 			for (int i = 0; i < getArrayObj.length(); i++) {
 				JSONObject json = new JSONObject(getArrayObj.get(i).toString());
 				memoryEmailCofig.put(json.getString("name")

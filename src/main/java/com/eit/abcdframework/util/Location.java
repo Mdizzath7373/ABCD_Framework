@@ -22,6 +22,9 @@ public class Location {
 
 	@Value("${applicationurl}")
 	private String pgresturl;
+	
+	@Value("${schema}")
+	private String schema;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(Location.class);
 
@@ -63,7 +66,7 @@ public class Location {
 		JSONObject returnMessage=new JSONObject();
 		try {
 			String url = pgresturl + "property?select=location_detail";
-			JSONObject jsonObject = new JSONObject(dataTransmit.transmitDataspgrest(url).get(0).toString());
+			JSONObject jsonObject = new JSONObject(dataTransmit.transmitDataspgrest(url,schema).get(0).toString());
 			Iterator<String> keys = jsonObject.keys();
 			List<String> locations = new ArrayList<>();
 			while (keys.hasNext()) {

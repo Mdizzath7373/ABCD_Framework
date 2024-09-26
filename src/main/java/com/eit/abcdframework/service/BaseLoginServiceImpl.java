@@ -28,6 +28,9 @@ public class BaseLoginServiceImpl implements BaseLoginService {
 
 	@Value("${applicationurl}")
 	private String pgresturl;
+	
+	@Value("${schema}")
+	private String schema;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(BaseLoginServiceImpl.class);
 
@@ -42,7 +45,7 @@ public class BaseLoginServiceImpl implements BaseLoginService {
 			} else {
 				url = pgresturl + "rpc/generate_logsid";
 				String primaryValue = new JSONObject(
-						datatrans.transmitDataspgrestpost(url, new JSONObject().toString(), false)).getString("value");
+						datatrans.transmitDataspgrestpost(url, new JSONObject().toString(), false,schema)).getString("value");
 				returnMessage.put("companyid", new JSONObject(user.get(0).toString()).get("companyid"));
 				returnMessage.put("username", new JSONObject(user.get(0).toString()).getString("emailaddress"));
 				returnMessage.put("company", new JSONObject(user.get(0).toString()).getString("companyname"));
@@ -97,7 +100,7 @@ public class BaseLoginServiceImpl implements BaseLoginService {
 			JSONObject json = new JSONObject();
 			if (token) {
 				String urls = pgresturl + "pushnotification?pushnotificationid=eq." + id + "&select=pushnotificationid";
-				if (!datatrans.transmitDataspgrest(urls).isEmpty()) {
+				if (!datatrans.transmitDataspgrest(urls,schema).isEmpty()) {
 					sendby = "put";
 					tablename = "pushnotification?pushnotificationid=eq." + id;
 				} else {
@@ -127,9 +130,9 @@ public class BaseLoginServiceImpl implements BaseLoginService {
 
 			url = pgresturl + tablename;
 			if (sendby.equalsIgnoreCase("post"))
-				response = datatrans.transmitDataspgrestpost(url, json.toString(), false);
+				response = datatrans.transmitDataspgrestpost(url, json.toString(), false,schema);
 			else
-				response = datatrans.transmitDataspgrestput(url, json.toString(), false);
+				response = datatrans.transmitDataspgrestput(url, json.toString(), false,schema);
 
 			if (Integer.parseInt(response) <= 200 || Integer.parseInt(response) >= 226) {
 				String res = HttpStatus.getStatusText(Integer.parseInt(response));

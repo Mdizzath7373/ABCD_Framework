@@ -25,6 +25,9 @@ public class CronServices {
 
 	@Value("${applicationurl}")
 	private String applicationurl;
+	
+	@Value("${schema}")
+	private String schema;
 
 	@Autowired
 	AmazonSMTPMail amazonSMTPMail;
@@ -47,7 +50,7 @@ public class CronServices {
 					String subject = jobScheduler.getJSONObject(job).getString("subject");
 					String bodyTemplate = jobScheduler.getJSONObject(job).getString("body");
 					String url = applicationurl + "rpc/getremainderdata?datas=" + job;
-					JSONArray json = dataTrans.transmitDataspgrest(url);
+					JSONArray json = dataTrans.transmitDataspgrest(url,schema);
 
 					for (int list = 0; list < json.length(); list++) {
 						JSONObject jsondata = new JSONObject(json.get(list).toString());
@@ -84,7 +87,7 @@ public class CronServices {
 			CommonServices commonServices = new CommonServices();
 			String url = applicationurl + "rpc/list_properties_with_expiring_rentals?datas=e.enddate='"
 					+ TimeZoneServices.getDate(new Date()) + "'";
-			JSONArray json = dataTrans.transmitDataspgrest(url);
+			JSONArray json = dataTrans.transmitDataspgrest(url,schema);
 			if (!json.isEmpty()) {
 				for (int i = 0; i < json.length(); i++) {
 					JSONObject datavalue = new JSONObject(json.get(i).toString());
@@ -103,8 +106,8 @@ public class CronServices {
 						setvalue.put("createdby", "tenant");
 						setvalue.put("createdtime", TimeZoneServices.getDateInTimeZoneforSKT("Asia/Riyadh"));
 						url = applicationurl + "activitylog";
-						dataTrans.transmitDataspgrestpost(url, setvalue.toString(), false);
-						res = ResponcesHandling.sendPushNotification(setvalue, "activitylog", "tenant", new JSONObject());
+						dataTrans.transmitDataspgrestpost(url, setvalue.toString(), false,schema);
+						res = ResponcesHandling.sendPushNotification(setvalue, "activitylog", "tenant", new JSONObject(),schema);
 					}
 					MessageServices.MsegatsmsService(datavalue.getString("mobile"),
 							"Dear " + datavalue.get("username") + ", Your contract is going to end by ["
