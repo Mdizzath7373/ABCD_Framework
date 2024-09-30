@@ -50,28 +50,38 @@ public class FormdataServiceImpl implements FormdataService {
 	private String pgrest;
 
 	@Override
-	public String transmittingToMethod(String method, String data) {
+	public String transmittingToMethod(String method, String data, String which) {
 		JSONObject displayConfig;
 		JSONObject jsonObject1 = null;
 		String res = "";
 		String councurrentAPIres = "";
 
 		try {
-
+			JSONObject jsonheader=null;
+			JSONObject jsonbody=null;
+			
 			JSONObject jsonObjectdata = new JSONObject(data);
 			if (jsonObjectdata.has("data"))
 				jsonObject1 = new JSONObject(CommonServices.decrypt(jsonObjectdata.getString("data")));
 			else
 				jsonObject1 = jsonObjectdata;
 
-			JSONObject jsonheader = null;
-			JSONObject jsonbody = null;
-			if (jsonObject1.has("PrimaryBody")) {
-				jsonheader = new JSONObject(jsonObject1.getJSONObject("header").toString());
-				jsonbody = new JSONObject(jsonObject1.getJSONObject("body").toString());
+			if (which.equalsIgnoreCase("")) {
+
+				 jsonheader = jsonObject1.has("PrimaryBody")
+						? new JSONObject(jsonObject1.getJSONObject("PrimaryBody").getJSONObject("header").toString())
+						: new JSONObject(jsonObject1.getJSONObject("header").toString());
+				 jsonbody = jsonObject1.has("PrimaryBody")
+						? new JSONObject(jsonObject1.getJSONObject("PrimaryBody").getJSONObject("body").toString())
+						: new JSONObject(jsonObject1.getJSONObject("body").toString());
 			} else {
-				jsonheader = new JSONObject(jsonObject1.getJSONObject("header").toString());
-				jsonbody = new JSONObject(jsonObject1.getJSONObject("body").toString());
+				 jsonheader = jsonObject1.has(which)
+						? new JSONObject(jsonObject1.getJSONObject(which).getJSONObject("header").toString())
+						: new JSONObject(jsonObject1.getJSONObject("header").toString());
+				 jsonbody = jsonObject1.has(which)
+						? new JSONObject(jsonObject1.getJSONObject(which).getJSONObject("body").toString())
+						: new JSONObject(jsonObject1.getJSONObject("body").toString());
+
 			}
 
 			String displayAlias = jsonheader.getString("name");
@@ -83,10 +93,12 @@ public class FormdataServiceImpl implements FormdataService {
 				JSONObject checkingFunc = new JSONObject(gettabledata.get("checkAPI").toString());
 
 				if (checkingFunc.getJSONArray("curd").toList().contains(method)) {
-					String valueOF = new JSONObject(dataTransmit
-							.transmitDataspgrest(
-									pgrest + checkingFunc.getString("FindTable") + jsonheader.get("UniqueColumn"),gettabledata.getString("schema"))
-							.get(0).toString()).getString("FetchColumn");
+					String valueOF = new JSONObject(
+							dataTransmit
+									.transmitDataspgrest(pgrest + checkingFunc.getString("FindTable")
+											+ jsonheader.get("UniqueColumn"), gettabledata.getString("schema"))
+									.get(0).toString())
+							.getString("FetchColumn");
 
 					if (valueOF.equalsIgnoreCase("MatchBy")) {
 						return new JSONObject().put(ERROR, checkingFunc.getString("Message")).toString();
@@ -163,7 +175,8 @@ public class FormdataServiceImpl implements FormdataService {
 
 			String url = (pgrest + gettabledata.getString("POST")).replaceAll(" ", "%20");
 			response = dataTransmit.transmitDataspgrestpost(url, jsonbody.toString(),
-					jsonheader.has("primaryvalue") ? jsonheader.getBoolean("primaryvalue") : false,gettabledata.getString("schema"));
+					jsonheader.has("primaryvalue") ? jsonheader.getBoolean("primaryvalue") : false,
+					gettabledata.getString("schema"));
 
 		} catch (
 
@@ -186,7 +199,8 @@ public class FormdataServiceImpl implements FormdataService {
 				url = url.replace(" ", "%20");
 
 				response = dataTransmit.transmitDataspgrestput(url, jsonbody.toString(),
-						jsonheader.has("primaryvalue") ? jsonheader.getBoolean("primaryvalue") : false,gettabledata.getString("schema"));
+						jsonheader.has("primaryvalue") ? jsonheader.getBoolean("primaryvalue") : false,
+						gettabledata.getString("schema"));
 			} else {
 				response = "PrimaryKey is Missing!!";
 			}
@@ -246,7 +260,7 @@ public class FormdataServiceImpl implements FormdataService {
 			} else {
 				url = pgrest + gettabledata.getString("GET");
 			}
-			
+
 			if (which.equalsIgnoreCase("post")) {
 				temparay = new JSONArray();
 				JSONObject json = null;
@@ -264,11 +278,12 @@ public class FormdataServiceImpl implements FormdataService {
 					json = new JSONObject();
 				}
 				url = url.replaceAll(" ", "%20");
-				getdata = new JSONObject(dataTransmit.transmitDataspgrestpost(url, json.toString(), false,gettabledata.getString("schema")));
+				getdata = new JSONObject(dataTransmit.transmitDataspgrestpost(url, json.toString(), false,
+						gettabledata.getString("schema")));
 				returndata.put(DATAVALUE, temparay.put(getdata));
 			} else {
 				url = url.replaceAll(" ", "%20");
-				temparay = dataTransmit.transmitDataspgrest(url,gettabledata.getString("schema"));
+				temparay = dataTransmit.transmitDataspgrest(url, gettabledata.getString("schema"));
 				returndata.put(DATAVALUE, temparay);
 			}
 
@@ -299,7 +314,7 @@ public class FormdataServiceImpl implements FormdataService {
 				return returndata.put(ERROR, "Please check the data").toString();
 			}
 
-			response = dataTransmit.transmitDataspgrestDel(url,gettabledata.getString("schema"));
+			response = dataTransmit.transmitDataspgrestDel(url, gettabledata.getString("schema"));
 
 			if (response >= 200 && response <= 226) {
 				returndata.put(REFLEX, SUCCESS);

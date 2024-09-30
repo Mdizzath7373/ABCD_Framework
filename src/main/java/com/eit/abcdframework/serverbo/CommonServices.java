@@ -49,11 +49,10 @@ public class CommonServices {
 
 	@Autowired
 	MessageServices messageServices;
-	
+
 //	@Autowired
-	static	FormdataServiceImpl formdataServiceImpl;
-	
-	
+	static FormdataServiceImpl formdataServiceImpl;
+
 	@Autowired
 	public void setProductService(FormdataServiceImpl formdataServiceImpl) {
 		CommonServices.formdataServiceImpl = formdataServiceImpl;
@@ -73,8 +72,6 @@ public class CommonServices {
 
 	@Value("${schema}")
 	private String schema;
-
-	
 
 	public String userstatusupdate(String updationform, JSONObject user, String id) {
 		JSONObject returndata = new JSONObject();
@@ -100,9 +97,9 @@ public class CommonServices {
 			}
 			url = applicationurl + tablename;
 			if (sendby.equalsIgnoreCase("post"))
-				response = dataTransmit.transmitDataspgrestpost(url, json.toString(), false,schema);
+				response = dataTransmit.transmitDataspgrestpost(url, json.toString(), false, schema);
 			else
-				response = dataTransmit.transmitDataspgrestput(url, json.toString(), false,schema);
+				response = dataTransmit.transmitDataspgrestput(url, json.toString(), false, schema);
 
 			if (Integer.parseInt(response) <= 200 || Integer.parseInt(response) >= 226) {
 				String res = HttpStatus.getStatusText(Integer.parseInt(response));
@@ -125,7 +122,7 @@ public class CommonServices {
 
 			String url = applicationurl + getconfigofactivation.getString("tablename") + "?"
 					+ getconfigofactivation.getString("verificationcolumn") + "=eq." + key;
-			JSONArray userData = dataTransmit.transmitDataspgrest(url,schema);
+			JSONArray userData = dataTransmit.transmitDataspgrest(url, schema);
 			if (!userData.isEmpty()) {
 				JSONObject datas = new JSONObject(userData.get(0).toString());
 				if (!datas.getBoolean("mailverification")) {
@@ -133,7 +130,7 @@ public class CommonServices {
 					url = applicationurl + getconfigofactivation.getString("tablename") + "?"
 							+ getconfigofactivation.getString("primarykey") + "=eq."
 							+ datas.get(getconfigofactivation.getString("primarykey"));
-					String result = dataTransmit.transmitDataspgrestput(url, datas.toString(), false,schema);
+					String result = dataTransmit.transmitDataspgrestput(url, datas.toString(), false, schema);
 					if (Integer.parseInt(result) >= 200 && Integer.parseInt(result) <= 226) {
 						returnMessage.put("reflex", "Successfully Verified");
 					}
@@ -190,10 +187,10 @@ public class CommonServices {
 				jsonbody.put("user_id", id);
 				jsonbody.put("otp_code", OTP);
 				String url = applicationurl + "/otp_verification?user_id=eq." + id;
-				JSONArray dataArray = dataTransmit.transmitDataspgrest(url,schema);
+				JSONArray dataArray = dataTransmit.transmitDataspgrest(url, schema);
 				if (dataArray.isEmpty()) {
 					url = applicationurl + "/otp_verification";
-					dataTransmit.transmitDataspgrestpost(url, jsonbody.toString(), false,schema);
+					dataTransmit.transmitDataspgrestpost(url, jsonbody.toString(), false, schema);
 				} else {
 //					JSONObject jsonData=new JSONObject(dataArray.get(0).toString());
 //					if(jsonData.getInt("attempts")<3) {
@@ -203,7 +200,7 @@ public class CommonServices {
 					jsonbody.put("id", new JSONObject(dataArray.get(0).toString()).get("id"));
 					url = applicationurl + "/otp_verification?id=eq."
 							+ new JSONObject(dataArray.get(0).toString()).get("id");
-					dataTransmit.transmitDataspgrestput(url, jsonbody.toString(), false,schema);
+					dataTransmit.transmitDataspgrestput(url, jsonbody.toString(), false, schema);
 				}
 			}
 		} catch (Exception e) {
@@ -218,7 +215,7 @@ public class CommonServices {
 		String res = "";
 		try {
 			String url = applicationurl + "/otp_verification?user_id=eq." + id;
-			JSONArray dataArray = dataTransmit.transmitDataspgrest(url,schema);
+			JSONArray dataArray = dataTransmit.transmitDataspgrest(url, schema);
 			if (!dataArray.isEmpty()) {
 				jsonBody = new JSONObject(dataArray.get(0).toString());
 				if (jsonBody.getInt("attempts") < 3) {
@@ -226,13 +223,13 @@ public class CommonServices {
 						jsonBody.put("attempts", jsonBody.getInt("attempts") + 1);
 						jsonBody.put("verified", true);
 						url = applicationurl + "/otp_verification?id=eq." + jsonBody.get("id");
-						dataTransmit.transmitDataspgrestput(url, jsonBody.toString(), false,schema);
+						dataTransmit.transmitDataspgrestput(url, jsonBody.toString(), false, schema);
 						res = "Verified";
 					} else {
 						jsonBody.put("attempts", jsonBody.getInt("attempts") + 1);
 						res = "Retry Verification OTP Dose not Match";
 						url = applicationurl + "/otp_verification?id=eq." + jsonBody.get("id");
-						dataTransmit.transmitDataspgrestput(url, jsonBody.toString(), false,schema);
+						dataTransmit.transmitDataspgrestput(url, jsonBody.toString(), false, schema);
 					}
 				} else {
 					return "Too Many Attempt,So Please Retry After 24Hrs";
@@ -292,15 +289,14 @@ public class CommonServices {
 				}
 
 			}
-			dataTransmit.transmitDataspgrestpost(applicationurl + "rpc/storedFunction", storedData.toString(), false,schema);
+			dataTransmit.transmitDataspgrestpost(applicationurl + "rpc/storedFunction", storedData.toString(), false,
+					schema);
 
 		} catch (Exception e) {
 			// TODO: handle exception
 		}
 		return "";
 	}
-
-	
 
 	public String whereFormation(JSONObject jsonbody, JSONObject whereFormation) {
 		String whereCondition = "";
@@ -350,7 +346,6 @@ public class CommonServices {
 		return new String(decryptedBytes);
 	}
 
-
 	public Map<String, Object> loadBase64(String value, int total_pages) throws JSONException, IOException {
 		String url = "";
 		Map<String, Object> base64String = new HashMap<>();
@@ -358,8 +353,8 @@ public class CommonServices {
 
 		if (total_pages <= 100) {
 			url = applicationurl + "pdf_splitter?select=document&primary_id_pdf=eq." + value;
-			return new JSONObject(dataTransmit.transmitDataspgrest(url,schema).get(0).toString()).getJSONObject("document")
-					.toMap();
+			return new JSONObject(dataTransmit.transmitDataspgrest(url, schema).get(0).toString())
+					.getJSONObject("document").toMap();
 
 		} else if (total_pages > 100) {
 			int start_page = 1;
@@ -379,7 +374,8 @@ public class CommonServices {
 
 						try {
 							JSONObject jsonObject = new JSONObject(
-									dataTransmit.transmitDataspgrest(urls,schema).get(0).toString()).getJSONObject("images");
+									dataTransmit.transmitDataspgrest(urls, schema).get(0).toString())
+									.getJSONObject("images");
 
 							jsonObject.keys().forEachRemaining(key -> {
 								synchronized (base64String) {
@@ -413,7 +409,7 @@ public class CommonServices {
 		return base64String;
 
 	}
-	
+
 	public static String MappedCurdOperation(JSONObject getdataObject, String data) {
 		String res = "";
 		try {
@@ -424,11 +420,11 @@ public class CommonServices {
 			for (int method = 0; method < methods.length(); method++) {
 				String keyofmethods = methods.get(method).toString();
 				if (keyofmethods.equalsIgnoreCase("post")) {
-					res = formdataServiceImpl.transmittingToMethod(body.getJSONObject(bodJson.get(method).toString()).toString(), "POST");
+					res = formdataServiceImpl.transmittingToMethod("POST", data, bodJson.get(method).toString());
 					formDataResponces.put(bodJson.get(method).toString(),
 							(new JSONObject(res).has("reflex") ? true : false));
 				} else if (keyofmethods.equalsIgnoreCase("put")) {
-					res =formdataServiceImpl.transmittingToMethod(body.getJSONObject(bodJson.get(method).toString()).toString(), "PUT");
+					res = formdataServiceImpl.transmittingToMethod("PUT", data, bodJson.get(method).toString());
 					formDataResponces.put(bodJson.get(method).toString(),
 							(new JSONObject(res).has("reflex") ? true : false));
 				} else {
@@ -438,7 +434,8 @@ public class CommonServices {
 				Set<String> Failed = formDataResponces.entrySet().stream().filter(entry -> !entry.getValue())
 						.map(Map.Entry::getKey).collect(Collectors.toSet());
 				res = Failed.isEmpty() ? "Success" : "Missed Api" + Failed;
-				LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName() + "-->{}", res);
+				LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName() + "{}-->{}", bodJson.get(method),
+						res);
 
 			}
 

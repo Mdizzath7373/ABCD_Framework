@@ -264,7 +264,7 @@ public class ResponcesHandling {
 						if (!rolename.equalsIgnoreCase("Company Admin")) {
 							jsonbody.put("from", DisplaySingleton.memoryApplicationSetting.getString("AdminName"));
 							jsonbody.put("to",
-									jsonbody.getString("companyname") + "-" + jsonbody.getString("username"));
+									jsonbody.getString("companyname"));
 
 							emailObject.put("mailid", false);
 							emailObject.put("table", jsonbody.getString("displaytab").toLowerCase());
@@ -286,7 +286,7 @@ public class ResponcesHandling {
 			}
 
 		} catch (Exception e) {
-			LOGGER.error("Exception at " + Thread.currentThread().getStackTrace()[1].getMethodName(), e.getMessage());
+			LOGGER.error("Exception at " + Thread.currentThread().getStackTrace()[1].getMethodName(), e);
 			return "Failed";
 		}
 		LOGGER.info(res);

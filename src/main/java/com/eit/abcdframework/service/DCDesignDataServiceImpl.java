@@ -156,7 +156,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 						councurrentAPIres = CommonServices.MappedCurdOperation(gettabledata, data);
 						LOGGER.info("Councurrent API Response----->{}", councurrentAPIres);
 					}
-					if (!councurrentAPIres.equalsIgnoreCase("Sucess")) {
+					if (!councurrentAPIres.equalsIgnoreCase("Success")) {
 						return new JSONObject().put(ERROR, FAILURE).toString();
 					}
 				}

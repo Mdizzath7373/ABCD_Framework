@@ -223,7 +223,6 @@ public class WebSocketService extends TextWebSocketHandler {
 
 				JSONObject returnMessage = new JSONObject();
 
-				String role = jsonObject.getString("rolename");
 				JSONObject displaydata = DisplaySingleton.memoryDispObjs2.getJSONObject("websocket");
 
 				JSONObject getConfigjson = new JSONObject(displaydata.get("discfg").toString());
@@ -240,6 +239,7 @@ public class WebSocketService extends TextWebSocketHandler {
 				String name = dataof.has(jsonObject.getString("name")) ? dataof.getString(jsonObject.getString("name"))
 						: getaction.toList().contains(jsonObject.getString("name")) ? "OverViewOfDashboard" : "";
 				if (!name.equals("")) {
+					String role = jsonObject.getString("rolename");
 					if (name.equalsIgnoreCase("OverViewOfDashboard")) {
 						String url = "";
 						if (role.equalsIgnoreCase("Company Admin")) {

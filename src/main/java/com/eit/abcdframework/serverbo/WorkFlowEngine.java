@@ -41,7 +41,9 @@ public class WorkFlowEngine {
 	@Value("${applicationurl}")
 	private String pgresturl;
 	
-	
+	@Value("${schema}")
+	private String schema;
+
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(WorkFlowEngine.class);
 
@@ -180,7 +182,8 @@ public class WorkFlowEngine {
 						JSONArray mailContentname = getJson.getJSONArray("mail");
 						List<MultipartFile> filedata = new ArrayList<>();
 						String restulofMail = amazonSMTPMail.mailSender2(mailContentname, Email, getJson, jsonBody,
-								filedata, headerdata.has("lang") ? headerdata.getString("lang") : "en",getdata.getString("schema"));
+								filedata, headerdata.has("lang") ? headerdata.getString("lang") : "en",
+								schema);
 						NextStep = getJson.getString(restulofMail);
 						if (getJson.getString(restulofMail).equalsIgnoreCase("Please retry Server was busy!")) {
 							return new JSONObject()
@@ -209,13 +212,15 @@ public class WorkFlowEngine {
 							String url = pgresturl + tablename;
 							result = dataTransmit.transmitDataspgrestpost(url, jsonBody.toString(),
 									currentFlow.has("returnSaveData") ? currentFlow.getBoolean("returnSaveData")
-											: false,getdata.getString("schema"));
+											: false,
+											schema);
 						}
 						if (NextStep.equalsIgnoreCase("update")) {
 							String url = pgresturl + tablename + "?" + primarykey + "=eq." + primaryValue;
 							result = dataTransmit.transmitDataspgrestput(url, jsonBody.toString(),
 									currentFlow.has("returnSaveData") ? currentFlow.getBoolean("returnSaveData")
-											: false,getdata.getString("schema"));
+											: false,
+									schema);
 						}
 
 						// handle the response
@@ -240,6 +245,11 @@ public class WorkFlowEngine {
 					// Only get a value for mapp to another flow
 					else if (NextStep.equalsIgnoreCase("getOldvalue")) {
 						oldJsonObje = jsonBody;
+					} else if (NextStep.equalsIgnoreCase("return")) {
+						returnMessage.put("reflex",
+								requestFor.equalsIgnoreCase("") ? "Successfully Registered"
+										: requestFor.equalsIgnoreCase("rejected") ? "Rejected Successfully"
+												: "Approved Successfully");
 					}
 				}
 			}
@@ -375,7 +385,7 @@ public class WorkFlowEngine {
 
 				}
 			}
-			isGetdata = dataTransmit.transmitDataspgrest(url,getdata.getString("schema"));
+			isGetdata = dataTransmit.transmitDataspgrest(url,schema);
 		} catch (Exception e) {
 			LOGGER.error("Exception At Search Data Isexsiting data", e);
 			isGetdata.put(new JSONObject().put("error", e.getMessage()));

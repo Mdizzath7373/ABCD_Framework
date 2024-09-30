@@ -2,7 +2,6 @@ package com.eit.abcdframework.controller;
 
 import java.io.IOException;
 
-import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.InputStreamResource;
@@ -21,7 +20,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.S3Object;
-import com.eit.abcdframework.http.caller.Httpclientcaller;
 import com.eit.abcdframework.service.FormdataService;
 
 @RestController
@@ -46,14 +44,12 @@ public class FormdataController {
 
 	@PostMapping("/form")
 	public String transmittingDatapost(@RequestBody String data) {
-//		return formdataService.transmittingDatapost(data);
-		return formdataService.transmittingToMethod("POST", data);
+		return formdataService.transmittingToMethod("POST", data,"");
 	}
 
 	@PutMapping("/form")
 	public String transmittingDataput(@RequestBody String data) {
-//		return formdataService.transmittingDataput(data);
-		return formdataService.transmittingToMethod("PUT", data);
+		return formdataService.transmittingToMethod("PUT", data,"");
 	}
 
 	@DeleteMapping("/form")
