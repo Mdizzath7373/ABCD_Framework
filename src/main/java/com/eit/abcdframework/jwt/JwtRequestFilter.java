@@ -49,9 +49,8 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 		if (requestTokenHeader != null && requestTokenHeader.startsWith("Bearer ")) {
 			jwtToken = requestTokenHeader.substring(7);
 			try {
-
-//				if (ConfigurationFile.getBooleanConfig("jwt.refreshtoken")) {
-				if (ConfigurationFile.getBooleanConfig("jwt.FindUser." + jwtTokenUtil.getIdFromToken(jwtToken))) {
+                System.err.println();
+				if (ConfigurationFile.hasConfigpath("jwt.FindUser" + jwtTokenUtil.getIdFromToken(jwtToken))) {
 					if (lastupdToken.isEmpty() || !lastupdToken.containsKey(jwtToken)) {
 						if (jwtTokenUtil.getIdFromToken(jwtToken).equalsIgnoreCase("web")) {
 							username = jwtTokenUtil.getUsernameFromToken(jwtToken);

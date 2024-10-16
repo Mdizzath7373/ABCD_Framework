@@ -72,7 +72,7 @@ public class JwtTokenUtil {
 //				currTimeMillis + (!ismoblie.equalsIgnoreCase("web") ? JWT_TOKEN_VALIDITY_MOBLIE : JWT_TOKEN_VALIDITY));
 		if (!ismoblie.equalsIgnoreCase("web")
 				&& ConfigurationFile.getStringConfig("jwt.JWT_TOKEN_VALIDITY_MOBLIE").equalsIgnoreCase("")) {
-			return Jwts.builder().setSubject(subject).setId(ismoblie).setIssuedAt(isuuedTime)
+			return Jwts.builder().setSubject(subject).setId("Mobile").setIssuedAt(isuuedTime)
 					.signWith(SignatureAlgorithm.HS512, ConfigurationFile.getStringConfig("jwt.secret")).compact();
 		} else if (!ismoblie.equalsIgnoreCase("web")
 				&& !ConfigurationFile.getStringConfig("jwt.JWT_TOKEN_VALIDITY_MOBLIE").equalsIgnoreCase("")) {
@@ -80,11 +80,11 @@ public class JwtTokenUtil {
 			Date expiredTime = new Date(currTimeMillis + validTo);
 			System.out.println(" currTimeMillis :: " + currTimeMillis + ", isuuedTime :: " + isuuedTime
 					+ ", expiredTime :: " + expiredTime);
-			return Jwts.builder().setSubject(subject).setId(ismoblie).setIssuedAt(isuuedTime).setExpiration(expiredTime)
+			return Jwts.builder().setSubject(subject).setId("Mobile").setIssuedAt(isuuedTime).setExpiration(expiredTime)
 					.signWith(SignatureAlgorithm.HS512, ConfigurationFile.getStringConfig("jwt.secret")).compact();
 		} else if (ismoblie.equalsIgnoreCase("web")
 				&& ConfigurationFile.getStringConfig("jwt.JWT_TOKEN_VALIDITY").equalsIgnoreCase("")) {
-			return Jwts.builder().setSubject(subject).setId(ismoblie).setIssuedAt(isuuedTime)
+			return Jwts.builder().setSubject(subject).setId("Web").setIssuedAt(isuuedTime)
 					.signWith(SignatureAlgorithm.HS512, ConfigurationFile.getStringConfig("jwt.secret")).compact();
 		} else if (ismoblie.equalsIgnoreCase("web")
 				&& !ConfigurationFile.getStringConfig("jwt.JWT_TOKEN_VALIDITY").equalsIgnoreCase("")) {
@@ -92,7 +92,7 @@ public class JwtTokenUtil {
 			Date expiredTime = new Date(currTimeMillis + validTo);
 			System.out.println(" currTimeMillis :: " + currTimeMillis + ", isuuedTime :: " + isuuedTime
 					+ ", expiredTime :: " + expiredTime);
-			return Jwts.builder().setSubject(subject).setId(ismoblie).setIssuedAt(isuuedTime).setExpiration(expiredTime)
+			return Jwts.builder().setSubject(subject).setId("Web").setIssuedAt(isuuedTime).setExpiration(expiredTime)
 					.signWith(SignatureAlgorithm.HS512, ConfigurationFile.getStringConfig("jwt.secret")).compact();
 		}
 		return "";
@@ -124,24 +124,24 @@ public class JwtTokenUtil {
 			if (!ismoblie.equalsIgnoreCase("web")
 					&& ConfigurationFile.getStringConfig("jwt.JWT_TOKEN_VALIDITY_MOBLIE").equalsIgnoreCase("")) {
 
-				updatedToken = Jwts.builder().setSubject(subject).setId(ismoblie).setIssuedAt(isuuedTime)
+				updatedToken = Jwts.builder().setSubject(subject).setId("Moblie").setIssuedAt(isuuedTime)
 						.signWith(SignatureAlgorithm.HS512, ConfigurationFile.getStringConfig("jwt.secret")).compact();
 			} else if (!ismoblie.equalsIgnoreCase("web")
 					&& !ConfigurationFile.getStringConfig("jwt.JWT_TOKEN_VALIDITY_MOBLIE").equalsIgnoreCase("")) {
 				long validTo = Long.parseLong(ConfigurationFile.getStringConfig("jwt.JWT_TOKEN_VALIDITY_MOBLIE"));
 				Date expiredTime = new Date(currTimeMillis + validTo);
-				updatedToken = Jwts.builder().setSubject(subject).setId(ismoblie).setIssuedAt(isuuedTime)
+				updatedToken = Jwts.builder().setSubject(subject).setId("Moblie").setIssuedAt(isuuedTime)
 						.setExpiration(expiredTime)
 						.signWith(SignatureAlgorithm.HS512, ConfigurationFile.getStringConfig("jwt.secret")).compact();
 			} else if (ismoblie.equalsIgnoreCase("web")
 					&& ConfigurationFile.getStringConfig("jwt.JWT_TOKEN_VALIDITY").equalsIgnoreCase("")) {
-				updatedToken = Jwts.builder().setSubject(subject).setId(ismoblie).setIssuedAt(isuuedTime)
+				updatedToken = Jwts.builder().setSubject(subject).setId("Web").setIssuedAt(isuuedTime)
 						.signWith(SignatureAlgorithm.HS512, ConfigurationFile.getStringConfig("jwt.secret")).compact();
 			} else if (ismoblie.equalsIgnoreCase("web")
 					&& !ConfigurationFile.getStringConfig("jwt.JWT_TOKEN_VALIDITY").equalsIgnoreCase("")) {
 				long validTo = Long.parseLong(ConfigurationFile.getStringConfig("jwt.JWT_TOKEN_VALIDITY"));
 				Date expiredTime = new Date(currTimeMillis + validTo);
-				updatedToken = Jwts.builder().setSubject(subject).setId(ismoblie).setIssuedAt(isuuedTime)
+				updatedToken = Jwts.builder().setSubject(subject).setId("Web").setIssuedAt(isuuedTime)
 						.setExpiration(expiredTime)
 						.signWith(SignatureAlgorithm.HS512, ConfigurationFile.getStringConfig("jwt.secret")).compact();
 			}
