@@ -17,7 +17,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.eit.abcdframework.globalhandler.GlobalAttributeHandler;
 import com.eit.abcdframework.http.caller.Httpclientcaller;
+import com.eit.abcdframework.serverbo.CommonServices;
 import com.eit.abcdframework.serverbo.DisplaySingleton;
 
 import jakarta.activation.DataHandler;
@@ -50,8 +52,8 @@ public class AmazonSMTPMail {
 	@Autowired
 	DisplaySingleton displaySingleton;
 
-	@Value("${applicationurl}")
-	private String pgrest;
+//	@Value("${applicationurl}")
+//	private String pgrest;
 
 	@Value("${FromNameOfMail}")
 	private String fromOfMail;
@@ -153,7 +155,7 @@ public class AmazonSMTPMail {
 	}
 
 	public String mailSender2(JSONArray mail, String email, JSONObject getJson, JSONObject jsonBody,
-			List<MultipartFile> files, String lang,String schema) {
+			List<MultipartFile> files, String lang, String schema) {
 		String resultOfMail = "";
 		String body = "";
 		JSONArray mailContent = null;
@@ -161,8 +163,9 @@ public class AmazonSMTPMail {
 			JSONObject smtpMail = new JSONObject(
 					DisplaySingleton.memoryApplicationSetting.get("smptAmazonMail").toString());
 			for (int c = 0; c < mail.length(); c++) {
-				String url = pgrest + "emailconfig?name=eq." + mail.get(c);
-				mailContent = dataTransmit.transmitDataspgrest(url.replaceAll(" ", "%20"),schema);
+				String url = GlobalAttributeHandler.getPgrest() + "emailconfig?name=eq." + mail.get(c);
+				mailContent = dataTransmit.transmitDataspgrest(url.replaceAll(" ", "%20"), schema);
+
 				for (int i = 0; i < mailContent.length(); i++) {
 					JSONObject jsondata = new JSONObject(mailContent.get(i).toString());
 					if (getJson != null && getJson.has("Key")) {
@@ -425,17 +428,18 @@ public class AmazonSMTPMail {
 	}
 
 	public String emailconfig(JSONObject email, JSONObject jsonbody, List<MultipartFile> files, String lang,
-			String method,String schema) {
+			String method, String schema) {
 		String returndata = "";
 		try {
 			JSONArray mail = null;
 			String mailid = "";
 			String getcloumnname = "";
 			if (!email.getBoolean("mailid")) {
-				String geturl = pgrest + email.getString("api") + "?datas="
+				String geturl = GlobalAttributeHandler.getPgrest() + email.getString("api") + "?datas="
 						+ jsonbody.getString(email.getString("column")) + "&name=" + email.getString("table");
 				geturl = geturl.replace(" ", "%20");
-				mailid = new JSONObject(dataTransmit.transmitDataspgrest(geturl,schema).get(0).toString()).getString("mailid");
+				mailid = new JSONObject(dataTransmit.transmitDataspgrest(geturl, schema).get(0).toString())
+						.getString("mailid");
 			} else {
 				getcloumnname = new JSONObject(email.get("getcolumn").toString()).getString("columnname");
 				mailid = jsonbody.getString(getcloumnname);
@@ -458,13 +462,38 @@ public class AmazonSMTPMail {
 				return returndata = "No Email Through";
 			}
 
-			returndata = mailSender2(mail, mailid, email, jsonbody, files, lang,schema);
+			returndata = mailSender2(mail, mailid, email, jsonbody, files, lang, schema);
 
 		} catch (Exception e) {
 			LOGGER.error("Exception at " + Thread.currentThread().getStackTrace()[0].getMethodName(), e);
 		}
 
 		return returndata;
+
+	}
+
+	public String cornEmialScheduler(JSONArray listofjob, JSONObject emailConfig, JSONObject urlFormation,
+			List<MultipartFile> files) {
+
+		listofjob.toList().forEach(jobs -> {
+			String result = "";
+			try {
+				JSONObject body = new JSONObject().put("job", jobs);
+
+				JSONArray datavalue = dataTransmit.transmitDataspgrest(CommonServices.urlFormation(urlFormation, body),
+						GlobalAttributeHandler.getSchema());
+				if (!datavalue.isEmpty()) {
+					JSONObject jsonbody = new JSONObject(datavalue.get(0).toString());
+					result = mailSender2(emailConfig.getJSONArray("mail"),
+							jsonbody.getString(emailConfig.getString("columname")), emailConfig, jsonbody, files, "en",
+							GlobalAttributeHandler.getSchema());
+					LOGGER.info("Cron throw Mail For {}--->{}", jobs, result);
+				}
+			} catch (Exception e) {
+				LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+			}
+		});
+		return fromOfMail;
 
 	}
 

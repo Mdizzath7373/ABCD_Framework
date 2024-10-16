@@ -2,14 +2,17 @@ package com.eit.abcdframework.serverbo;
 
 import java.io.IOException;
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
@@ -25,6 +28,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import com.eit.abcdframework.globalhandler.GlobalAttributeHandler;
 import com.eit.abcdframework.http.caller.Httpclientcaller;
 import com.eit.abcdframework.service.FormdataServiceImpl;
 import com.eit.abcdframework.util.AmazonSMTPMail;
@@ -60,15 +64,15 @@ public class CommonServices {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger("CommonServices");
 
-	// Define characters allowed in the verification code
-	private static final String ALLOWED_CHARACTERS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-
-	// Define the maximum length of the verification code
-	private static final int MAX_CODE_LENGTH = 6;
-
-	private static final String ALGORITHM = "AES/CBC/PKCS5Padding"; // AES with CBC and PKCS5 padding
-	private static final String SECRET_KEY = "ABCDFRAM09876543"; // 16-byte key for AES
-	private static final String IV = "ABCDFRAMIV098765"; // 16-byte IV for AES
+//	// Define characters allowed in the verification code
+//	private static final String ALLOWED_CHARACTERS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+//
+//	// Define the maximum length of the verification code
+//	private static final int MAX_CODE_LENGTH = 6;
+//
+//	private static final String ALGORITHM = "AES/CBC/PKCS5Padding"; // AES with CBC and PKCS5 padding
+//	private static final String SECRET_KEY = "ABCDFRAM09876543"; // 16-byte key for AES
+//	private static final String IV = "ABCDFRAMIV098765"; // 16-byte IV for AES
 
 	@Value("${schema}")
 	private String schema;
@@ -155,8 +159,8 @@ public class CommonServices {
 
 		// Generate random characters for the code
 		for (int i = 0; i < maxLength; i++) {
-			int randomIndex = random.nextInt(ALLOWED_CHARACTERS.length());
-			char randomChar = ALLOWED_CHARACTERS.charAt(randomIndex);
+			int randomIndex = random.nextInt(GlobalAttributeHandler.getAllowedCharacters().length());
+			char randomChar = GlobalAttributeHandler.getAllowedCharacters().charAt(randomIndex);
 			codeBuilder.append(randomChar);
 		}
 
@@ -254,7 +258,7 @@ public class CommonServices {
 			if (mode.equalsIgnoreCase("link")) {
 
 			} else if (mode.equalsIgnoreCase("otp")) {
-				code = CommonServices.generateVerificationCode(MAX_CODE_LENGTH);
+				code = CommonServices.generateVerificationCode(GlobalAttributeHandler.getMaxCodeLength());
 				body = new JSONObject(
 						(new JSONObject(DisplaySingleton.memoryEmailCofig.get("otpverification").toString())
 								.get("contenttype")).toString())
@@ -273,71 +277,11 @@ public class CommonServices {
 
 	}
 
-	public String storedProcess(JSONObject stroedProcess, String method, JSONObject bodyJson) {
-		JSONObject storedData = new JSONObject();
-		try {
-			String getJson = method.equalsIgnoreCase("POST") ? "insert" : "update";
-
-			JSONObject getStoredProcessData = stroedProcess.getJSONObject(getJson);
-			for (int i = 0; i < getStoredProcessData.getJSONArray("tablename").length(); i++) {
-				JSONObject dataOfJson = getStoredProcessData
-						.getJSONObject(getStoredProcessData.getJSONArray("tablename").get(i).toString());
-//              JSONObject values=new JSONObject();
-				for (int j = 0; j < dataOfJson.getJSONArray("columnname").length(); j++) {
-					storedData.put(dataOfJson.getJSONArray("columnname").get(j).toString() + "-" + getJson,
-							bodyJson.getString(dataOfJson.getJSONArray("jsonname").get(j).toString()));
-				}
-
-			}
-			dataTransmit.transmitDataspgrestpost(applicationurl + "rpc/storedFunction", storedData.toString(), false,
-					schema);
-
-		} catch (Exception e) {
-			// TODO: handle exception
-		}
-		return "";
-	}
-
-	public String whereFormation(JSONObject jsonbody, JSONObject whereFormation) {
-		String whereCondition = "";
-		try {
-			JSONArray arrayofwhere = whereFormation.getJSONArray("where");
-
-			for (int i = 0; i < arrayofwhere.length(); i++) {
-				if (i == 0) {
-					whereCondition = "?" + arrayofwhere.get(i).toString() + "=eq.";
-					String getby = whereFormation.getJSONArray("value").get(i).toString().split("-")[0];
-					if (getby.equalsIgnoreCase("param")) {
-						whereCondition += whereFormation.getJSONArray("value").get(i).toString().split("-")[1];
-					} else if (getby.equalsIgnoreCase("body")) {
-						System.err.println(whereFormation.getJSONArray("value").get(i).toString());
-						whereCondition += jsonbody
-								.get(whereFormation.getJSONArray("value").get(i).toString().split("-")[1]);
-
-					}
-				} else {
-					whereCondition = "&" + arrayofwhere.get(i).toString() + "=eq.";
-					String getby = whereFormation.getJSONArray("value").get(i).toString().split("-")[0];
-					if (getby.equalsIgnoreCase("param")) {
-						whereCondition += whereFormation.getJSONArray("value").get(i).toString().split("-")[1];
-					} else if (getby.equalsIgnoreCase("body")) {
-						whereCondition += jsonbody
-								.get(whereFormation.getJSONArray("value").get(i).toString().split("-")[1]);
-					}
-
-				}
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return whereCondition;
-	}
-
 	public static String decrypt(String encryptedData) throws Exception {
-		SecretKeySpec keySpec = new SecretKeySpec(SECRET_KEY.getBytes(), "AES");
-		IvParameterSpec ivSpec = new IvParameterSpec(IV.getBytes());
+		SecretKeySpec keySpec = new SecretKeySpec(GlobalAttributeHandler.getSecretKey().getBytes(), "AES");
+		IvParameterSpec ivSpec = new IvParameterSpec(GlobalAttributeHandler.getIv().getBytes());
 
-		Cipher cipher = Cipher.getInstance(ALGORITHM);
+		Cipher cipher = Cipher.getInstance(GlobalAttributeHandler.getAlgorithm());
 		cipher.init(Cipher.DECRYPT_MODE, keySpec, ivSpec);
 
 		byte[] decodedBytes = Base64.getDecoder().decode(encryptedData);
@@ -416,7 +360,7 @@ public class CommonServices {
 			Map<String, Boolean> formDataResponces = new HashMap<>();
 			JSONArray methods = getdataObject.getJSONObject("synchronizedCurdOperation").getJSONArray("Methods");
 			JSONArray bodJson = getdataObject.getJSONObject("synchronizedCurdOperation").getJSONArray("bodyJson");
-			JSONObject body = new JSONObject(data);
+//			JSONObject body = new JSONObject(data);
 			for (int method = 0; method < methods.length(); method++) {
 				String keyofmethods = methods.get(method).toString();
 				if (keyofmethods.equalsIgnoreCase("post")) {
@@ -444,6 +388,88 @@ public class CommonServices {
 		}
 
 		return res;
+	}
+
+	public String whereFormation(JSONObject jsonbody, JSONObject whereFormation) {
+		String whereCondition = "";
+		try {
+			JSONArray arrayofwhere = whereFormation.getJSONArray("where");
+
+			for (int i = 0; i < arrayofwhere.length(); i++) {
+				if (i == 0) {
+					whereCondition = "?" + arrayofwhere.get(i).toString() + "=eq.";
+					String getby = whereFormation.getJSONArray("value").get(i).toString().split("-")[0];
+					if (getby.equalsIgnoreCase("param")) {
+						whereCondition += whereFormation.getJSONArray("value").get(i).toString().split("-")[1];
+					} else if (getby.equalsIgnoreCase("body")) {
+						System.err.println(whereFormation.getJSONArray("value").get(i).toString());
+						whereCondition += jsonbody
+								.get(whereFormation.getJSONArray("value").get(i).toString().split("-")[1]);
+
+					}
+				} else {
+					whereCondition = "&" + arrayofwhere.get(i).toString() + "=eq.";
+					String getby = whereFormation.getJSONArray("value").get(i).toString().split("-")[0];
+					if (getby.equalsIgnoreCase("param")) {
+						whereCondition += whereFormation.getJSONArray("value").get(i).toString().split("-")[1];
+					} else if (getby.equalsIgnoreCase("body")) {
+						whereCondition += jsonbody
+								.get(whereFormation.getJSONArray("value").get(i).toString().split("-")[1]);
+					}
+
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return whereCondition;
+	}
+
+	public static String urlFormation(JSONObject formationData, JSONObject body) {
+		String url = GlobalAttributeHandler.getPgrest();
+		try {
+			List<String> where = new ArrayList<>();
+			if (formationData.getString("formationtype").equalsIgnoreCase("pgrest")) {
+
+				JSONObject formation = formationData.getJSONObject("pgrest");
+				List<Object> list = (List<Object>) formation.getJSONObject("param").keys();
+
+				IntStream.range(0, list.size()).forEach(i -> {
+					if (where.isEmpty())
+						where.add("?" + list.get(i) + "=" + formation.getJSONArray("operator").get(i)
+								+ body.getString(formation.getJSONObject("param").getString(list.get(i).toString())));
+					else
+						where.add("&" + list.get(i) + "=" + formation.getJSONArray("operator").get(i)
+								+ body.getString(formation.getJSONObject("param").getString(list.get(i).toString())));
+
+				});
+				url = (url + formation.getString("api") + where.stream().collect(Collectors.joining("")))
+						.replaceAll(" ", "%20");
+			} else if (formationData.getString("formationtype").equalsIgnoreCase("function")) {
+				JSONObject formation = formationData.getJSONObject("function");
+
+				if (!formation.getJSONObject("param").isEmpty()) {
+					List<Object> list = (List<Object>) formation.getJSONObject("param").keys();
+					list.forEach(entry -> {
+						if (where.isEmpty())
+							where.add("?" + entry + "="
+									+ body.getString(formation.getJSONObject("param").getString(entry.toString())));
+						else
+							where.add("&" + entry + "="
+									+ body.getString(formation.getJSONObject("param").getString(entry.toString())));
+
+					});
+					url = (url + formation.getString("api") + where.stream().collect(Collectors.joining("")))
+							.replaceAll(" ", "%20");
+				}
+			}
+
+		} catch (Exception e) {
+			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+		}
+
+		return url;
+
 	}
 
 }

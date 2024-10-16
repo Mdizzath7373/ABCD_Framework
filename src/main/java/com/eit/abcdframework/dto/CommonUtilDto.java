@@ -1,7 +1,5 @@
 package com.eit.abcdframework.dto;
 
-import java.io.Serializable;
-
 public class CommonUtilDto  {
 
 	private int id;
@@ -17,6 +15,9 @@ public class CommonUtilDto  {
 	private String datavalues;
 	private String gridwidth;
 	private String gridheight;
+	
+	
+
 
 	public int getId() {
 		return id;

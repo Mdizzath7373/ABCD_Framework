@@ -1,7 +1,10 @@
 package com.eit.abcdframework.controller;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.InputStreamResource;
@@ -20,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.S3Object;
+import com.eit.abcdframework.http.caller.Httpclientcaller;
 import com.eit.abcdframework.service.FormdataService;
 
 @RestController
@@ -33,29 +37,32 @@ public class FormdataController {
 	@Autowired
 	AmazonS3 amazonS3;
 
+	@Autowired
+	Httpclientcaller dHttpclientcaller;
+
 	@Value("${applicationurl}")
 	private String pgrest;
 
 	@GetMapping("/form")
 	public String transmittingDataget(@RequestParam String name, @RequestParam String primary,
 			@RequestParam String where) {
-		return formdataService.transmittingToMethod("GET",name, primary, where,false);
+		return formdataService.transmittingToMethod("GET", name, primary, where, false);
 	}
 
 	@PostMapping("/form")
 	public String transmittingDatapost(@RequestBody String data) {
-		return formdataService.transmittingToMethod("POST", data,"");
+		return formdataService.transmittingToMethod("POST", data, "");
 	}
 
 	@PutMapping("/form")
 	public String transmittingDataput(@RequestBody String data) {
-		return formdataService.transmittingToMethod("PUT", data,"");
+		return formdataService.transmittingToMethod("PUT", data, "");
 	}
 
 	@DeleteMapping("/form")
 	public String transmittingDataDel(@RequestParam String name, @RequestParam String primary,
 			@RequestParam String where, boolean isdeleteall) {
-		return formdataService.transmittingToMethod("Delete",name, primary, where, isdeleteall);
+		return formdataService.transmittingToMethod("Delete", name, primary, where, isdeleteall);
 	}
 
 	@GetMapping("/download")
@@ -92,5 +99,38 @@ public class FormdataController {
 ////            System.err.println(data);
 //		  });
 //	}
+
+	@GetMapping("/test")
+	public void test() throws IOException {
+		AtomicInteger count = new AtomicInteger(0);
+		System.err.println("hi");
+
+		dHttpclientcaller.transmitDataspgrest(pgrest + "configs2", "onboard").forEach(entry -> {
+			JSONObject datvalue = new JSONObject(entry.toString());
+
+			JSONObject jsondata = new JSONObject(datvalue.get("discfg").toString());
+
+			datvalue.remove("id");
+			if (datvalue.getString("displaytypes").equalsIgnoreCase("grid")
+					|| datvalue.getString("displaytypes").equalsIgnoreCase("report")) {
+				JSONObject jq = jsondata.getJSONObject("jqxdetails");
+				if(jq.has("Actions")) {
+					jq.put("default", jq.getJSONArray("Actions"));
+					jq.remove("Actions");
+				}				
+
+				jsondata.put("jqdetails", jq);
+				jsondata.remove("jqxdetails");
+				jsondata.put("datavalues", new JSONArray());
+				datvalue.put("discfg", jsondata.toString());
+			}
+			System.err.println(count.getAndIncrement());
+//			System.err.println(datvalue);
 //
+			System.err.println(dHttpclientcaller.transmitDataspgrestpost(pgrest + "configs", datvalue.toString(), false,
+					"onboard"));
+
+		});
+	}
+
 }

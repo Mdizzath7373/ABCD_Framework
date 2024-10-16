@@ -1,11 +1,7 @@
 package com.eit.abcdframework.serverbo;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.commons.httpclient.HttpStatus;
 import org.json.JSONArray;
@@ -17,6 +13,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.eit.abcdframework.globalhandler.GlobalAttributeHandler;
 import com.eit.abcdframework.http.caller.Httpclientcaller;
 import com.eit.abcdframework.util.AmazonSMTPMail;
 import com.eit.abcdframework.util.MessageServices;
@@ -34,7 +31,6 @@ public class ResponcesHandling {
 //	@Autowired
 	static AmazonSMTPMail amazonSMTPMail;
 
-
 	@Autowired
 	public void setProductService(AmazonSMTPMail amazonSMTPMail) {
 		ResponcesHandling.amazonSMTPMail = amazonSMTPMail;
@@ -47,27 +43,24 @@ public class ResponcesHandling {
 
 //	@Value("${applicationurl}")
 	private static String applicationurl;
-	
+
 	@Value("${applicationurl}")
 	public void setProductService(String applicationurl) {
 		ResponcesHandling.applicationurl = applicationurl;
 	}
 
-	
-	
 //	@Autowired
 	static Httpclientcaller dataTransmit;
-	
+
 	@Autowired
 	public void setProductService(Httpclientcaller dataTransmit) {
 		ResponcesHandling.dataTransmit = dataTransmit;
 	}
 
-
-	private static final String KEY = "primarykey";
-	private static final String REFLEX = "reflex";
-	private static final String SUCCESS = "Success";
-	private static final String ERROR = "error";
+//	private static final String KEY = "primarykey";
+//	private static final String REFLEX = "reflex";
+//	private static final String SUCCESS = "Success";
+//	private static final String ERROR = "error";
 
 	private static final Logger LOGGER = LoggerFactory.getLogger("ResponcesHandling");
 
@@ -80,45 +73,44 @@ public class ResponcesHandling {
 					: new JSONObject();
 
 	public static String curdMethodResponceHandle(String response, JSONObject jsonbody, JSONObject jsonheader,
-			JSONObject gettabledata, String method,List<MultipartFile> files) {
+			JSONObject gettabledata, String method, List<MultipartFile> files) {
 		try {
-			
+
 			if (response.startsWith("{")) {
-				jsonbody.put(gettabledata.getJSONObject(KEY).getString("columnname"),
+				jsonbody.put(gettabledata.getJSONObject(GlobalAttributeHandler.getKey()).getString("columnname"),
 						new JSONObject(response.toString())
-								.get(gettabledata.getJSONObject(KEY).getString("columnname")));
-				handlerMethod(jsonheader, jsonbody, gettabledata, method,files);
+								.get(gettabledata.getJSONObject(GlobalAttributeHandler.getKey()).getString("columnname")));
+				handlerMethod(jsonheader, jsonbody, gettabledata, method, files);
 
 			} else if (response.equalsIgnoreCase("success")) {
-				handlerMethod(jsonheader, jsonbody, gettabledata, method,files);
+				handlerMethod(jsonheader, jsonbody, gettabledata, method, files);
 			} else if (Integer.parseInt(response) >= 200 && Integer.parseInt(response) <= 226) {
-				handlerMethod(jsonheader, jsonbody, gettabledata, method,files);
+				handlerMethod(jsonheader, jsonbody, gettabledata, method, files);
 			} else {
 				String res = HttpStatus.getStatusText(Integer.parseInt(response));
-				return new JSONObject().put(ERROR, res).toString();
+				return new JSONObject().put(GlobalAttributeHandler.getError(), res).toString();
 			}
 		} catch (Exception e) {
 			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
 		}
-		return new JSONObject().put(REFLEX, SUCCESS).toString();
+		return new JSONObject().put(GlobalAttributeHandler.getReflex(), GlobalAttributeHandler.getSuccess()).toString();
 
 	}
 
 	private static void handlerMethod(JSONObject jsonheader, JSONObject jsonbody, JSONObject gettabledata,
-			String method,List<MultipartFile> files) {
+			String method, List<MultipartFile> files) {
 		try {
 			String rolename = jsonheader.has("rolename") ? jsonheader.getString("rolename") : "";
 			String message = jsonheader.has("message") ? jsonheader.getString("message") : "";
 			String status = jsonheader.has("status") ? jsonheader.getString("status") : "";
 
 			boolean notification = jsonheader.has("notification") ? jsonheader.getBoolean("notification") : false;
-			
+
 			String socketRes = socketService.pushSocketData(jsonheader, jsonbody, "");
 			if (!socketRes.equalsIgnoreCase("Success")) {
 				LOGGER.error("Push Socket responce::{}", socketRes);
 			}
-			
-			
+
 			if (jsonheader.has("sms")) {
 				String sms = smsService(jsonbody, gettabledata, jsonheader.getString("sms"));
 				LOGGER.warn("SMS -->{}", sms);
@@ -126,16 +118,16 @@ public class ResponcesHandling {
 
 			if (!getPushNotificationJsonObject.isEmpty() && getPushNotificationJsonObject.getJSONArray("tablename")
 					.toList().contains(gettabledata.getString("api"))) {
-				sendPushNotification(jsonbody, gettabledata.getString("api"), rolename,
-						getPushNotificationJsonObject,gettabledata.getString("schema"));
+				sendPushNotification(jsonbody, gettabledata.getString("api"), rolename, getPushNotificationJsonObject,
+						gettabledata.getString("schema"));
 			}
 
 			if (gettabledata.has("activityLogs")) {
 				try {
 					String resp = "";
 					if (!message.equalsIgnoreCase("") && !status.equalsIgnoreCase("")) {
-						resp = addactivitylog(gettabledata.getJSONObject("activityLogs"), status,
-								jsonbody, rolename, message, notification,gettabledata.getString("schema"));
+						resp = addactivitylog(gettabledata.getJSONObject("activityLogs"), status, jsonbody, rolename,
+								message, notification, gettabledata.getString("schema"));
 						LOGGER.error("ActivityLogs-->:: {}", resp);
 					}
 
@@ -148,7 +140,8 @@ public class ResponcesHandling {
 					email = new JSONObject(gettabledata.get("email").toString());
 					if (!new JSONObject(email.get("mail").toString()).isEmpty()) {
 						amazonSMTPMail.emailconfig(email, jsonbody, files,
-								jsonheader.has("lang") ? jsonheader.getString("lang") : "en", method,gettabledata.getString("schema"));
+								jsonheader.has("lang") ? jsonheader.getString("lang") : "en", method,
+								gettabledata.getString("schema"));
 					}
 				} catch (Exception e) {
 					LOGGER.error("Throw Email Failure! -->:: {}", e.getMessage());
@@ -159,9 +152,9 @@ public class ResponcesHandling {
 		}
 
 	}
-	
+
 	private static String addactivitylog(JSONObject getvalue, String status, JSONObject jsonbody, String rolename,
-			String message, boolean notification,String schema) {
+			String message, boolean notification, String schema) {
 		String returndata = "";
 		try {
 
@@ -176,10 +169,10 @@ public class ResponcesHandling {
 						jsonbody.get(getvalue.getJSONObject("getvalues").get(param.get(i).toString()).toString()));
 			}
 			String url = applicationurl + "activitylog";
-			String response = dataTransmit.transmitDataspgrestpost(url, setvalue.toString(), false,schema);
+			String response = dataTransmit.transmitDataspgrestpost(url, setvalue.toString(), false, schema);
 			if (Integer.parseInt(response) >= 200 && Integer.parseInt(response) <= 226) {
 				if (notification) {
-					sendPushNotification(setvalue, "activitylog", rolename, new JSONObject(),schema);
+					sendPushNotification(setvalue, "activitylog", rolename, new JSONObject(), schema);
 				}
 				JSONObject header = new JSONObject();
 				header.put("name", "activitylogs");
@@ -194,7 +187,7 @@ public class ResponcesHandling {
 		}
 		return returndata;
 	}
-	
+
 	private static String smsService(JSONObject jsonbody, JSONObject getdata, String msg) {
 		JSONObject datavalue = null;
 		JSONObject smsObject = null;
@@ -207,7 +200,8 @@ public class ResponcesHandling {
 				String url = applicationurl + smsObject.getJSONObject("fetchby").getString("tablename") + "?"
 						+ smsObject.getJSONObject("fetchby").getJSONArray("param").get(0) + "=eq."
 						+ jsonbody.get(smsObject.getJSONObject("fetchby").getJSONArray("value").get(0).toString());
-				datavalue = new JSONObject(dataTransmit.transmitDataspgrest(url,getdata.getString("schema")).get(0).toString());
+				datavalue = new JSONObject(
+						dataTransmit.transmitDataspgrest(url, getdata.getString("schema")).get(0).toString());
 
 			}
 		} catch (Exception e) {
@@ -217,13 +211,9 @@ public class ResponcesHandling {
 		return MessageServices
 				.MsegatsmsService(datavalue.get(smsObject.getJSONObject("fetchby").getString("getby")).toString(), msg);
 	}
-	
-	
-	
-	
-	
+
 	public static String sendPushNotification(JSONObject jsonbody, String tablename, String rolename,
-			JSONObject getPushNotificationJsonObject,String schema) {
+			JSONObject getPushNotificationJsonObject, String schema) {
 		String res = "success";
 
 		try {
@@ -233,16 +223,16 @@ public class ResponcesHandling {
 				if (jsonbody.getString(Findcolumn).equalsIgnoreCase(sendingdata)) {
 					if (getPushNotificationJsonObject.getBoolean("sendbyrole")
 							&& getPushNotificationJsonObject.getJSONArray("rolename").toList().contains(rolename))
-						sendnotification(jsonbody, tablename, getPushNotificationJsonObject,schema);
+						sendnotification(jsonbody, tablename, getPushNotificationJsonObject, schema);
 					else if (!getPushNotificationJsonObject.getBoolean("sendbyrole"))
-						sendnotification(jsonbody, tablename, getPushNotificationJsonObject,schema);
+						sendnotification(jsonbody, tablename, getPushNotificationJsonObject, schema);
 				}
 			} else {
 				if (getPushNotificationJsonObject.getBoolean("sendbyrole")
 						&& getPushNotificationJsonObject.getJSONArray("rolename").toList().contains(rolename))
-					sendnotification(jsonbody, tablename, getPushNotificationJsonObject,schema);
+					sendnotification(jsonbody, tablename, getPushNotificationJsonObject, schema);
 				else if (!getPushNotificationJsonObject.getBoolean("sendbyrole"))
-					sendnotification(jsonbody, tablename, getPushNotificationJsonObject,schema);
+					sendnotification(jsonbody, tablename, getPushNotificationJsonObject, schema);
 			}
 			System.err.println();
 
@@ -257,14 +247,13 @@ public class ResponcesHandling {
 									emailObject.getJSONObject("FindToggle").getJSONObject("where").getString("value"));
 					String url = (applicationurl + api + "?" + where).replaceAll(" ", "%20");
 
-					String toogleData = new JSONObject(dataTransmit.transmitDataspgrest(url,schema).get(0).toString())
+					String toogleData = new JSONObject(dataTransmit.transmitDataspgrest(url, schema).get(0).toString())
 							.getString(emailObject.getJSONObject("FindToggle").getString("columnkey"));
 					if (toogleData.equalsIgnoreCase("On")) {
 
 						if (!rolename.equalsIgnoreCase("Company Admin")) {
 							jsonbody.put("from", DisplaySingleton.memoryApplicationSetting.getString("AdminName"));
-							jsonbody.put("to",
-									jsonbody.getString("companyname"));
+							jsonbody.put("to", jsonbody.getString("companyname"));
 
 							emailObject.put("mailid", false);
 							emailObject.put("table", jsonbody.getString("displaytab").toLowerCase());
@@ -275,7 +264,7 @@ public class ResponcesHandling {
 							jsonbody.put("from",
 									jsonbody.getString("companyname") + "-" + jsonbody.getString("username"));
 						}
-						amazonSMTPMail.emailconfig(emailObject, jsonbody, new ArrayList<>(), "en", "POST",schema);
+						amazonSMTPMail.emailconfig(emailObject, jsonbody, new ArrayList<>(), "en", "POST", schema);
 						jsonbody.remove("from");
 						jsonbody.remove("to");
 
@@ -292,13 +281,13 @@ public class ResponcesHandling {
 		LOGGER.info(res);
 		return res;
 	}
-	
-	
-	private static String sendnotification(JSONObject jsonBody, String tablename, JSONObject getJsonObject,String schema) {
+
+	private static String sendnotification(JSONObject jsonBody, String tablename, JSONObject getJsonObject,
+			String schema) {
 		try {
 
 			String url = applicationurl + getJsonObject.getString("getToken") + "?status=eq.login";
-			JSONArray jsonArray = dataTransmit.transmitDataspgrest(url,schema);
+			JSONArray jsonArray = dataTransmit.transmitDataspgrest(url, schema);
 			if (jsonArray.isEmpty()) {
 				return "No token Found";
 			}
@@ -386,9 +375,5 @@ public class ResponcesHandling {
 		return "success";
 
 	}
-	
-	
-
-	
 
 }

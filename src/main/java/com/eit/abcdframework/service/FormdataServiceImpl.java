@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.eit.abcdframework.globalhandler.GlobalAttributeHandler;
 import com.eit.abcdframework.http.caller.Httpclientcaller;
 import com.eit.abcdframework.serverbo.CommonServices;
 import com.eit.abcdframework.serverbo.DisplaySingleton;
@@ -38,13 +39,13 @@ public class FormdataServiceImpl implements FormdataService {
 	PasswordEncoder encoder;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger("DCDesignDataServiceImpl");
-	private static final String KEY = "primarykey";
-	private static final String primaryColumnKey = "columnname";
-	private static final String REFLEX = "reflex";
-	private static final String SUCCESS = "Success";
-	private static final String ERROR = "error";
-	private static final String FAILURE = "Failure";
-	private static final String DATAVALUE = "datavalue";
+//	private static final String KEY = "primarykey";
+//	private static final String primaryColumnKey = "columnname";
+//	private static final String REFLEX = "reflex";
+//	private static final String SUCCESS = "Success";
+//	private static final String ERROR = "error";
+//	private static final String FAILURE = "Failure";
+//	private static final String DATAVALUE = "datavalue";
 
 	@Value("${applicationurl}")
 	private String pgrest;
@@ -57,9 +58,10 @@ public class FormdataServiceImpl implements FormdataService {
 		String councurrentAPIres = "";
 
 		try {
-			JSONObject jsonheader=null;
-			JSONObject jsonbody=null;
-			
+			JSONObject jsonheader = null;
+			JSONObject jsonbody = null;
+			boolean synapi = false;
+
 			JSONObject jsonObjectdata = new JSONObject(data);
 			if (jsonObjectdata.has("data"))
 				jsonObject1 = new JSONObject(CommonServices.decrypt(jsonObjectdata.getString("data")));
@@ -68,17 +70,20 @@ public class FormdataServiceImpl implements FormdataService {
 
 			if (which.equalsIgnoreCase("")) {
 
-				 jsonheader = jsonObject1.has("PrimaryBody")
+				synapi = jsonObject1.has("PrimaryBody") ? true : false;
+
+				jsonheader = jsonObject1.has("PrimaryBody")
 						? new JSONObject(jsonObject1.getJSONObject("PrimaryBody").getJSONObject("header").toString())
 						: new JSONObject(jsonObject1.getJSONObject("header").toString());
-				 jsonbody = jsonObject1.has("PrimaryBody")
+				jsonbody = jsonObject1.has("PrimaryBody")
 						? new JSONObject(jsonObject1.getJSONObject("PrimaryBody").getJSONObject("body").toString())
 						: new JSONObject(jsonObject1.getJSONObject("body").toString());
 			} else {
-				 jsonheader = jsonObject1.has(which)
+				synapi = jsonObject1.has("PrimaryBody") ? true : false;
+				jsonheader = jsonObject1.has(which)
 						? new JSONObject(jsonObject1.getJSONObject(which).getJSONObject("header").toString())
 						: new JSONObject(jsonObject1.getJSONObject("header").toString());
-				 jsonbody = jsonObject1.has(which)
+				jsonbody = jsonObject1.has(which)
 						? new JSONObject(jsonObject1.getJSONObject(which).getJSONObject("body").toString())
 						: new JSONObject(jsonObject1.getJSONObject("body").toString());
 
@@ -101,7 +106,8 @@ public class FormdataServiceImpl implements FormdataService {
 							.getString("FetchColumn");
 
 					if (valueOF.equalsIgnoreCase("MatchBy")) {
-						return new JSONObject().put(ERROR, checkingFunc.getString("Message")).toString();
+						return new JSONObject().put(GlobalAttributeHandler.getError(), checkingFunc.getString("Message"))
+								.toString();
 					}
 				}
 
@@ -120,14 +126,14 @@ public class FormdataServiceImpl implements FormdataService {
 
 			}
 
-			if (res.equalsIgnoreCase(FAILURE)) {
-				return new JSONObject().put(ERROR, FAILURE).toString();
+			if (res.equalsIgnoreCase(GlobalAttributeHandler.getFailure())) {
+				return new JSONObject().put(GlobalAttributeHandler.getError(), GlobalAttributeHandler.getFailure()).toString();
 			}
 
 			ResponcesHandling.curdMethodResponceHandle(res, jsonbody, jsonheader, gettabledata, method,
 					new ArrayList<>());
 
-			if (gettabledata.has("synchronizedCurdOperation")) {
+			if (gettabledata.has("synchronizedCurdOperation") && synapi) {
 				JSONArray typeOfMehods = gettabledata.getJSONObject("synchronizedCurdOperation").getJSONArray("type");
 				for (int typeOfMehod = 0; typeOfMehod < typeOfMehods.length(); typeOfMehod++) {
 					if (typeOfMehods.get(typeOfMehod).toString().equalsIgnoreCase("Map")) {
@@ -139,14 +145,14 @@ public class FormdataServiceImpl implements FormdataService {
 			}
 
 			if (councurrentAPIres.equalsIgnoreCase("Success")) {
-				return new JSONObject().put(REFLEX, SUCCESS).toString();
+				return new JSONObject().put(GlobalAttributeHandler.getReflex(), GlobalAttributeHandler.getSuccess()).toString();
 			}
 
 		} catch (Exception e) {
 			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
 		}
 
-		return new JSONObject().put(REFLEX, SUCCESS).toString();
+		return new JSONObject().put(GlobalAttributeHandler.getReflex(), GlobalAttributeHandler.getSuccess()).toString();
 	}
 
 	private JSONObject mappingJson(JSONObject gettabledata, JSONObject jsonbody) {
@@ -182,7 +188,7 @@ public class FormdataServiceImpl implements FormdataService {
 
 		Exception e) {
 			LOGGER.error("Exception at {} ", Thread.currentThread().getStackTrace()[1].getMethodName(), e);
-			return FAILURE;
+			return GlobalAttributeHandler.getFailure();
 		}
 		return response;
 	}
@@ -191,7 +197,8 @@ public class FormdataServiceImpl implements FormdataService {
 			JSONObject jsonheader) {
 		String response = "";
 		try {
-			String primarykey = gettabledata.getJSONObject(KEY).getString(primaryColumnKey);
+			String primarykey = gettabledata.getJSONObject(GlobalAttributeHandler.getKey())
+					.getString(GlobalAttributeHandler.getPrimarycolumnkey());
 
 			if (jsonbody.has(primarykey) && !jsonbody.get(primarykey).toString().equalsIgnoreCase("")) {
 				String url = pgrest + gettabledata.getString("api") + "?" + primarykey + "=eq."
@@ -206,7 +213,7 @@ public class FormdataServiceImpl implements FormdataService {
 			}
 		} catch (Exception e) {
 			LOGGER.error("Exception at {} ", Thread.currentThread().getStackTrace()[1].getMethodName(), e);
-			return FAILURE;
+			return GlobalAttributeHandler.getFailure();
 		}
 		return response;
 	}
@@ -227,7 +234,8 @@ public class FormdataServiceImpl implements FormdataService {
 
 			displayConfig = DisplaySingleton.memoryDispObjs2.getJSONObject(name);
 			JSONObject gettabledata = new JSONObject(displayConfig.get("datas").toString());
-			String columnprimarykey = gettabledata.getJSONObject(KEY).getString(primaryColumnKey);
+			String columnprimarykey = gettabledata.getJSONObject(GlobalAttributeHandler.getKey())
+					.getString(GlobalAttributeHandler.getPrimarycolumnkey());
 
 			if (method.equalsIgnoreCase("GET")) {
 				res = transmittingDatapgrestget(columnprimarykey, method, gettabledata, primary, where);
@@ -252,6 +260,12 @@ public class FormdataServiceImpl implements FormdataService {
 			String which = gettabledata.has("method") ? gettabledata.getString("method") : "GET";
 
 			if (method.startsWith("rpc") && gettabledata.getBoolean("preDefined")) {
+				JSONObject quryJson = gettabledata.getJSONObject("Query");
+				if (quryJson.has("where")) {
+					String whereCon = quryJson.getString("where")
+							+ (where.equalsIgnoreCase("") ? "" : " and " + where.replace("?datas=", ""));
+					quryJson.put("where", whereCon);
+				}
 				url = pgrest + gettabledata.getString("Function") + "?basequery=" + gettabledata.getJSONObject("Query");
 			} else if (primary != null && !primary.equalsIgnoreCase("")) {
 				url = pgrest + gettabledata.getString(method.toUpperCase()) + "?" + columnprimarykey + "=eq." + primary;
@@ -280,16 +294,16 @@ public class FormdataServiceImpl implements FormdataService {
 				url = url.replaceAll(" ", "%20");
 				getdata = new JSONObject(dataTransmit.transmitDataspgrestpost(url, json.toString(), false,
 						gettabledata.getString("schema")));
-				returndata.put(DATAVALUE, temparay.put(getdata));
+				returndata.put(GlobalAttributeHandler.getDatavalue(), temparay.put(getdata));
 			} else {
 				url = url.replaceAll(" ", "%20");
 				temparay = dataTransmit.transmitDataspgrest(url, gettabledata.getString("schema"));
-				returndata.put(DATAVALUE, temparay);
+				returndata.put(GlobalAttributeHandler.getDatavalue(), temparay);
 			}
 
 		} catch (Exception e) {
 			LOGGER.error("Exception at {}", Thread.currentThread().getStackTrace()[1].getMethodName(), e);
-			return new JSONObject().put(ERROR, FAILURE).toString();
+			return new JSONObject().put(GlobalAttributeHandler.getError(), GlobalAttributeHandler.getFailure()).toString();
 		}
 		return returndata.toString();
 	}
@@ -311,23 +325,23 @@ public class FormdataServiceImpl implements FormdataService {
 			} else if (isdeleteall) {
 				url = url + gettabledata.getString("api");
 			} else {
-				return returndata.put(ERROR, "Please check the data").toString();
+				return returndata.put(GlobalAttributeHandler.getError(), "Please check the data").toString();
 			}
 
 			response = dataTransmit.transmitDataspgrestDel(url, gettabledata.getString("schema"));
 
 			if (response >= 200 && response <= 226) {
-				returndata.put(REFLEX, SUCCESS);
+				returndata.put(GlobalAttributeHandler.getReflex(), GlobalAttributeHandler.getSuccess());
 			} else {
 				res = HttpStatus.getStatusText(response);
-				returndata.put(ERROR, res);
+				returndata.put(GlobalAttributeHandler.getError(), res);
 			}
 
 		} catch (Exception e) {
-			returndata.put(ERROR, FAILURE);
+			returndata.put(GlobalAttributeHandler.getError(), GlobalAttributeHandler.getFailure());
 			LOGGER.error("Exception at {}", Thread.currentThread().getStackTrace()[1].getMethodName(), e);
 		}
-		return new JSONObject().put(REFLEX, "Success").toString();
+		return new JSONObject().put(GlobalAttributeHandler.getReflex(), GlobalAttributeHandler.getSuccess()).toString();
 	}
 
 	private StringBuilder URLEncode(String value) {
@@ -336,12 +350,14 @@ public class FormdataServiceImpl implements FormdataService {
 			String regex = DisplaySingleton.memoryApplicationSetting.getString("UrlEncodeExcept");
 			for (int i = 0; i < value.length(); i++) {
 				char c = value.charAt(i);
-				System.err.println(c);
+//				System.err.println(c);
 				if (!isArabic(c)) {
 					if (String.valueOf(c).matches(regex)) {
 						// URL encode the special character
 						String encodedChar = URLEncoder.encode(String.valueOf(c), StandardCharsets.UTF_8.toString());
 						result.append(encodedChar);
+					} else {
+						result.append(c);
 					}
 				} else {
 					result.append(c);

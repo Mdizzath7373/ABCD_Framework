@@ -289,7 +289,13 @@ public class DisplayHandler {
 				commonUtilDtoValue.setEntity(api);
 
 				if (function && extraDatas.has("preDefined") && extraDatas.getBoolean("preDefined")) {
-					url = pgrest + extraDatas.getString("Function") + "?basequery=" + extraDatas.getJSONObject("Query");
+					JSONObject quryJson = extraDatas.getJSONObject("QueryData");
+					if (quryJson.has("where")) {
+						String whereCon = quryJson.getString("where")
+								+ (where.equalsIgnoreCase("") ? "" : " and " + where);
+						quryJson.put("where", whereCon);
+					}
+					url = pgrest + "rpc/predefine_function" + "?basequery=" + extraDatas.getJSONObject("QueryData");
 				} else if (function && !where.isEmpty()) {
 					if (extraDatas.has("name"))
 						url = pgrest + api + where + "&" + "name=" + extraDatas.getString("name");
@@ -307,10 +313,11 @@ public class DisplayHandler {
 				}
 				url = url.replaceAll(" ", "%20");
 				if (extraDatas.has("preDefined") && extraDatas.getBoolean("preDefined")) {
-					res = new JSONObject(new JSONArray(dataTransmits.transmitDataspgrest(url,extraDatas.getString("schema")).get(0).toString()))
+					res = new JSONObject(new JSONArray(
+							dataTransmits.transmitDataspgrest(url, extraDatas.getString("schema")).get(0).toString()))
 							.getJSONArray("datavalues");
 				} else {
-					res = dataTransmits.transmitDataspgrest(url,extraDatas.getString("schema"));
+					res = dataTransmits.transmitDataspgrest(url, extraDatas.getString("schema"));
 				}
 				JSONObject jsonObject2;
 				JSONArray jsonArray = new JSONArray();
@@ -411,6 +418,12 @@ public class DisplayHandler {
 				}
 
 				if (function && extraDatas.has("preDefined") && extraDatas.getBoolean("preDefined")) {
+					JSONObject quryJson = extraDatas.getJSONObject("Query");
+					if (quryJson.has("where")) {
+						String whereCon = quryJson.getString("where")
+								+ (where.equalsIgnoreCase("") ? "" : " and " + where.replace("?datas=", ""));
+						quryJson.put("where", whereCon);
+					}
 					url = pgrest + extraDatas.getString("Function") + "?basequery=" + extraDatas.getJSONObject("Query");
 				} else if (function && !where.isEmpty()) {
 					if (extraDatas.has("name"))
@@ -430,10 +443,11 @@ public class DisplayHandler {
 				url = url.replace(" ", "%20");
 
 				if (extraDatas.has("preDefined") && extraDatas.getBoolean("preDefined")) {
-					res = new JSONObject(new JSONArray(dataTransmits.transmitDataspgrest(url,extraDatas.getString("schema")).get(0).toString()))
+					res = new JSONObject(new JSONArray(
+							dataTransmits.transmitDataspgrest(url, extraDatas.getString("schema")).get(0).toString()))
 							.getJSONArray("datavalues");
 				} else {
-					res = dataTransmits.transmitDataspgrest(url,extraDatas.getString("schema"));
+					res = dataTransmits.transmitDataspgrest(url, extraDatas.getString("schema"));
 				}
 				if (chartType.equalsIgnoreCase("barchart")) {
 					List<Object> showgirddata = new JSONObject(object.get("showchartbyrole").toString())

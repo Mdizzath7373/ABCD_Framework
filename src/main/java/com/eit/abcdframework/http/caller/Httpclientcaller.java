@@ -83,7 +83,7 @@ public class Httpclientcaller {
 
 			HttpPost http = new HttpPost(toUrl);
 			http.addHeader("Content-Type", "application/json;charset=utf-8");
-			http.addHeader("Accept-Profile",schema);
+			http.addHeader("Content-Profile",schema);
 			if (addheader)
 				http.addHeader("Prefer", "return=representation");
 			StringEntity requestEntity = new StringEntity(data, StandardCharsets.UTF_8);
@@ -132,7 +132,7 @@ public class Httpclientcaller {
 
 			HttpPut http = new HttpPut(toUrl);
 			http.addHeader("Content-Type", "application/json");
-			http.addHeader("Accept-Profile",schema);
+			http.addHeader("Content-Profile",schema);
 			if (addheader)
 				http.addHeader("Prefer", "return=representation");
 			StringEntity requestEntity = new StringEntity(data, StandardCharsets.UTF_8);
@@ -214,7 +214,7 @@ public class Httpclientcaller {
 				.setMaxConnTotal(10000).build()) {
 
 			HttpDelete httpDel = new HttpDelete(toUrl);
-			httpDel.addHeader("Accept-Profile",schema);
+			httpDel.addHeader("Content-Profile",schema);
 			try (CloseableHttpResponse response = httpClient.execute(httpDel)) {
 				statusCode = response.getStatusLine().getStatusCode();
 				String status = String.valueOf(statusCode);

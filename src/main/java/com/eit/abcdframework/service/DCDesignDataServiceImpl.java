@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.eit.abcdframework.dto.CommonUtilDto;
+import com.eit.abcdframework.globalhandler.GlobalAttributeHandler;
 import com.eit.abcdframework.http.caller.Httpclientcaller;
 import com.eit.abcdframework.serverbo.CommonServices;
 import com.eit.abcdframework.serverbo.DisplayConfigBO;
@@ -59,12 +60,12 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 	private static final Logger LOGGER = LoggerFactory.getLogger("DCDesignDataServiceImpl");
 //	private static final String ISSUSEFILE = "issusefile";
 
-	private static final String KEY = "primarykey";
-	private static final String primaryColumnKey = "columnname";
-	private static final String REFLEX = "reflex";
-	private static final String SUCCESS = "Success";
-	private static final String ERROR = "error";
-	private static final String FAILURE = "Failure";
+//	private static final String KEY = "primarykey";
+//	private static final String primaryColumnKey = "columnname";
+//	private static final String REFLEX = "reflex";
+//	private static final String SUCCESS = "Success";
+//	private static final String ERROR = "error";
+//	private static final String FAILURE = "Failure"
 
 	@Override
 	public CommonUtilDto getDCDesignData(String data) {
@@ -124,7 +125,6 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 			} else {
 				documentdata = new JSONObject();
 			}
-			
 
 			String displayAlias = jsonheader.getString("name");
 			String method = jsonheader.getString("method");
@@ -140,7 +140,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 				res = fileuploadServices.convertPdfToMultipart(files.get(0), gettabledata, jsonbody);
 				isprogress = true;
 				if (res.equalsIgnoreCase("Failed")) {
-					new JSONObject().put(ERROR, FAILURE).toString();
+					new JSONObject().put(GlobalAttributeHandler.getError(), GlobalAttributeHandler.getFailure()).toString();
 				}
 			} else if (transmitMethod.equalsIgnoreCase("MergeFile")) {
 				fileuploadServices.mergebase64ToPDF(gettabledata, jsonbody, files.get(0));
@@ -157,7 +157,8 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 						LOGGER.info("Councurrent API Response----->{}", councurrentAPIres);
 					}
 					if (!councurrentAPIres.equalsIgnoreCase("Success")) {
-						return new JSONObject().put(ERROR, FAILURE).toString();
+						return new JSONObject().put(GlobalAttributeHandler.getError(), GlobalAttributeHandler.getFailure())
+								.toString();
 					}
 				}
 			}
@@ -176,7 +177,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 				String delUrl = pgresturl + "pdf_splitter?id=eq." + primary_id;
 				dataTransmit.transmitDataspgrestDel(delUrl, gettabledata.getString("schema"));
 			} else {
-				new JSONObject().put(ERROR, FAILURE).toString();
+				new JSONObject().put(GlobalAttributeHandler.getError(), GlobalAttributeHandler.getFailure()).toString();
 			}
 
 		} catch (
@@ -184,7 +185,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 		Exception e) {
 			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
 		}
-		return new JSONObject().put(REFLEX, SUCCESS).toString();
+		return new JSONObject().put(GlobalAttributeHandler.getReflex(), GlobalAttributeHandler.getSuccess()).toString();
 	}
 
 	private String toSaveObject(String method, JSONObject jsonbody, JSONObject gettabledata, JSONObject jsonheader,
@@ -193,7 +194,8 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 		try {
 			String response = "";
 			String url = "";
-			String columnprimarykey = gettabledata.getJSONObject(KEY).getString(primaryColumnKey);
+			String columnprimarykey = gettabledata.getJSONObject(GlobalAttributeHandler.getKey())
+					.getString(GlobalAttributeHandler.getPrimarycolumnkey());
 
 			if (method.equalsIgnoreCase("POST")) {
 				if (gettabledata.has("dateandtime")) {
@@ -211,7 +213,8 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 					response = dataTransmit.transmitDataspgrestput(url, jsonbody.toString(), false,
 							gettabledata.getString("schema"));
 				} else {
-					return new JSONObject().put(ERROR, "primaryKey is Missing,Please Check this").toString();
+					return new JSONObject().put(GlobalAttributeHandler.getError(), "primaryKey is Missing,Please Check this")
+							.toString();
 				}
 			}
 
@@ -258,7 +261,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 			setJsonBody = fileuploadServices.fileupload(gettabledata, files, jsonbody, documentdata);
 
 			if (setJsonBody.isEmpty() || setJsonBody.has("error")) {
-				return returndata.put(ERROR, setJsonBody.getString("error")).toString();
+				return returndata.put(GlobalAttributeHandler.getError(), setJsonBody.getString("error")).toString();
 			}
 			// To save a Data.
 			String url = "";
@@ -281,7 +284,8 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 					response = dataTransmit.transmitDataspgrestput(url, jsonbody.toString(), false,
 							gettabledata.getString("schema"));
 				} else {
-					return returndata.put(ERROR, "primaryKey is Missing,Please Check this").toString();
+					return returndata.put(GlobalAttributeHandler.getError(), "primaryKey is Missing,Please Check this")
+							.toString();
 				}
 			}
 
@@ -292,7 +296,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 
 		Exception e) {
 			LOGGER.error("Exception at fileupload" + Thread.currentThread().getStackTrace()[1].getMethodName(), e);
-			return new JSONObject().put(ERROR, "Failure").toString();
+			return new JSONObject().put(GlobalAttributeHandler.getError(), GlobalAttributeHandler.getFailure()).toString();
 		}
 		LOGGER.info("Fileupload Completed");
 //		return returndata.toString();
@@ -361,8 +365,14 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 
 				returnJson.put("jqxdetails", jsononbj.toString());
 				if (function && extraDatas.has("preDefined") && extraDatas.getBoolean("preDefined")) {
-					url = pgresturl + extraDatas.getString("Function") + "?basequery="
-							+ extraDatas.getJSONObject("Query");
+					JSONObject quryJson = extraDatas.getJSONObject("Query");
+					if (quryJson.has("where")) {
+						String whereCon = quryJson.getString("where")
+								+ (where.equalsIgnoreCase("") ? "" : " and " + where);
+						quryJson.put("where", whereCon);
+					}
+
+					url = pgresturl + extraDatas.getString("Function") + "?basequery=" + quryJson;
 				} else {
 					url = pgresturl + extraDatas.getString(method);
 				}
@@ -386,6 +396,15 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 				}
 				url = url.replace(" ", "%20");
 				if (extraDatas.has("preDefined") && extraDatas.getBoolean("preDefined")) {
+					JSONObject quryJson = extraDatas.getJSONObject("Query");
+					if (quryJson.has("where")) {
+						String whereCon = quryJson.getString("where")
+								+ (where.equalsIgnoreCase("") ? "" : " and " + where.replace("?datas=", ""));
+						quryJson.put("where", whereCon);
+					}
+
+					url = pgresturl + extraDatas.getString("Function") + "?basequery=" + quryJson;
+
 					datavalues = new JSONObject(new JSONArray(
 							dataTransmit.transmitDataspgrest(url, extraDatas.getString("schema")).get(0).toString()))
 							.getJSONArray("datavalues");
@@ -415,7 +434,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 			}
 
 		} catch (Exception e) {
-			returnJson.put(ERROR, "Something went worng, Please Retry");
+			returnJson.put(GlobalAttributeHandler.getError(), "Something went worng, Please Retry");
 			LOGGER.error("Exception at ", e);
 		}
 		return returnJson.toString();
@@ -466,8 +485,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 	}
 
 //	@Override
-	public String fileuploadwithprogress(MultipartFile files, String data) {
-		return data;
+//	public String fileuploadwithprogress(MultipartFile files, String data) {
 //		JSONObject jsonObject1 = null;
 //		JSONObject returndata = new JSONObject();
 //		try {
@@ -549,126 +567,126 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 //		}
 //
 //		return returndata.toString();
-	}
+//	}
 
 //	@Override
-	public String mergeToPDF(MultipartFile files, String data) {
-		JSONObject jsonObject1 = null;
-		JSONObject returndata = new JSONObject();
-		try {
-
-			if (data.equalsIgnoreCase("") && !data.startsWith("{")) {
-				return "Please Check Your Data Object!";
-			}
-			JSONObject displayConfig;
-			if (!data.startsWith("{"))
-				jsonObject1 = new JSONObject(CommonServices.decrypt(data));
-			else
-				jsonObject1 = new JSONObject(data);
-
-			JSONObject jsonheader = new JSONObject(
-					jsonObject1.getJSONObject("PrimaryBody").getJSONObject("header").toString());
-			String displayAlias = jsonheader.getString("name");
-			String method = jsonheader.getString("method");
-
-			JSONObject jsonbody = new JSONObject(
-					jsonObject1.getJSONObject("PrimaryBody").getJSONObject("body").toString());
-
-			displayConfig = DisplaySingleton.memoryDispObjs2.getJSONObject(displayAlias);
-			JSONObject gettabledata = new JSONObject(displayConfig.get("datas").toString());
-
-			JSONArray jarr = new JSONArray(gettabledata.getJSONArray("filepathname").toString());
-
-			// set list of column name in json body (column name)
-			JSONArray column = new JSONArray(gettabledata.getJSONArray("column").toString());
-			String filename = jsonbody.get(jarr.get(0).toString()).toString();
-
-			// primary key column name comes in table
-			String columnprimarykey = gettabledata.getJSONObject("primarykey").getString("columnname");
-
-			String Splitter_primary_id = gettabledata.getJSONObject("Splitter").getString("Splitter_primary_id");
-
-			String value = jsonbody.get(Splitter_primary_id).toString();
-
-			String geturl = pgresturl + "pdf_splitter?select=total_pages,id&primary_id_pdf=eq." + value;
-			JSONObject datavalue = new JSONObject(
-					dataTransmit.transmitDataspgrest(geturl, gettabledata.getString("schema")).get(0).toString());
-			int total_pages = datavalue.getInt("total_pages");
-			int primary_id = datavalue.getInt("id");
-
-			String currentDir = System.getProperty("user.dir");
-			String PDFpath = "";
-
-			if (gettabledata.getJSONObject("Splitter").has("original")
-					&& gettabledata.getJSONObject("Splitter").getBoolean("original")) {
-				PDFpath = currentDir + "original.pdf";
-			}
-
-			Map<String, Object> base64Images = commonServices.loadBase64(value, total_pages);
-			JSONObject path = null;
-			;
-			try (PDDocument document = new PDDocument()) {
-				path = fileuploadServices.writeImage(base64Images, PDFpath, filename, document, files);
-				if (path.has("error")) {
-					return new JSONObject().put("error", "Failed to upload s3bucket!").toString();
-				}
-				jsonbody.put(column.get(0).toString(), path);
-			}
-
-			String url = "";
-			String res = "";
-			String response = "";
-			if (method.equalsIgnoreCase("POST")) {
-				if (gettabledata.has("dateandtime")) {
-					jsonbody.put(gettabledata.getString("dateandtime"),
-							TimeZoneServices.getDateInTimeZoneforSKT("Asia/Riyadh"));
-				}
-				url = pgresturl + gettabledata.getString("api");
-				url = url.replace(" ", "%20");
-				response = dataTransmit.transmitDataspgrestpost(url, jsonbody.toString(), false,
-						gettabledata.getString("schema"));
-			} else if (method.equalsIgnoreCase("PUT")) {
-				if (jsonbody.has(columnprimarykey) && !jsonbody.get(columnprimarykey).toString().equalsIgnoreCase("")) {
-					// if use put method we need primary key (set primary key column name)
-					url = pgresturl + gettabledata.getString("api") + "?" + columnprimarykey + "=eq."
-							+ (jsonbody.get(columnprimarykey)).toString();
-					url = url.replace(" ", "%20");
-					response = dataTransmit.transmitDataspgrestput(url, jsonbody.toString(), false,
-							gettabledata.getString("schema"));
-				} else {
-					return returndata.put(ERROR, "primaryKey is Missing,Please Check this").toString();
-				}
-			}
-
-			if (Integer.parseInt(response) >= 200 && Integer.parseInt(response) <= 226) {
-				if (gettabledata.has("synchronizedCurdOperation")) {
-					JSONArray typeOfMehods = gettabledata.getJSONObject("synchronizedCurdOperation")
-							.getJSONArray("type");
-					for (int typeOfMehod = 0; typeOfMehod < typeOfMehods.length(); typeOfMehod++) {
-						if (typeOfMehods.get(typeOfMehod).toString().equalsIgnoreCase("Map")) {
-							res = CommonServices.MappedCurdOperation(gettabledata, data);
-						}
-					}
-					if (res.equalsIgnoreCase("Success"))
-						returndata.put("reflex", res);
-					else
-						returndata.put("error", res);
-				}
-
-				if (returndata.has("reflex")) {
-					String delUrl = pgresturl + "pdf_splitter?id=eq." + primary_id;
-					dataTransmit.transmitDataspgrestDel(delUrl, gettabledata.getString("schema"));
-				}
-
-			}
-
-		} catch (Exception e) {
-			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
-			return new JSONObject().put("error", "Failed Please Retry").toString();
-		}
-		return returndata.toString();
-
-	}
+//	public String mergeToPDF(MultipartFile files, String data) {
+//		JSONObject jsonObject1 = null;
+//		JSONObject returndata = new JSONObject();
+//		try {
+//
+//			if (data.equalsIgnoreCase("") && !data.startsWith("{")) {
+//				return "Please Check Your Data Object!";
+//			}
+//			JSONObject displayConfig;
+//			if (!data.startsWith("{"))
+//				jsonObject1 = new JSONObject(CommonServices.decrypt(data));
+//			else
+//				jsonObject1 = new JSONObject(data);
+//
+//			JSONObject jsonheader = new JSONObject(
+//					jsonObject1.getJSONObject("PrimaryBody").getJSONObject("header").toString());
+//			String displayAlias = jsonheader.getString("name");
+//			String method = jsonheader.getString("method");
+//
+//			JSONObject jsonbody = new JSONObject(
+//					jsonObject1.getJSONObject("PrimaryBody").getJSONObject("body").toString());
+//
+//			displayConfig = DisplaySingleton.memoryDispObjs2.getJSONObject(displayAlias);
+//			JSONObject gettabledata = new JSONObject(displayConfig.get("datas").toString());
+//
+//			JSONArray jarr = new JSONArray(gettabledata.getJSONArray("filepathname").toString());
+//
+//			// set list of column name in json body (column name)
+//			JSONArray column = new JSONArray(gettabledata.getJSONArray("column").toString());
+//			String filename = jsonbody.get(jarr.get(0).toString()).toString();
+//
+//			// primary key column name comes in table
+//			String columnprimarykey = gettabledata.getJSONObject("primarykey").getString("columnname");
+//
+//			String Splitter_primary_id = gettabledata.getJSONObject("Splitter").getString("Splitter_primary_id");
+//
+//			String value = jsonbody.get(Splitter_primary_id).toString();
+//
+//			String geturl = pgresturl + "pdf_splitter?select=total_pages,id&primary_id_pdf=eq." + value;
+//			JSONObject datavalue = new JSONObject(
+//					dataTransmit.transmitDataspgrest(geturl, gettabledata.getString("schema")).get(0).toString());
+//			int total_pages = datavalue.getInt("total_pages");
+//			int primary_id = datavalue.getInt("id");
+//
+//			String currentDir = System.getProperty("user.dir");
+//			String PDFpath = "";
+//
+//			if (gettabledata.getJSONObject("Splitter").has("original")
+//					&& gettabledata.getJSONObject("Splitter").getBoolean("original")) {
+//				PDFpath = currentDir + "original.pdf";
+//			}
+//
+//			Map<String, Object> base64Images = commonServices.loadBase64(value, total_pages);
+//			JSONObject path = null;
+//			;
+//			try (PDDocument document = new PDDocument()) {
+//				path = fileuploadServices.writeImage(base64Images, PDFpath, filename, document, files);
+//				if (path.has("error")) {
+//					return new JSONObject().put("error", "Failed to upload s3bucket!").toString();
+//				}
+//				jsonbody.put(column.get(0).toString(), path);
+//			}
+//
+//			String url = "";
+//			String res = "";
+//			String response = "";
+//			if (method.equalsIgnoreCase("POST")) {
+//				if (gettabledata.has("dateandtime")) {
+//					jsonbody.put(gettabledata.getString("dateandtime"),
+//							TimeZoneServices.getDateInTimeZoneforSKT("Asia/Riyadh"));
+//				}
+//				url = pgresturl + gettabledata.getString("api");
+//				url = url.replace(" ", "%20");
+//				response = dataTransmit.transmitDataspgrestpost(url, jsonbody.toString(), false,
+//						gettabledata.getString("schema"));
+//			} else if (method.equalsIgnoreCase("PUT")) {
+//				if (jsonbody.has(columnprimarykey) && !jsonbody.get(columnprimarykey).toString().equalsIgnoreCase("")) {
+//					// if use put method we need primary key (set primary key column name)
+//					url = pgresturl + gettabledata.getString("api") + "?" + columnprimarykey + "=eq."
+//							+ (jsonbody.get(columnprimarykey)).toString();
+//					url = url.replace(" ", "%20");
+//					response = dataTransmit.transmitDataspgrestput(url, jsonbody.toString(), false,
+//							gettabledata.getString("schema"));
+//				} else {
+//					return returndata.put(GlobalAttributeHandler.ERROR, "primaryKey is Missing,Please Check this").toString();
+//				}
+//			}
+//
+//			if (Integer.parseInt(response) >= 200 && Integer.parseInt(response) <= 226) {
+//				if (gettabledata.has("synchronizedCurdOperation")) {
+//					JSONArray typeOfMehods = gettabledata.getJSONObject("synchronizedCurdOperation")
+//							.getJSONArray("type");
+//					for (int typeOfMehod = 0; typeOfMehod < typeOfMehods.length(); typeOfMehod++) {
+//						if (typeOfMehods.get(typeOfMehod).toString().equalsIgnoreCase("Map")) {
+//							res = CommonServices.MappedCurdOperation(gettabledata, data);
+//						}
+//					}
+//					if (res.equalsIgnoreCase("Success"))
+//						returndata.put(GlobalAttributeHandler.REFLEX, res);
+//					else
+//						returndata.put(GlobalAttributeHandler.ERROR, res);
+//				}
+//
+//				if (returndata.has(GlobalAttributeHandler.REFLEX)) {
+//					String delUrl = pgresturl + "pdf_splitter?id=eq." + primary_id;
+//					dataTransmit.transmitDataspgrestDel(delUrl, gettabledata.getString("schema"));
+//				}
+//
+//			}
+//
+//		} catch (Exception e) {
+//			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+//			return new JSONObject().put(GlobalAttributeHandler.ERROR, "Failed Please Retry").toString();
+//		}
+//		return returndata.toString();
+//
+//	}
 
 	@Override
 	public String SplitterPDFChanges(JSONObject jsonObject1) {
@@ -694,11 +712,11 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 						gettabledata.getString("schema"));
 
 			});
-			res.put("reflex", "Success");
+			res.put(GlobalAttributeHandler.getReflex(), GlobalAttributeHandler.getSuccess());
 
 		} catch (Exception e) {
 			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
-			return new JSONObject().put("error", "Failed Please Retry").toString();
+			return new JSONObject().put(GlobalAttributeHandler.getError(), "Failed Please Retry").toString();
 		}
 
 		return res.toString();
