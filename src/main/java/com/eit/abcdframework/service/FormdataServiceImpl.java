@@ -201,7 +201,7 @@ public class FormdataServiceImpl implements FormdataService {
 					.getString(GlobalAttributeHandler.getPrimarycolumnkey());
 
 			if (jsonbody.has(primarykey) && !jsonbody.get(primarykey).toString().equalsIgnoreCase("")) {
-				String url = pgrest + gettabledata.getString("api") + "?" + primarykey + "=eq."
+				String url = pgrest + gettabledata.getString("PUT") + "?" + primarykey + "=eq."
 						+ jsonbody.get(primarykey);
 				url = url.replace(" ", "%20");
 

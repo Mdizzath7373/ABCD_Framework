@@ -99,38 +99,40 @@ public class FormdataController {
 ////            System.err.println(data);
 //		  });
 //	}
+	
+	
 
-	@GetMapping("/test")
-	public void test() throws IOException {
-		AtomicInteger count = new AtomicInteger(0);
-		System.err.println("hi");
-
-		dHttpclientcaller.transmitDataspgrest(pgrest + "configs2", "onboard").forEach(entry -> {
-			JSONObject datvalue = new JSONObject(entry.toString());
-
-			JSONObject jsondata = new JSONObject(datvalue.get("discfg").toString());
-
-			datvalue.remove("id");
-			if (datvalue.getString("displaytypes").equalsIgnoreCase("grid")
-					|| datvalue.getString("displaytypes").equalsIgnoreCase("report")) {
-				JSONObject jq = jsondata.getJSONObject("jqxdetails");
-				if(jq.has("Actions")) {
-					jq.put("default", jq.getJSONArray("Actions"));
-					jq.remove("Actions");
-				}				
-
-				jsondata.put("jqdetails", jq);
-				jsondata.remove("jqxdetails");
-				jsondata.put("datavalues", new JSONArray());
-				datvalue.put("discfg", jsondata.toString());
-			}
-			System.err.println(count.getAndIncrement());
-//			System.err.println(datvalue);
+//	@GetMapping("/test")
+//	public void test() throws IOException {
+//		AtomicInteger count = new AtomicInteger(0);
+//		System.err.println("hi");
 //
-			System.err.println(dHttpclientcaller.transmitDataspgrestpost(pgrest + "configs", datvalue.toString(), false,
-					"onboard"));
-
-		});
-	}
+//		dHttpclientcaller.transmitDataspgrest(pgrest + "configs2", "onboard").forEach(entry -> {
+//			JSONObject datvalue = new JSONObject(entry.toString());
+//
+//			JSONObject jsondata = new JSONObject(datvalue.get("discfg").toString());
+//
+//			datvalue.remove("id");
+//			if (datvalue.getString("displaytypes").equalsIgnoreCase("grid")
+//					|| datvalue.getString("displaytypes").equalsIgnoreCase("report")) {
+//				JSONObject jq = jsondata.getJSONObject("jqxdetails");
+//				if(jq.has("Actions")) {
+//					jq.put("default", jq.getJSONArray("Actions"));
+//					jq.remove("Actions");
+//				}				
+//
+//				jsondata.put("jqdetails", jq);
+//				jsondata.remove("jqxdetails");
+//				jsondata.put("datavalues", new JSONArray());
+//				datvalue.put("discfg", jsondata.toString());
+//			}
+//			System.err.println(count.getAndIncrement());
+////			System.err.println(datvalue);
+////
+//			System.err.println(dHttpclientcaller.transmitDataspgrestpost(pgrest + "configs", datvalue.toString(), false,
+//					"onboard"));
+//
+//		});
+//	}
 
 }

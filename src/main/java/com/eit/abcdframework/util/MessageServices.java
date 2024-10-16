@@ -4,9 +4,9 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import com.eit.abcdframework.globalhandler.GlobalAttributeHandler;
 import com.eit.abcdframework.http.caller.Httpclientcaller;
 
 @Service
@@ -31,8 +31,6 @@ public class MessageServices {
 	private static final String apiKey = "ADAFFE70B1A089B84E1F934ACA646864";
 	private static final String userSender = "TSHIL";
 	
-	@Value("${schema}")
-	private static String schema;
 
 	public String MsegatOTPService(String reqBody) {
 		try {
@@ -47,7 +45,7 @@ public class MessageServices {
 			jsonInput.put("userSender", userSender);
 
 			JSONObject jsonResponse = new JSONObject(
-					dataTransmit.transmitDataspgrestpost(BASE_URL_SENDOTP, jsonInput.toString(), false,schema));
+					dataTransmit.transmitDataspgrestpost(BASE_URL_SENDOTP, jsonInput.toString(), false,GlobalAttributeHandler.getSchema()));
 			if (jsonResponse.get("code").equals(1)) {
 				msgObject.put("message", "Success");
 				msgObject.put("id", jsonResponse.get("id"));
@@ -76,7 +74,7 @@ public class MessageServices {
 			jsonInput.put("userSender", userSender);
 
 			JSONObject jsonResponse = new JSONObject(
-					dataTransmit.transmitDataspgrestpost(BASE_URL_VERIFY, jsonInput.toString(), false,schema));
+					dataTransmit.transmitDataspgrestpost(BASE_URL_VERIFY, jsonInput.toString(), false,GlobalAttributeHandler.getSchema()));
 			if (jsonResponse.get("code").equals(1)) {
 				return msgObject.put("message", "Success").toString();
 			} else {
@@ -101,7 +99,7 @@ public class MessageServices {
 			jsonInput.put("userSender", userSender);
 
 			JSONObject jsonResponse = new JSONObject(
-					dataTransmit.transmitDataspgrestpost(BASE_URL_SMS, jsonInput.toString(), false,schema));
+					dataTransmit.transmitDataspgrestpost(BASE_URL_SMS, jsonInput.toString(), false,GlobalAttributeHandler.getSchema()));
 			if (jsonResponse.get("code").equals("1")) {
 				return msgObject.put("message", "Success").toString();
 			} else {
