@@ -14,6 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.eit.abcdframework.globalhandler.GlobalAttributeHandler;
 import com.eit.abcdframework.http.caller.Httpclientcaller;
 import com.eit.abcdframework.util.AmazonSMTPMail;
 
@@ -38,11 +39,11 @@ public class WorkFlowEngine {
 	@Value("${FromNameOfMail}")
 	private String FromNameOfMail;
 
-	@Value("${applicationurl}")
-	private String pgresturl;
+//	@Value("${applicationurl}")
+//	private String pgresturl;
 	
-	@Value("${schema}")
-	private String schema;
+//	@Value("${schema}")
+//	private String schema;
 
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(WorkFlowEngine.class);
@@ -183,7 +184,7 @@ public class WorkFlowEngine {
 						List<MultipartFile> filedata = new ArrayList<>();
 						String restulofMail = amazonSMTPMail.mailSender2(mailContentname, Email, getJson, jsonBody,
 								filedata, headerdata.has("lang") ? headerdata.getString("lang") : "en",
-								schema);
+								GlobalAttributeHandler.getSchemas());
 						NextStep = getJson.getString(restulofMail);
 						if (getJson.getString(restulofMail).equalsIgnoreCase("Please retry Server was busy!")) {
 							return new JSONObject()
@@ -209,18 +210,18 @@ public class WorkFlowEngine {
 					// LAST OPTION IS SAVE OR UPDATE
 					if (NextStep.equalsIgnoreCase("save") || NextStep.equalsIgnoreCase("update")) {
 						if (NextStep.equalsIgnoreCase("save")) {
-							String url = pgresturl + tablename;
+							String url = GlobalAttributeHandler.getPgrestURL() + tablename;
 							result = dataTransmit.transmitDataspgrestpost(url, jsonBody.toString(),
 									currentFlow.has("returnSaveData") ? currentFlow.getBoolean("returnSaveData")
 											: false,
-											schema);
+											GlobalAttributeHandler.getSchemas());
 						}
 						if (NextStep.equalsIgnoreCase("update")) {
-							String url = pgresturl + tablename + "?" + primarykey + "=eq." + primaryValue;
+							String url = GlobalAttributeHandler.getPgrestURL() + tablename + "?" + primarykey + "=eq." + primaryValue;
 							result = dataTransmit.transmitDataspgrestput(url, jsonBody.toString(),
 									currentFlow.has("returnSaveData") ? currentFlow.getBoolean("returnSaveData")
 											: false,
-									schema);
+											GlobalAttributeHandler.getSchemas());
 						}
 
 						// handle the response
@@ -349,13 +350,13 @@ public class WorkFlowEngine {
 					if (getdata.getJSONObject("where").has("defaultWhere")
 							&& !getdata.getJSONObject("where").getString("defaultWhere").equalsIgnoreCase("")) {
 						if (!whereClass.equalsIgnoreCase(""))
-							url = (pgresturl + getdata.getString("tablename") + whereClass + "&"
+							url = (GlobalAttributeHandler.getPgrestURL() + getdata.getString("tablename") + whereClass + "&"
 									+ getdata.getJSONObject("where").getString("defaultWhere")).replaceAll(" ", "%20");
 						else
-							url = (pgresturl + getdata.getString("tablename") + "?"
+							url = (GlobalAttributeHandler.getPgrestURL() + getdata.getString("tablename") + "?"
 									+ getdata.getJSONObject("where").getString("defaultWhere")).replaceAll(" ", "%20");
 					} else {
-						url = (pgresturl + getdata.getString("tablename") + whereClass).replaceAll(" ", "%20");
+						url = (GlobalAttributeHandler.getPgrestURL() + getdata.getString("tablename") + whereClass).replaceAll(" ", "%20");
 
 					}
 				}
@@ -374,18 +375,18 @@ public class WorkFlowEngine {
 				if (getdata.getJSONObject("where").has("defaultWhere")
 						&& !getdata.getJSONObject("where").getString("defaultWhere").equalsIgnoreCase("")) {
 					if (!whereClass.equalsIgnoreCase("")) {
-						url = (pgresturl + getdata.getString("tablename") + whereClass + "&"
+						url = (GlobalAttributeHandler.getPgrestURL() + getdata.getString("tablename") + whereClass + "&"
 								+ getdata.getJSONObject("where").getString("defaultWhere")).replaceAll(" ", "%20");
 					} else {
-						url = (pgresturl + getdata.getString("tablename") + "?"
+						url = (GlobalAttributeHandler.getPgrestURL() + getdata.getString("tablename") + "?"
 								+ getdata.getJSONObject("where").getString("defaultWhere")).replaceAll(" ", "%20");
 					}
 				} else {
-					url = (pgresturl + getdata.getString("tablename") + whereClass).replaceAll(" ", "%20");
+					url = (GlobalAttributeHandler.getPgrestURL() + getdata.getString("tablename") + whereClass).replaceAll(" ", "%20");
 
 				}
 			}
-			isGetdata = dataTransmit.transmitDataspgrest(url,schema);
+			isGetdata = dataTransmit.transmitDataspgrest(url,GlobalAttributeHandler.getSchemas());
 		} catch (Exception e) {
 			LOGGER.error("Exception At Search Data Isexsiting data", e);
 			isGetdata.put(new JSONObject().put("error", e.getMessage()));

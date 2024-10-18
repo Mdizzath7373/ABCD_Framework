@@ -47,6 +47,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.S3Object;
 import com.eit.abcdframework.config.ConfigurationFile;
+import com.eit.abcdframework.globalhandler.GlobalAttributeHandler;
 import com.eit.abcdframework.http.caller.Httpclientcaller;
 import com.eit.abcdframework.s3bucket.S3Upload;
 import com.eit.abcdframework.websocket.WebSocketService;
@@ -75,8 +76,8 @@ public class FileuploadServices {
 	@Autowired
 	CommonServices commonServices;
 
-	@Value("${applicationurl}")
-	private String pgresturl;
+//	@Value("${applicationurl}")
+//	private String pgresturl;
 
 	public static String s3url = ConfigurationFile.getStringConfig("s3bucket.url");
 
@@ -377,7 +378,7 @@ public class FileuploadServices {
 			socketService.pushSocketData(new JSONObject(), jsonbody, "progress");
 
 			LOGGER.warn("Enter into save");
-			String url = pgresturl + "pdf_splitter";
+			String url = GlobalAttributeHandler.getPgrestURL() + "pdf_splitter";
 			res = daHttpclientcaller.transmitDataspgrestpost(url, savePDF.toString(), false,schema);
 			if (Integer.parseInt(res) >= 200 && Integer.parseInt(res) <= 226) {
 				progressCount.set(85);
@@ -622,7 +623,7 @@ public class FileuploadServices {
 					&& gettabledata.getJSONObject("Splitter").getBoolean("original")) {
 				PDFpath = currentDir + "original.pdf";
 			}
-			String geturl = pgresturl + "pdf_splitter?select=total_pages,id&primary_id_pdf=eq." + value;
+			String geturl = GlobalAttributeHandler.getPgrestURL() + "pdf_splitter?select=total_pages,id&primary_id_pdf=eq." + value;
 			JSONObject datavalue = new JSONObject(daHttpclientcaller.transmitDataspgrest(geturl,gettabledata.getString("schema")).get(0).toString());
 			int total_pages = datavalue.getInt("total_pages");
 			primary_id = datavalue.getInt("id");

@@ -45,7 +45,7 @@ public class MessageServices {
 			jsonInput.put("userSender", userSender);
 
 			JSONObject jsonResponse = new JSONObject(
-					dataTransmit.transmitDataspgrestpost(BASE_URL_SENDOTP, jsonInput.toString(), false,GlobalAttributeHandler.getSchema()));
+					dataTransmit.transmitDataspgrestpost(BASE_URL_SENDOTP, jsonInput.toString(), false,GlobalAttributeHandler.getSchemas()));
 			if (jsonResponse.get("code").equals(1)) {
 				msgObject.put("message", "Success");
 				msgObject.put("id", jsonResponse.get("id"));
@@ -74,7 +74,7 @@ public class MessageServices {
 			jsonInput.put("userSender", userSender);
 
 			JSONObject jsonResponse = new JSONObject(
-					dataTransmit.transmitDataspgrestpost(BASE_URL_VERIFY, jsonInput.toString(), false,GlobalAttributeHandler.getSchema()));
+					dataTransmit.transmitDataspgrestpost(BASE_URL_VERIFY, jsonInput.toString(), false,GlobalAttributeHandler.getSchemas()));
 			if (jsonResponse.get("code").equals(1)) {
 				return msgObject.put("message", "Success").toString();
 			} else {
@@ -99,7 +99,7 @@ public class MessageServices {
 			jsonInput.put("userSender", userSender);
 
 			JSONObject jsonResponse = new JSONObject(
-					dataTransmit.transmitDataspgrestpost(BASE_URL_SMS, jsonInput.toString(), false,GlobalAttributeHandler.getSchema()));
+					dataTransmit.transmitDataspgrestpost(BASE_URL_SMS, jsonInput.toString(), false,GlobalAttributeHandler.getSchemas()));
 			if (jsonResponse.get("code").equals("1")) {
 				return msgObject.put("message", "Success").toString();
 			} else {

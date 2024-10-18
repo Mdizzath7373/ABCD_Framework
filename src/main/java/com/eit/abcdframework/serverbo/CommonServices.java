@@ -39,8 +39,8 @@ import com.eit.abcdframework.websocket.WebSocketService;
 @Service
 public class CommonServices {
 
-	@Value("${applicationurl}")
-	private String applicationurl;
+//	@Value("${applicationurl}")
+//	private String applicationurl;
 
 	@Autowired
 	Httpclientcaller dataTransmit;
@@ -99,7 +99,7 @@ public class CommonServices {
 				tablename = "logsofuser?id=eq." + id;
 				sendby = "put";
 			}
-			url = applicationurl + tablename;
+			url = GlobalAttributeHandler.getPgrestURL() + tablename;
 			if (sendby.equalsIgnoreCase("post"))
 				response = dataTransmit.transmitDataspgrestpost(url, json.toString(), false, schema);
 			else
@@ -124,14 +124,14 @@ public class CommonServices {
 			JSONObject getconfigofactivation = new JSONObject(
 					DisplaySingleton.memoryApplicationSetting.get("useractivationConfig").toString());
 
-			String url = applicationurl + getconfigofactivation.getString("tablename") + "?"
+			String url = GlobalAttributeHandler.getPgrestURL() + getconfigofactivation.getString("tablename") + "?"
 					+ getconfigofactivation.getString("verificationcolumn") + "=eq." + key;
 			JSONArray userData = dataTransmit.transmitDataspgrest(url, schema);
 			if (!userData.isEmpty()) {
 				JSONObject datas = new JSONObject(userData.get(0).toString());
 				if (!datas.getBoolean("mailverification")) {
 					datas.put("mailverification", true);
-					url = applicationurl + getconfigofactivation.getString("tablename") + "?"
+					url = GlobalAttributeHandler.getPgrestURL() + getconfigofactivation.getString("tablename") + "?"
 							+ getconfigofactivation.getString("primarykey") + "=eq."
 							+ datas.get(getconfigofactivation.getString("primarykey"));
 					String result = dataTransmit.transmitDataspgrestput(url, datas.toString(), false, schema);
@@ -190,10 +190,10 @@ public class CommonServices {
 				JSONObject jsonbody = new JSONObject();
 				jsonbody.put("user_id", id);
 				jsonbody.put("otp_code", OTP);
-				String url = applicationurl + "/otp_verification?user_id=eq." + id;
+				String url = GlobalAttributeHandler.getPgrestURL() + "/otp_verification?user_id=eq." + id;
 				JSONArray dataArray = dataTransmit.transmitDataspgrest(url, schema);
 				if (dataArray.isEmpty()) {
-					url = applicationurl + "/otp_verification";
+					url = GlobalAttributeHandler.getPgrestURL() + "/otp_verification";
 					dataTransmit.transmitDataspgrestpost(url, jsonbody.toString(), false, schema);
 				} else {
 //					JSONObject jsonData=new JSONObject(dataArray.get(0).toString());
@@ -202,7 +202,7 @@ public class CommonServices {
 //					}
 					jsonbody.put("attempts", 0);
 					jsonbody.put("id", new JSONObject(dataArray.get(0).toString()).get("id"));
-					url = applicationurl + "/otp_verification?id=eq."
+					url = GlobalAttributeHandler.getPgrestURL() + "/otp_verification?id=eq."
 							+ new JSONObject(dataArray.get(0).toString()).get("id");
 					dataTransmit.transmitDataspgrestput(url, jsonbody.toString(), false, schema);
 				}
@@ -218,7 +218,7 @@ public class CommonServices {
 		JSONObject jsonBody = null;
 		String res = "";
 		try {
-			String url = applicationurl + "/otp_verification?user_id=eq." + id;
+			String url = GlobalAttributeHandler.getPgrestURL() + "/otp_verification?user_id=eq." + id;
 			JSONArray dataArray = dataTransmit.transmitDataspgrest(url, schema);
 			if (!dataArray.isEmpty()) {
 				jsonBody = new JSONObject(dataArray.get(0).toString());
@@ -226,13 +226,13 @@ public class CommonServices {
 					if (jsonBody.getString("otp_code").equalsIgnoreCase(OTP)) {
 						jsonBody.put("attempts", jsonBody.getInt("attempts") + 1);
 						jsonBody.put("verified", true);
-						url = applicationurl + "/otp_verification?id=eq." + jsonBody.get("id");
+						url = GlobalAttributeHandler.getPgrestURL() + "/otp_verification?id=eq." + jsonBody.get("id");
 						dataTransmit.transmitDataspgrestput(url, jsonBody.toString(), false, schema);
 						res = "Verified";
 					} else {
 						jsonBody.put("attempts", jsonBody.getInt("attempts") + 1);
 						res = "Retry Verification OTP Dose not Match";
-						url = applicationurl + "/otp_verification?id=eq." + jsonBody.get("id");
+						url = GlobalAttributeHandler.getPgrestURL() + "/otp_verification?id=eq." + jsonBody.get("id");
 						dataTransmit.transmitDataspgrestput(url, jsonBody.toString(), false, schema);
 					}
 				} else {
@@ -296,7 +296,7 @@ public class CommonServices {
 		LOGGER.info("Enter into fetch a base64!!");
 
 		if (total_pages <= 100) {
-			url = applicationurl + "pdf_splitter?select=document&primary_id_pdf=eq." + value;
+			url = GlobalAttributeHandler.getPgrestURL() + "pdf_splitter?select=document&primary_id_pdf=eq." + value;
 			return new JSONObject(dataTransmit.transmitDataspgrest(url, schema).get(0).toString())
 					.getJSONObject("document").toMap();
 
@@ -313,7 +313,7 @@ public class CommonServices {
 
 					executorService.submit(() -> {
 
-						String urls = applicationurl + "rpc/get_pdf_splitdata?start_page=" + current_start_page
+						String urls = GlobalAttributeHandler.getPgrestURL() + "rpc/get_pdf_splitdata?start_page=" + current_start_page
 								+ "&end_page=" + current_end_page + "&datas=primary_id_pdf='" + value + "'";
 
 						try {
@@ -426,7 +426,7 @@ public class CommonServices {
 	}
 
 	public static String urlFormation(JSONObject formationData, JSONObject body) {
-		String url = GlobalAttributeHandler.getPgrest();
+		String url = "";
 		try {
 			List<String> where = new ArrayList<>();
 			if (formationData.getString("formationtype").equalsIgnoreCase("pgrest")) {

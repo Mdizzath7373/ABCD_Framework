@@ -40,8 +40,8 @@ public class FormdataController {
 	@Autowired
 	Httpclientcaller dHttpclientcaller;
 
-	@Value("${applicationurl}")
-	private String pgrest;
+//	@Value("${applicationurl}")
+//	private String pgrest;
 
 	@GetMapping("/form")
 	public String transmittingDataget(@RequestParam String name, @RequestParam String primary,

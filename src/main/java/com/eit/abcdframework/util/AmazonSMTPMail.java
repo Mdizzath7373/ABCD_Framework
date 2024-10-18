@@ -163,7 +163,7 @@ public class AmazonSMTPMail {
 			JSONObject smtpMail = new JSONObject(
 					DisplaySingleton.memoryApplicationSetting.get("smptAmazonMail").toString());
 			for (int c = 0; c < mail.length(); c++) {
-				String url = GlobalAttributeHandler.getPgrest() + "emailconfig?name=eq." + mail.get(c);
+				String url = GlobalAttributeHandler.getPgrestURL() + "emailconfig?name=eq." + mail.get(c);
 				mailContent = dataTransmit.transmitDataspgrest(url.replaceAll(" ", "%20"), schema);
 
 				for (int i = 0; i < mailContent.length(); i++) {
@@ -435,7 +435,7 @@ public class AmazonSMTPMail {
 			String mailid = "";
 			String getcloumnname = "";
 			if (!email.getBoolean("mailid")) {
-				String geturl = GlobalAttributeHandler.getPgrest() + email.getString("api") + "?datas="
+				String geturl = GlobalAttributeHandler.getPgrestURL() + email.getString("api") + "?datas="
 						+ jsonbody.getString(email.getString("column")) + "&name=" + email.getString("table");
 				geturl = geturl.replace(" ", "%20");
 				mailid = new JSONObject(dataTransmit.transmitDataspgrest(geturl, schema).get(0).toString())
@@ -481,12 +481,12 @@ public class AmazonSMTPMail {
 				JSONObject body = new JSONObject().put("job", jobs);
 
 				JSONArray datavalue = dataTransmit.transmitDataspgrest(CommonServices.urlFormation(urlFormation, body),
-						GlobalAttributeHandler.getSchema());
+						GlobalAttributeHandler.getSchemas());
 				if (!datavalue.isEmpty()) {
 					JSONObject jsonbody = new JSONObject(datavalue.get(0).toString());
 					result = mailSender2(emailConfig.getJSONArray("mail"),
 							jsonbody.getString(emailConfig.getString("columname")), emailConfig, jsonbody, files, "en",
-							GlobalAttributeHandler.getSchema());
+							GlobalAttributeHandler.getSchemas());
 					LOGGER.info("Cron throw Mail For {}--->{}", jobs, result);
 				}
 			} catch (Exception e) {

@@ -4,6 +4,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ModelAttribute;
 
+import jakarta.annotation.PostConstruct;
+
 @ControllerAdvice
 public class GlobalAttributeHandler {
 
@@ -24,39 +26,57 @@ public class GlobalAttributeHandler {
 	private static final String ALGORITHM = "AES/CBC/PKCS5Padding"; // AES with CBC and PKCS5 padding
 	private static final String SECRET_KEY = "ABCDFRAM09876543"; // 16-byte key for AES
 	private static final String IV = "ABCDFRAMIV098765"; // 16-byte IV for AES
+	private static String schemas;
+	private static String pgrestURL;
+	
 	
 	@Value("${applicationurl}")
-	private static String pgrest;
-	
+	private String pgrest;
+
 	@Value("${schema}")
-	private static String schema;
-	
-	@ModelAttribute("schema")
-	public static String getSchema() {
-		return schema;
+	private String schema;
+
+	@PostConstruct
+	public void init() {
+		schemas = schema;
+		pgrestURL=pgrest;
+		
 	}
+
 	
-	
-	@ModelAttribute("pgresturl")
-	public static String getPgrest() {
-		return pgrest;
+	@ModelAttribute("schemas")
+	public static String getSchemas() {
+		return schemas;
 	}
+
+
+	@ModelAttribute("pgrestURL")
+	public static String getPgrestURL() {
+		return pgrestURL;
+	}
+
+
+
 	@ModelAttribute("ALLOWED_CHARACTERS")
 	public static String getAllowedCharacters() {
 		return ALLOWED_CHARACTERS;
 	}
+
 	@ModelAttribute("MAX_CODE_LENGTH")
 	public static int getMaxCodeLength() {
 		return MAX_CODE_LENGTH;
 	}
+
 	@ModelAttribute("ALGORITHM")
 	public static String getAlgorithm() {
 		return ALGORITHM;
 	}
+
 	@ModelAttribute("SECRET_KEY")
 	public static String getSecretKey() {
 		return SECRET_KEY;
 	}
+
 	@ModelAttribute("IV")
 	public static String getIv() {
 		return IV;

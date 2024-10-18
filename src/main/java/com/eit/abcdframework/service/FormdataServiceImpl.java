@@ -10,7 +10,6 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -47,8 +46,8 @@ public class FormdataServiceImpl implements FormdataService {
 //	private static final String FAILURE = "Failure";
 //	private static final String DATAVALUE = "datavalue";
 
-	@Value("${applicationurl}")
-	private String pgrest;
+//	@Value("${applicationurl}")
+//	private String pgrest;
 
 	@Override
 	public String transmittingToMethod(String method, String data, String which) {
@@ -100,7 +99,7 @@ public class FormdataServiceImpl implements FormdataService {
 				if (checkingFunc.getJSONArray("curd").toList().contains(method)) {
 					String valueOF = new JSONObject(
 							dataTransmit
-									.transmitDataspgrest(pgrest + checkingFunc.getString("FindTable")
+									.transmitDataspgrest(GlobalAttributeHandler.getPgrestURL() + checkingFunc.getString("FindTable")
 											+ jsonheader.get("UniqueColumn"), gettabledata.getString("schema"))
 									.get(0).toString())
 							.getString("FetchColumn");
@@ -179,7 +178,7 @@ public class FormdataServiceImpl implements FormdataService {
 		String response = "";
 		try {
 
-			String url = (pgrest + gettabledata.getString("POST")).replaceAll(" ", "%20");
+			String url = (GlobalAttributeHandler.getPgrestURL() + gettabledata.getString("POST")).replaceAll(" ", "%20");
 			response = dataTransmit.transmitDataspgrestpost(url, jsonbody.toString(),
 					jsonheader.has("primaryvalue") ? jsonheader.getBoolean("primaryvalue") : false,
 					gettabledata.getString("schema"));
@@ -201,7 +200,7 @@ public class FormdataServiceImpl implements FormdataService {
 					.getString(GlobalAttributeHandler.getPrimarycolumnkey());
 
 			if (jsonbody.has(primarykey) && !jsonbody.get(primarykey).toString().equalsIgnoreCase("")) {
-				String url = pgrest + gettabledata.getString("PUT") + "?" + primarykey + "=eq."
+				String url = GlobalAttributeHandler.getPgrestURL() + gettabledata.getString("PUT") + "?" + primarykey + "=eq."
 						+ jsonbody.get(primarykey);
 				url = url.replace(" ", "%20");
 
@@ -266,13 +265,13 @@ public class FormdataServiceImpl implements FormdataService {
 							+ (where.equalsIgnoreCase("") ? "" : " and " + where.replace("?datas=", ""));
 					quryJson.put("where", whereCon);
 				}
-				url = pgrest + gettabledata.getString("Function") + "?basequery=" + gettabledata.getJSONObject("Query");
+				url = GlobalAttributeHandler.getPgrestURL() + gettabledata.getString("Function") + "?basequery=" + gettabledata.getJSONObject("Query");
 			} else if (primary != null && !primary.equalsIgnoreCase("")) {
-				url = pgrest + gettabledata.getString(method.toUpperCase()) + "?" + columnprimarykey + "=eq." + primary;
+				url = GlobalAttributeHandler.getPgrestURL() + gettabledata.getString(method.toUpperCase()) + "?" + columnprimarykey + "=eq." + primary;
 			} else if (primary != null && primary.equalsIgnoreCase("") && !where.equalsIgnoreCase("")) {
-				url = pgrest + gettabledata.getString(method.toUpperCase()) + URLEncode(where);
+				url = GlobalAttributeHandler.getPgrestURL() + gettabledata.getString(method.toUpperCase()) + URLEncode(where);
 			} else {
-				url = pgrest + gettabledata.getString("GET");
+				url = GlobalAttributeHandler.getPgrestURL() + gettabledata.getString("GET");
 			}
 
 			if (which.equalsIgnoreCase("post")) {
@@ -316,10 +315,10 @@ public class FormdataServiceImpl implements FormdataService {
 		try {
 			String url = "";
 			if (primary != null && !primary.equalsIgnoreCase("")) {
-				url = (pgrest + gettabledata.getString(method.toUpperCase()) + "?" + columnprimarykey + "=eq."
+				url = (GlobalAttributeHandler.getPgrestURL() + gettabledata.getString(method.toUpperCase()) + "?" + columnprimarykey + "=eq."
 						+ primary).replaceAll(" ", "%20");
 			} else if (primary != null && primary.equalsIgnoreCase("") && !where.equalsIgnoreCase("")) {
-				url = (pgrest + gettabledata.getString(method.toUpperCase()) + where).replaceAll(" ", "%20");
+				url = (GlobalAttributeHandler.getPgrestURL() + gettabledata.getString(method.toUpperCase()) + where).replaceAll(" ", "%20");
 				;
 
 			} else if (isdeleteall) {

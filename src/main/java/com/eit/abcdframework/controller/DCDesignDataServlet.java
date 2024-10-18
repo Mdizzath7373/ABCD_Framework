@@ -36,11 +36,8 @@ public class DCDesignDataServlet {
 	@Autowired
 	FileuploadServices fileuploadServices;
 
-	@Autowired
-	AmazonS3 amazonS3;
-
-	@Value("${applicationurl}")
-	public String pgrest;
+//	@Value("${applicationurl}")
+//	public String pgrest;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger("DCDesignDataServlet");
 

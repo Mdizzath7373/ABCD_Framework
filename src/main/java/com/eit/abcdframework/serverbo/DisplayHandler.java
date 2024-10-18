@@ -10,14 +10,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 
-import com.eit.abcdframework.controller.DCDesignDataServlet;
 import com.eit.abcdframework.dto.CommonUtilDto;
+import com.eit.abcdframework.globalhandler.GlobalAttributeHandler;
 import com.eit.abcdframework.http.caller.Httpclientcaller;
-import com.eit.abcdframework.http.caller.Httpurlconnectioncaller;
 
 @Service
 public class DisplayHandler {
@@ -37,8 +35,8 @@ public class DisplayHandler {
 		dataTransmits = service;
 	}
 
-	@Value("${applicationurl}")
-	private String applicationurl;
+//	@Value("${applicationurl}")
+//	private String applicationurl;
 
 	@Autowired
 	WhereFormation whereFormation;
@@ -238,7 +236,7 @@ public class DisplayHandler {
 		JSONArray res = new JSONArray();
 		JSONObject displayConfig;
 		String url;
-		String pgrest = applicationurl;
+//		String pgrest = applicationurl;
 		try {
 			List<JSONObject> checkjson = new ArrayList<>();
 			JSONObject aliesobj = new JSONObject(alias);
@@ -295,21 +293,21 @@ public class DisplayHandler {
 								+ (where.equalsIgnoreCase("") ? "" : " and " + where);
 						quryJson.put("where", whereCon);
 					}
-					url = pgrest + "rpc/predefine_function" + "?basequery=" + extraDatas.getJSONObject("QueryData");
+					url = GlobalAttributeHandler.getPgrestURL() + "rpc/predefine_function" + "?basequery=" + extraDatas.getJSONObject("QueryData");
 				} else if (function && !where.isEmpty()) {
 					if (extraDatas.has("name"))
-						url = pgrest + api + where + "&" + "name=" + extraDatas.getString("name");
+						url = GlobalAttributeHandler.getPgrestURL() + api + where + "&" + "name=" + extraDatas.getString("name");
 					else
-						url = pgrest + api + where;
+						url = GlobalAttributeHandler.getPgrestURL() + api + where;
 				} else if (function) {
 					if (extraDatas.has("name"))
-						url = pgrest + api + "?name=" + extraDatas.getString("name");
+						url = GlobalAttributeHandler.getPgrestURL() + api + "?name=" + extraDatas.getString("name");
 					else
-						url = pgrest + api + "?datas=";
+						url = GlobalAttributeHandler.getPgrestURL() + api + "?datas=";
 				} else if (!where.isEmpty()) {
-					url = pgrest + api + "?" + where;
+					url = GlobalAttributeHandler.getPgrestURL() + api + "?" + where;
 				} else {
-					url = pgrest + api;
+					url = GlobalAttributeHandler.getPgrestURL() + api;
 				}
 				url = url.replaceAll(" ", "%20");
 				if (extraDatas.has("preDefined") && extraDatas.getBoolean("preDefined")) {
@@ -374,7 +372,7 @@ public class DisplayHandler {
 		JSONArray res = new JSONArray();
 		JSONObject displayConfig;
 		String url;
-		String pgrest = applicationurl;
+//		String pgrest = applicationurl;
 		try {
 			JSONObject aliesobj = new JSONObject(alias);
 			JSONArray dataBody = aliesobj.getJSONArray("Data");
@@ -424,21 +422,21 @@ public class DisplayHandler {
 								+ (where.equalsIgnoreCase("") ? "" : " and " + where.replace("?datas=", ""));
 						quryJson.put("where", whereCon);
 					}
-					url = pgrest + extraDatas.getString("Function") + "?basequery=" + extraDatas.getJSONObject("Query");
+					url = GlobalAttributeHandler.getPgrestURL() + extraDatas.getString("Function") + "?basequery=" + extraDatas.getJSONObject("Query");
 				} else if (function && !where.isEmpty()) {
 					if (extraDatas.has("name"))
-						url = pgrest + api + where + "&" + "name=" + extraDatas.getString("name");
+						url = GlobalAttributeHandler.getPgrestURL() + api + where + "&" + "name=" + extraDatas.getString("name");
 					else
-						url = pgrest + api + where;
+						url = GlobalAttributeHandler.getPgrestURL() + api + where;
 				} else if (function) {
 					if (extraDatas.has("name"))
-						url = pgrest + api + "?name=" + extraDatas.getString("name");
+						url = GlobalAttributeHandler.getPgrestURL() + api + "?name=" + extraDatas.getString("name");
 					else
-						url = pgrest + api + "?datas=";
+						url = GlobalAttributeHandler.getPgrestURL() + api + "?datas=";
 				} else if (!where.isEmpty()) {
-					url = pgrest + api + "?" + where;
+					url = GlobalAttributeHandler.getPgrestURL() + api + "?" + where;
 				} else {
-					url = pgrest + api;
+					url = GlobalAttributeHandler.getPgrestURL() + api;
 				}
 				url = url.replace(" ", "%20");
 

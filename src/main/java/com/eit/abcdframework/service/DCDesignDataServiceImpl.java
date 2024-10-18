@@ -7,13 +7,11 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import org.apache.pdfbox.pdmodel.PDDocument;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -54,8 +52,8 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 	@Autowired
 	DisplayHandler displayHandler;
 
-	@Value("${applicationurl}")
-	private String pgresturl;
+//	@Value("${applicationurl}")
+//	private String pgresturl;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger("DCDesignDataServiceImpl");
 //	private static final String ISSUSEFILE = "issusefile";
@@ -174,7 +172,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 			}
 
 			if (primary_id != 0) {
-				String delUrl = pgresturl + "pdf_splitter?id=eq." + primary_id;
+				String delUrl = GlobalAttributeHandler.getPgrestURL() + "pdf_splitter?id=eq." + primary_id;
 				dataTransmit.transmitDataspgrestDel(delUrl, gettabledata.getString("schema"));
 			} else {
 				new JSONObject().put(GlobalAttributeHandler.getError(), GlobalAttributeHandler.getFailure()).toString();
@@ -202,13 +200,13 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 					jsonbody.put(gettabledata.getString("dateandtime"),
 							TimeZoneServices.getDateInTimeZoneforSKT("Asia/Riyadh"));
 				}
-				url = pgresturl + gettabledata.getString("api").replaceAll(" ", "%20");
+				url = GlobalAttributeHandler.getPgrestURL() + gettabledata.getString("api").replaceAll(" ", "%20");
 				response = dataTransmit.transmitDataspgrestpost(url, jsonbody.toString(), false,
 						gettabledata.getString("schema"));
 			} else if (method.equalsIgnoreCase("PUT")) {
 				if (jsonbody.has(columnprimarykey) && !jsonbody.get(columnprimarykey).toString().equalsIgnoreCase("")) {
 					// if use put method we need primary key (set primary key column name)
-					url = (pgresturl + gettabledata.getString("api") + "?" + columnprimarykey + "=eq."
+					url = (GlobalAttributeHandler.getPgrestURL() + gettabledata.getString("api") + "?" + columnprimarykey + "=eq."
 							+ (jsonbody.get(columnprimarykey)).toString()).replaceAll(" ", "%20");
 					response = dataTransmit.transmitDataspgrestput(url, jsonbody.toString(), false,
 							gettabledata.getString("schema"));
@@ -230,7 +228,6 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 //	@Override
 	public String fileupload(List<MultipartFile> files, String data) {
 		JSONObject returndata = new JSONObject();
-//		JSONObject email = null;
 		String res = "";
 		JSONObject documentdata = null;
 		JSONObject jsonObject1 = null;
@@ -271,14 +268,14 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 					jsonbody.put(gettabledata.getString("dateandtime"),
 							TimeZoneServices.getDateInTimeZoneforSKT("Asia/Riyadh"));
 				}
-				url = pgresturl + gettabledata.getString("api");
+				url = GlobalAttributeHandler.getPgrestURL() + gettabledata.getString("api");
 				url = url.replace(" ", "%20");
 				response = dataTransmit.transmitDataspgrestpost(url, jsonbody.toString(), false,
 						gettabledata.getString("schema"));
 			} else if (method.equalsIgnoreCase("PUT")) {
 				if (jsonbody.has(columnprimarykey) && !jsonbody.get(columnprimarykey).toString().equalsIgnoreCase("")) {
 					// if use put method we need primary key (set primary key column name)
-					url = pgresturl + gettabledata.getString("api") + "?" + columnprimarykey + "=eq."
+					url = GlobalAttributeHandler.getPgrestURL() + gettabledata.getString("api") + "?" + columnprimarykey + "=eq."
 							+ (jsonbody.get(columnprimarykey)).toString();
 					url = url.replace(" ", "%20");
 					response = dataTransmit.transmitDataspgrestput(url, jsonbody.toString(), false,
@@ -372,9 +369,9 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 						quryJson.put("where", whereCon);
 					}
 
-					url = pgresturl + extraDatas.getString("Function") + "?basequery=" + quryJson;
+					url = GlobalAttributeHandler.getPgrestURL() + extraDatas.getString("Function") + "?basequery=" + quryJson;
 				} else {
-					url = pgresturl + extraDatas.getString(method);
+					url = GlobalAttributeHandler.getPgrestURL() + extraDatas.getString(method);
 				}
 
 				if (where != "" && extraDatas.has("params")) {
@@ -403,7 +400,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 						quryJson.put("where", whereCon);
 					}
 
-					url = pgresturl + extraDatas.getString("Function") + "?basequery=" + quryJson;
+					url = GlobalAttributeHandler.getPgrestURL() + extraDatas.getString("Function") + "?basequery=" + quryJson;
 
 					datavalues = new JSONObject(new JSONArray(
 							dataTransmit.transmitDataspgrest(url, extraDatas.getString("schema")).get(0).toString()))
@@ -700,7 +697,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 			JSONObject gettabledata = new JSONObject(displayConfig.get("datas").toString());
 
 			jsonObject.keys().forEachRemaining(key -> {
-				String url = pgresturl + "rpc/update_base64";
+				String url = GlobalAttributeHandler.getPgrestURL() + "rpc/update_base64";
 				JSONObject jsondata = new JSONObject();
 				jsondata.put("key", key);
 				jsondata.put("datavalue", jsonObject.getString(key));

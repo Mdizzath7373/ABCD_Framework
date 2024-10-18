@@ -9,7 +9,6 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -22,13 +21,10 @@ import com.eit.abcdframework.websocket.WebSocketService;
 
 @Service
 public class ResponcesHandling {
-//	@Autowired
-//	static CommonServices commonServices;
 
-//	@Autowired
+
 	static WebSocketService socketService;
 
-//	@Autowired
 	static AmazonSMTPMail amazonSMTPMail;
 
 	@Autowired
@@ -42,25 +38,19 @@ public class ResponcesHandling {
 	}
 
 //	@Value("${applicationurl}")
-	private static String applicationurl;
+//	private static String applicationurl;
+//
+//	@Value("${applicationurl}")
+//	public void setProductService(String applicationurl) {
+//		ResponcesHandling.applicationurl = applicationurl;
+//	}
 
-	@Value("${applicationurl}")
-	public void setProductService(String applicationurl) {
-		ResponcesHandling.applicationurl = applicationurl;
-	}
-
-//	@Autowired
 	static Httpclientcaller dataTransmit;
 
 	@Autowired
 	public void setProductService(Httpclientcaller dataTransmit) {
 		ResponcesHandling.dataTransmit = dataTransmit;
 	}
-
-//	private static final String KEY = "primarykey";
-//	private static final String REFLEX = "reflex";
-//	private static final String SUCCESS = "Success";
-//	private static final String ERROR = "error";
 
 	private static final Logger LOGGER = LoggerFactory.getLogger("ResponcesHandling");
 
@@ -168,7 +158,7 @@ public class ResponcesHandling {
 				setvalue.put(param.getString(i),
 						jsonbody.get(getvalue.getJSONObject("getvalues").get(param.get(i).toString()).toString()));
 			}
-			String url = applicationurl + "activitylog";
+			String url = GlobalAttributeHandler.getPgrestURL() + "activitylog";
 			String response = dataTransmit.transmitDataspgrestpost(url, setvalue.toString(), false, schema);
 			if (Integer.parseInt(response) >= 200 && Integer.parseInt(response) <= 226) {
 				if (notification) {
@@ -197,7 +187,7 @@ public class ResponcesHandling {
 				smsObject.getJSONObject("fetchby").getString("tablename");
 				smsObject.getJSONObject("fetchby").getJSONArray("param");
 				smsObject.getJSONObject("fetchby").getJSONArray("value");
-				String url = applicationurl + smsObject.getJSONObject("fetchby").getString("tablename") + "?"
+				String url = GlobalAttributeHandler.getPgrestURL() + smsObject.getJSONObject("fetchby").getString("tablename") + "?"
 						+ smsObject.getJSONObject("fetchby").getJSONArray("param").get(0) + "=eq."
 						+ jsonbody.get(smsObject.getJSONObject("fetchby").getJSONArray("value").get(0).toString());
 				datavalue = new JSONObject(
@@ -245,7 +235,7 @@ public class ResponcesHandling {
 					String where = emailObject.getJSONObject("FindToggle").getJSONObject("where").getString("condition")
 							+ jsonbody.get(
 									emailObject.getJSONObject("FindToggle").getJSONObject("where").getString("value"));
-					String url = (applicationurl + api + "?" + where).replaceAll(" ", "%20");
+					String url = (GlobalAttributeHandler.getPgrestURL() + api + "?" + where).replaceAll(" ", "%20");
 
 					String toogleData = new JSONObject(dataTransmit.transmitDataspgrest(url, schema).get(0).toString())
 							.getString(emailObject.getJSONObject("FindToggle").getString("columnkey"));
@@ -286,7 +276,7 @@ public class ResponcesHandling {
 			String schema) {
 		try {
 
-			String url = applicationurl + getJsonObject.getString("getToken") + "?status=eq.login";
+			String url = GlobalAttributeHandler.getPgrestURL() + getJsonObject.getString("getToken") + "?status=eq.login";
 			JSONArray jsonArray = dataTransmit.transmitDataspgrest(url, schema);
 			if (jsonArray.isEmpty()) {
 				return "No token Found";
