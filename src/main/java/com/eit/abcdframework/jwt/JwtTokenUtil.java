@@ -100,7 +100,6 @@ public class JwtTokenUtil {
 	}
 
 	public Boolean canTokenBeRefreshed(String token) {
-		System.err.println(token);
 		return (!isTokenExpired(token) || ignoreTokenExpiration(token));
 	}
 
@@ -145,7 +144,7 @@ public class JwtTokenUtil {
 						.setExpiration(expiredTime)
 						.signWith(SignatureAlgorithm.HS512, ConfigurationFile.getStringConfig("jwt.secret")).compact();
 			}
-			System.out.println(updatedToken);
+			System.out.println("Updated Token--->"+updatedToken);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

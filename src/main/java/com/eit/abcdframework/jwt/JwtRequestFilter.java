@@ -78,8 +78,8 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
 						username = jwtTokenUtil.getUsernameFromToken(currentToken);
 						if (jwtTokenUtil.canTokenBeRefreshed(currentToken)) {
-							lastupdToken.put(currentToken, jwtTokenUtil.updateToken(currentToken, whichapp, username));
-							jwtToken = lastupdToken.get(currentToken);
+							lastupdToken.put(oldToken, jwtTokenUtil.updateToken(currentToken, whichapp, username));
+							jwtToken = lastupdToken.get(oldToken);
 						}
 
 					} else {
