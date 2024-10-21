@@ -29,4 +29,6 @@ public interface DCDesignDataService {
 
 	String fileUpload(List<MultipartFile> files, String data,String transmitMethod);
 
+	String uploadImageProgress(List<MultipartFile> files,String data);
+
 }

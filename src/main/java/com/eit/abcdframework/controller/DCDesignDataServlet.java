@@ -2,13 +2,11 @@ package com.eit.abcdframework.controller;
 
 import java.util.List;
 
-import org.joda.time.Instant;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,7 +17,6 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.amazonaws.services.s3.AmazonS3;
 import com.eit.abcdframework.dto.CommonUtilDto;
 import com.eit.abcdframework.serverbo.CommonServices;
 import com.eit.abcdframework.serverbo.FileuploadServices;
@@ -97,6 +94,13 @@ public class DCDesignDataServlet {
 		else
 			jsonObject1 = new JSONObject(data);
 		return ResponseEntity.ok(dcDesignDataService.SplitterPDFChanges(jsonObject1));
+	}
+	
+	
+	@PostMapping("/UploadImage")
+	public ResponseEntity<String> uploadProcess(@RequestPart("files") List<MultipartFile> files,@RequestParam String data ) throws JSONException, Exception {
+		return ResponseEntity.ok(dcDesignDataService.uploadImageProgress(files,data));
+		
 	}
 
 //	@PostMapping(value = "/testfileupload", produces = { "application/json" })

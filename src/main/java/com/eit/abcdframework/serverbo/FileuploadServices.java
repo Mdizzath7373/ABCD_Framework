@@ -277,7 +277,7 @@ public class FileuploadServices {
 				try {
 					future.get();
 				} catch (Exception e) {
-					LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(),e);
+					LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
 				}
 			}
 		} finally {
@@ -294,7 +294,8 @@ public class FileuploadServices {
 		}
 
 		LOGGER.warn("ENTER INTO saveOrUpdateData {BASE64iMAGES}---------->" + Instant.now());
-		saveOrUpdateData(base64String, primaryKey, progressCount, jsonbody.get("ids").toString(), jsonbody,gettabledata.getString("schema"));
+		saveOrUpdateData(base64String, primaryKey, progressCount, jsonbody.get("ids").toString(), jsonbody,
+				gettabledata.getString("schema"));
 		LOGGER.warn("EXIT saveOrUpdateData {BASE64iMAGES}------->" + Instant.now());
 
 		Instant endTime = Instant.now();
@@ -365,7 +366,7 @@ public class FileuploadServices {
 	}
 
 	private void saveOrUpdateData(Map<Integer, String> base64String, String primarykey, AtomicInteger progressCount,
-			String id, JSONObject jsonbody,String schema) {
+			String id, JSONObject jsonbody, String schema) {
 		String res = "";
 		try {
 			int total = base64String.size();
@@ -379,13 +380,13 @@ public class FileuploadServices {
 
 			LOGGER.warn("Enter into save");
 			String url = GlobalAttributeHandler.getPgrestURL() + "pdf_splitter";
-			res = daHttpclientcaller.transmitDataspgrestpost(url, savePDF.toString(), false,schema);
+			res = daHttpclientcaller.transmitDataspgrestpost(url, savePDF.toString(), false, schema);
 			if (Integer.parseInt(res) >= 200 && Integer.parseInt(res) <= 226) {
 				progressCount.set(85);
 				progress.put(id + "-" + primarykey, progressCount);
 				socketService.pushSocketData(new JSONObject(), jsonbody, "progress");
 			}
-			LOGGER.warn(daHttpclientcaller.transmitDataspgrestpost(url, savePDF.toString(), false,schema));
+			LOGGER.warn(daHttpclientcaller.transmitDataspgrestpost(url, savePDF.toString(), false, schema));
 
 		} catch (Exception e) {
 			LOGGER.error("Error during save/update", e);
@@ -623,8 +624,10 @@ public class FileuploadServices {
 					&& gettabledata.getJSONObject("Splitter").getBoolean("original")) {
 				PDFpath = currentDir + "original.pdf";
 			}
-			String geturl = GlobalAttributeHandler.getPgrestURL() + "pdf_splitter?select=total_pages,id&primary_id_pdf=eq." + value;
-			JSONObject datavalue = new JSONObject(daHttpclientcaller.transmitDataspgrest(geturl,gettabledata.getString("schema")).get(0).toString());
+			String geturl = GlobalAttributeHandler.getPgrestURL()
+					+ "pdf_splitter?select=total_pages,id&primary_id_pdf=eq." + value;
+			JSONObject datavalue = new JSONObject(
+					daHttpclientcaller.transmitDataspgrest(geturl, gettabledata.getString("schema")).get(0).toString());
 			int total_pages = datavalue.getInt("total_pages");
 			primary_id = datavalue.getInt("id");
 
@@ -641,6 +644,35 @@ public class FileuploadServices {
 			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
 		}
 		return primary_id;
+	}
+
+	public boolean uploadfile(MultipartFile multipartFile, int count,JSONObject S3urls, JSONObject jsonbody) {
+		try {
+
+			String[] extensen = multipartFile.getOriginalFilename().split("\\.");
+			String filePath = path + "Onboard" + count + dateFormat.format(new Date()) + "."
+					+ extensen[extensen.length - 1];
+			synchronized (multipartFile) {
+				progress.put(jsonbody.get("ids") + "-" +(jsonbody.getString("serialid")+"$"+ multipartFile.getOriginalFilename()), new AtomicInteger(50));
+				socketService.pushSocketData(new JSONObject(), jsonbody, "progress");
+
+				if (uploadFile(multipartFile, filePath)) {
+
+					progress.put(jsonbody.get("ids") + "-" +(jsonbody.getString("serialid")+"$"+ multipartFile.getOriginalFilename()),
+							new AtomicInteger(100));
+					socketService.pushSocketData(new JSONObject(), jsonbody, "progress");
+
+					S3urls.put(multipartFile.getOriginalFilename(), s3url + filePath);
+					return true;
+				}
+			}
+
+		} catch (Exception e) {
+			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+			return false;
+		}
+		return true;
+
 	}
 
 }

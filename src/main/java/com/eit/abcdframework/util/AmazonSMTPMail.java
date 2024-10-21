@@ -224,15 +224,15 @@ public class AmazonSMTPMail {
 							if (jsondata.getBoolean("withattachment") && !files.isEmpty()) {
 								resultOfMail = sendEmailWithFile(smtpMail.getString("amazonverifiedfromemail"),
 										emails.get(m),
-// new JSONObject(jsondata.get("subject").toString()).getString(lang), body,
-										jsondata.getString("subject"), body, smtpMail.getString("amazonsmtpusername"),
+										new JSONObject(jsondata.get("subject").toString()).getString(lang), body,
+										smtpMail.getString("amazonsmtpusername"),
 										smtpMail.getString("amazonsmtppassword"),
 										smtpMail.getString("amazonhostaddress"), smtpMail.getString("amazonport"),
 										files);
 							} else {
 								resultOfMail = sendEmail(smtpMail.getString("amazonverifiedfromemail"), emails.get(m),
-// new JSONObject(jsondata.get("subject").toString()).getString(lang), body,
-										jsondata.getString("subject"), body, smtpMail.getString("amazonsmtpusername"),
+										new JSONObject(jsondata.get("subject").toString()).getString(lang), body,
+										smtpMail.getString("amazonsmtpusername"),
 										smtpMail.getString("amazonsmtppassword"),
 										smtpMail.getString("amazonhostaddress"), smtpMail.getString("amazonport"));
 							}

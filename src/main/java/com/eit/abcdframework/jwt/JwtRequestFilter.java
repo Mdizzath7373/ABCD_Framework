@@ -67,6 +67,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 					} else {
 						LOGGER.info("Enter into Check Token");
 						username = jwtTokenUtil.getUsernameFromToken(currentToken);
+						jwtToken=currentToken;
 					}
 				} else {
 					
@@ -99,6 +100,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 						} else {
 							LOGGER.info("Enter into Check Token");
 							username = jwtTokenUtil.getUsernameFromToken(currentToken);
+							jwtToken=currentToken;
 						}
 
 					}

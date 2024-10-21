@@ -2,8 +2,15 @@ package com.eit.abcdframework.service;
 
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -51,9 +58,6 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 
 	@Autowired
 	DisplayHandler displayHandler;
-
-//	@Value("${applicationurl}")
-//	private String pgresturl;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger("DCDesignDataServiceImpl");
 //	private static final String ISSUSEFILE = "issusefile";
@@ -138,7 +142,8 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 				res = fileuploadServices.convertPdfToMultipart(files.get(0), gettabledata, jsonbody);
 				isprogress = true;
 				if (res.equalsIgnoreCase("Failed")) {
-					new JSONObject().put(GlobalAttributeHandler.getError(), GlobalAttributeHandler.getFailure()).toString();
+					new JSONObject().put(GlobalAttributeHandler.getError(), GlobalAttributeHandler.getFailure())
+							.toString();
 				}
 			} else if (transmitMethod.equalsIgnoreCase("MergeFile")) {
 				fileuploadServices.mergebase64ToPDF(gettabledata, jsonbody, files.get(0));
@@ -155,8 +160,8 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 						LOGGER.info("Councurrent API Response----->{}", councurrentAPIres);
 					}
 					if (!councurrentAPIres.equalsIgnoreCase("Success")) {
-						return new JSONObject().put(GlobalAttributeHandler.getError(), GlobalAttributeHandler.getFailure())
-								.toString();
+						return new JSONObject()
+								.put(GlobalAttributeHandler.getError(), GlobalAttributeHandler.getFailure()).toString();
 					}
 				}
 			}
@@ -206,12 +211,14 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 			} else if (method.equalsIgnoreCase("PUT")) {
 				if (jsonbody.has(columnprimarykey) && !jsonbody.get(columnprimarykey).toString().equalsIgnoreCase("")) {
 					// if use put method we need primary key (set primary key column name)
-					url = (GlobalAttributeHandler.getPgrestURL() + gettabledata.getString("api") + "?" + columnprimarykey + "=eq."
-							+ (jsonbody.get(columnprimarykey)).toString()).replaceAll(" ", "%20");
+					url = (GlobalAttributeHandler.getPgrestURL() + gettabledata.getString("api") + "?"
+							+ columnprimarykey + "=eq." + (jsonbody.get(columnprimarykey)).toString())
+							.replaceAll(" ", "%20");
 					response = dataTransmit.transmitDataspgrestput(url, jsonbody.toString(), false,
 							gettabledata.getString("schema"));
 				} else {
-					return new JSONObject().put(GlobalAttributeHandler.getError(), "primaryKey is Missing,Please Check this")
+					return new JSONObject()
+							.put(GlobalAttributeHandler.getError(), "primaryKey is Missing,Please Check this")
 							.toString();
 				}
 			}
@@ -275,8 +282,8 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 			} else if (method.equalsIgnoreCase("PUT")) {
 				if (jsonbody.has(columnprimarykey) && !jsonbody.get(columnprimarykey).toString().equalsIgnoreCase("")) {
 					// if use put method we need primary key (set primary key column name)
-					url = GlobalAttributeHandler.getPgrestURL() + gettabledata.getString("api") + "?" + columnprimarykey + "=eq."
-							+ (jsonbody.get(columnprimarykey)).toString();
+					url = GlobalAttributeHandler.getPgrestURL() + gettabledata.getString("api") + "?" + columnprimarykey
+							+ "=eq." + (jsonbody.get(columnprimarykey)).toString();
 					url = url.replace(" ", "%20");
 					response = dataTransmit.transmitDataspgrestput(url, jsonbody.toString(), false,
 							gettabledata.getString("schema"));
@@ -293,7 +300,8 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 
 		Exception e) {
 			LOGGER.error("Exception at fileupload" + Thread.currentThread().getStackTrace()[1].getMethodName(), e);
-			return new JSONObject().put(GlobalAttributeHandler.getError(), GlobalAttributeHandler.getFailure()).toString();
+			return new JSONObject().put(GlobalAttributeHandler.getError(), GlobalAttributeHandler.getFailure())
+					.toString();
 		}
 		LOGGER.info("Fileupload Completed");
 //		return returndata.toString();
@@ -369,7 +377,8 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 						quryJson.put("where", whereCon);
 					}
 
-					url = GlobalAttributeHandler.getPgrestURL() + extraDatas.getString("Function") + "?basequery=" + quryJson;
+					url = GlobalAttributeHandler.getPgrestURL() + extraDatas.getString("Function") + "?basequery="
+							+ quryJson;
 				} else {
 					url = GlobalAttributeHandler.getPgrestURL() + extraDatas.getString(method);
 				}
@@ -400,7 +409,8 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 						quryJson.put("where", whereCon);
 					}
 
-					url = GlobalAttributeHandler.getPgrestURL() + extraDatas.getString("Function") + "?basequery=" + quryJson;
+					url = GlobalAttributeHandler.getPgrestURL() + extraDatas.getString("Function") + "?basequery="
+							+ quryJson;
 
 					datavalues = new JSONObject(new JSONArray(
 							dataTransmit.transmitDataspgrest(url, extraDatas.getString("schema")).get(0).toString()))
@@ -690,14 +700,12 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 		JSONObject res = new JSONObject();
 		try {
 			JSONObject setValues = new JSONObject();
-			
-			JSONObject jsonHeader=new  JSONObject(jsonObject1.get("header").toString());
-			
 
-			JSONObject jsonObject =new  JSONObject(jsonObject1.get("body").toString());
-			
-			JSONObject docObj=jsonObject.getJSONObject("document");
-			
+			JSONObject jsonHeader = new JSONObject(jsonObject1.get("header").toString());
+
+			JSONObject jsonObject = new JSONObject(jsonObject1.get("body").toString());
+
+			JSONObject docObj = jsonObject.getJSONObject("document");
 
 			JSONObject displayConfig = DisplaySingleton.memoryDispObjs2.getJSONObject(jsonHeader.getString("name"));
 			JSONObject gettabledata = new JSONObject(displayConfig.get("datas").toString());
@@ -724,5 +732,47 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 
 		return res.toString();
 
+	}
+
+	@Override
+	public String uploadImageProgress(List<MultipartFile> files, String data) {
+
+		ExecutorService executorService = new ThreadPoolExecutor(30, 50, 60L, TimeUnit.SECONDS,
+				new LinkedBlockingQueue<Runnable>(), new ThreadPoolExecutor.CallerRunsPolicy());
+		try {
+
+			List<Future<Boolean>> futures = new ArrayList<>();
+			JSONObject S3urls = new JSONObject();
+			for (int pageIndex = 0; pageIndex < files.size(); pageIndex++) {
+				int currentIndex = pageIndex;
+				futures.add(executorService.submit(() -> fileuploadServices.uploadfile(files.get(currentIndex),
+						currentIndex, S3urls, new JSONObject(data))));
+			}
+
+			for (Future<Boolean> future : futures) {
+				try {
+					future.get();
+				} catch (Exception e) {
+					LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+				}
+			}
+
+			return S3urls.toString();
+
+		} finally {
+			// Shutdown the executor service
+			LOGGER.info("Shutting down the thread pool!");
+			executorService.shutdown();
+			try {
+				// Wait for tasks to complete before terminating the thread pool
+				if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
+					executorService.shutdownNow(); // Force shutdown if tasks exceed time limit
+				}
+			} catch (InterruptedException ex) {
+				executorService.shutdownNow();
+				Thread.currentThread().interrupt(); // Preserve interrupt status
+				return "Failed";
+			}
+		}
 	}
 }
