@@ -56,7 +56,8 @@ public class WebSocketService extends TextWebSocketHandler {
 
 	public static Map<String, List<WebSocketSession>> CompanySession = new HashMap<>();
 	public static Map<String, List<WebSocketSession>> AdminSession = new HashMap<>();
-	public static Map<String, List<WebSocketSession>> ProgressSession = new HashMap<>();
+	public static Map<String, List<WebSocketSession>> ProgressSessionCA = new HashMap<>();
+	public static Map<String, List<WebSocketSession>> ProgressSessionAA = new HashMap<>();
 	public static Map<String, JSONObject> lastdata = new HashMap<>();
 	public static Map<String, List<WebSocketSession>> RemoveCloseSession = new HashMap<>();
 
@@ -94,20 +95,36 @@ public class WebSocketService extends TextWebSocketHandler {
 			}
 
 			if (json.getString("displaytab").equalsIgnoreCase("progress")) {
+				if (json.has("push") && json.getString("push").equalsIgnoreCase("Company Admin")) {
 
-				if (ProgressSession.isEmpty() || !ProgressSession.containsKey(json.get("id").toString())) {
-					List<WebSocketSession> newsession = new ArrayList();
-					newsession.add(session);
-					ProgressSession.put(json.get("id").toString(), newsession);
-					LOGGER.warn("Check progress Session is created :: {}",
-							ProgressSession.containsKey(json.get("id").toString()));
-				} else {
-					List<WebSocketSession> jsonArray = ProgressSession.get(json.get("id").toString());
-					jsonArray.add(session);
-					ProgressSession.put(json.get("id").toString(), jsonArray);
-					LOGGER.warn("New progress session Updatedby company {}",
-							ProgressSession.get(json.get("id").toString()).toArray().length);
-
+					if (ProgressSessionCA.isEmpty() || !ProgressSessionCA.containsKey(json.get("id").toString())) {
+						List<WebSocketSession> newsession = new ArrayList();
+						newsession.add(session);
+						ProgressSessionCA.put(json.get("id").toString(), newsession);
+						LOGGER.warn("Check progress Session is created :: {}",
+								ProgressSessionCA.containsKey(json.get("id").toString()));
+					} else {
+						List<WebSocketSession> jsonArray = ProgressSessionCA.get(json.get("id").toString());
+						jsonArray.add(session);
+						ProgressSessionCA.put(json.get("id").toString(), jsonArray);
+						LOGGER.warn("New progress session Updatedby company {}",
+								ProgressSessionCA.get(json.get("id").toString()).toArray().length);
+					}
+				} else if (json.has("push") && (json.getString("push").equalsIgnoreCase("Airport Officer")
+						|| json.getString("push").equalsIgnoreCase("Airport Admin"))) {
+					if (ProgressSessionAA.isEmpty() || !ProgressSessionAA.containsKey(json.get("id").toString())) {
+						List<WebSocketSession> newsession = new ArrayList();
+						newsession.add(session);
+						ProgressSessionAA.put(json.get("id").toString(), newsession);
+						LOGGER.warn("Check progress Session is created :: {}",
+								ProgressSessionAA.containsKey(json.get("id").toString()));
+					} else {
+						List<WebSocketSession> jsonArray = ProgressSessionAA.get(json.get("id").toString());
+						jsonArray.add(session);
+						ProgressSessionAA.put(json.get("id").toString(), jsonArray);
+						LOGGER.warn("New progress session Updatedby company {}",
+								ProgressSessionAA.get(json.get("id").toString()).toArray().length);
+					}
 				}
 
 			} else {
@@ -194,7 +211,7 @@ public class WebSocketService extends TextWebSocketHandler {
 		try {
 			LOGGER.error("Enter Into pushSocketData Method!");
 			if (method.equalsIgnoreCase("progress")) {
-				if (ProgressSession.isEmpty()) {
+				if (ProgressSessionCA.isEmpty() && ProgressSessionAA.isEmpty()) {
 //					LOGGER.warn("Socket Connection is empty");
 					return returnRes = "Socket is Not Connected,Connection is empty";
 				}
@@ -203,10 +220,18 @@ public class WebSocketService extends TextWebSocketHandler {
 						.collect(Collectors.toMap(entry -> entry.getKey().split("-")[1],
 								entry -> entry.getValue().get())));
 
-				if (ProgressSession.containsKey(jsonbody.get("ids").toString())) {
+				if (ProgressSessionCA.containsKey(jsonbody.get("ids").toString())) {
 					LOGGER.warn("Enter into Progress Session  {}",
-							ProgressSession.containsKey(jsonbody.get("ids").toString()));
-					List<WebSocketSession> arrayOfSession = ProgressSession.get(jsonbody.get("ids").toString());
+							ProgressSessionCA.containsKey(jsonbody.get("ids").toString()));
+					List<WebSocketSession> arrayOfSession = ProgressSessionCA.get(jsonbody.get("ids").toString());
+					for (int i = 0; i < arrayOfSession.size(); i++) {
+						sendsession(arrayOfSession.get(i), returnMes.toString(), "progress",
+								jsonbody.get("ids").toString());
+					}
+				} else if (ProgressSessionAA.containsKey(jsonbody.get("ids").toString())) {
+					LOGGER.warn("Enter into Progress Session  {}",
+							ProgressSessionAA.containsKey(jsonbody.get("ids").toString()));
+					List<WebSocketSession> arrayOfSession = ProgressSessionAA.get(jsonbody.get("ids").toString());
 					for (int i = 0; i < arrayOfSession.size(); i++) {
 						sendsession(arrayOfSession.get(i), returnMes.toString(), "progress",
 								jsonbody.get("ids").toString());
@@ -247,12 +272,12 @@ public class WebSocketService extends TextWebSocketHandler {
 						} else {
 							url = applicationurl + "rpc/overviewofdashboard";
 						}
-						datavalues = new JSONObject(dataTransmit.transmitDataspgrest(url,getdatas.getString("schema")).get(0).toString());
+						datavalues = new JSONObject(
+								dataTransmit.transmitDataspgrest(url, getdatas.getString("schema")).get(0).toString());
 						datavalues.put("companyname",
-								new JSONObject(dataTransmit
-										.transmitDataspgrest(applicationurl + "company?id=eq."
-												+ jsonbody.get("ids").toString() + "&select=companyname",getdatas.getString("schema"))
-										.get(0).toString()).getString("companyname"));
+								new JSONObject(dataTransmit.transmitDataspgrest(applicationurl + "company?id=eq."
+										+ jsonbody.get("ids").toString() + "&select=companyname",
+										getdatas.getString("schema")).get(0).toString()).getString("companyname"));
 						datavalues.put("companyid", jsonbody.get("ids").toString());
 						orignalJson = getConfigjson.getJSONObject(name).getJSONArray("push");
 						changedJson = getConfigjson.getJSONObject(name).getJSONArray("changedJson");
@@ -317,11 +342,22 @@ public class WebSocketService extends TextWebSocketHandler {
 						List<WebSocketSession> arrayofsession = AdminSession.get(data.getKey());
 						if (arrayofsession.contains(data.getValue())) {
 							arrayofsession.remove(data.getValue());
-							CompanySession.put(data.getKey(), data.getValue());
+							AdminSession.put(data.getKey(), data.getValue());
+						}
+					} else if (ProgressSessionCA.get(data.getKey()) != null) {
+						List<WebSocketSession> arrayofsession = ProgressSessionCA.get(data.getKey());
+						if (arrayofsession.contains(data.getValue())) {
+							arrayofsession.remove(data.getValue());
+							ProgressSessionCA.put(data.getKey(), data.getValue());
+						}
+					}else if (ProgressSessionAA.get(data.getKey()) != null) {
+						List<WebSocketSession> arrayofsession = ProgressSessionAA.get(data.getKey());
+						if (arrayofsession.contains(data.getValue())) {
+							arrayofsession.remove(data.getValue());
+							ProgressSessionAA.put(data.getKey(), data.getValue());
 						}
 					}
 				}
-
 			}
 
 		} catch (Exception e) {
