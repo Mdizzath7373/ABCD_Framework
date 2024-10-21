@@ -144,7 +144,7 @@ public class JwtTokenUtil {
 						.setExpiration(expiredTime)
 						.signWith(SignatureAlgorithm.HS512, ConfigurationFile.getStringConfig("jwt.secret")).compact();
 			}
-			System.out.println("Updated Token--->"+updatedToken);
+			System.out.println(updatedToken);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

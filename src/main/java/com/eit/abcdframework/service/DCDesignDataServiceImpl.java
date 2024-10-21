@@ -690,10 +690,13 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 		JSONObject res = new JSONObject();
 		try {
 			JSONObject setValues = new JSONObject();
+			
+			JSONObject jsonHeader=new  JSONObject(jsonObject1.get("header"));
+			
 
-			JSONObject jsonObject = jsonObject1.getJSONObject("document");
+			JSONObject jsonObject =new  JSONObject(jsonObject1.get("body"));
 
-			JSONObject displayConfig = DisplaySingleton.memoryDispObjs2.getJSONObject(jsonObject.getString("name"));
+			JSONObject displayConfig = DisplaySingleton.memoryDispObjs2.getJSONObject(jsonHeader.getString("name"));
 			JSONObject gettabledata = new JSONObject(displayConfig.get("datas").toString());
 
 			jsonObject.keys().forEachRemaining(key -> {
