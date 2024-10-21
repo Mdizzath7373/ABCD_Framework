@@ -691,20 +691,23 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 		try {
 			JSONObject setValues = new JSONObject();
 			
-			JSONObject jsonHeader=new  JSONObject(jsonObject1.get("header"));
+			JSONObject jsonHeader=new  JSONObject(jsonObject1.get("header").toString());
 			
 
-			JSONObject jsonObject =new  JSONObject(jsonObject1.get("body"));
+			JSONObject jsonObject =new  JSONObject(jsonObject1.get("body").toString());
+			
+			JSONObject docObj=jsonObject.getJSONObject("document");
+			
 
 			JSONObject displayConfig = DisplaySingleton.memoryDispObjs2.getJSONObject(jsonHeader.getString("name"));
 			JSONObject gettabledata = new JSONObject(displayConfig.get("datas").toString());
 
-			jsonObject.keys().forEachRemaining(key -> {
+			docObj.keys().forEachRemaining(key -> {
 				String url = GlobalAttributeHandler.getPgrestURL() + "rpc/update_base64";
 				JSONObject jsondata = new JSONObject();
 				jsondata.put("key", key);
-				jsondata.put("datavalue", jsonObject.getString(key));
-				jsondata.put("primary", jsonObject1.get("id"));
+				jsondata.put("datavalue", docObj.getString(key));
+				jsondata.put("primary", jsonObject.get("id"));
 
 				setValues.put("datas", jsondata);
 
