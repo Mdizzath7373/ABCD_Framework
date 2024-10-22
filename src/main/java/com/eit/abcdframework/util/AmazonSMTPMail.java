@@ -1,5 +1,6 @@
 package com.eit.abcdframework.util;
 
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.InputStream;
 import java.security.SecureRandom;
@@ -8,6 +9,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 import java.util.stream.Collectors;
+
+import javax.imageio.ImageIO;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -19,6 +22,7 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -64,7 +68,7 @@ public class AmazonSMTPMail {
 
 	@Autowired
 	Httpclientcaller dataTransmit;
-	
+
 	@Autowired
 	AmazonS3 amazonS3;
 
@@ -451,43 +455,34 @@ public class AmazonSMTPMail {
 				getcloumnname = new JSONObject(email.get("getcolumn").toString()).getString("columnname");
 				mailid = jsonbody.getString(getcloumnname);
 			}
-			
-			
-			if(email.has("s3file") && email.getBoolean("s3file")) {
-				
-				JSONArray s3links= jsonbody.getJSONArray(email.getString("s3column"));
-				
-			  s3links.toList().stream().forEach(entry->{
-				  try {
-				  String fileName = entry.toString().split("onboard/")[1];
 
-				    S3Object s3Object = amazonS3.getObject("goldenelement", "onboard/" + fileName);
-				    InputStream inputStream = s3Object.getObjectContent();
+			if (email.has("s3file") && email.getBoolean("s3file")) {
 
-				    byte[] content = inputStream.readAllBytes();
+				JSONArray s3links = jsonbody.getJSONArray(email.getString("s3column"));
+//				System.err.println(s3links.length());
 
-				    ByteArrayResource resource = new ByteArrayResource(content);
+				s3links.toList().stream().forEach(entry -> {
+					String fileName = entry.toString().split("onboard/")[1];
 
-				    HttpHeaders headers = new HttpHeaders();
-				    headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + fileName);
+					S3Object s3Object = amazonS3.getObject("goldenelement", "onboard/" + fileName);
 
-				    files.add((MultipartFile) ResponseEntity.ok()
-				                         .headers(headers)
-				                         .contentLength(content.length)
-				                         .contentType(MediaType.MULTIPART_FORM_DATA)
-				                         .body(resource));
-				  }catch (Exception e) {
-					LOGGER.error("Exception at S3Files ",Thread.currentThread().getStackTrace()[0].getMethodName(),e);
-				}
-			  });
-				 
-				
+					try (InputStream inputStream = s3Object.getObjectContent();) {
+						BufferedImage localImage = ImageIO.read(inputStream);
+						String localpath = entry.toString().split("onboard/")[1];
+						File S3file = new File(localpath);
+
+						ImageIO.write(localImage, (entry.toString().split("onboard/")[1]).split("\\.")[0], S3file);
+
+						files.add(new MockMultipartFile(S3file.getName(), S3file.getName(), (entry.toString().split("onboard/")[1]).split("\\.")[0], inputStream));
+						System.err.println();
+
+					} catch (Exception e) {
+						LOGGER.error("Exception at S3Files ", Thread.currentThread().getStackTrace()[0].getMethodName(),
+								e);
+					}
+				});
+
 			}
-			
-			
-			
-			
-			
 
 			if (email.getString("getContentNameColumn").equalsIgnoreCase("default")
 					&& email.getJSONArray("getContantType").toList().contains(method)) {
@@ -505,6 +500,7 @@ public class AmazonSMTPMail {
 			} else {
 				return returndata = "No Email Through";
 			}
+//			System.err.println(files.size());
 
 			returndata = mailSender2(mail, mailid, email, jsonbody, files, lang, schema);
 

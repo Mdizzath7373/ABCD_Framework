@@ -59,6 +59,7 @@ public class FormdataServiceImpl implements FormdataService {
 		try {
 			JSONObject jsonheader = null;
 			JSONObject jsonbody = null;
+			JSONObject bodyData=null;
 			boolean synapi = false;
 
 			JSONObject jsonObjectdata = new JSONObject(data);
@@ -116,6 +117,12 @@ public class FormdataServiceImpl implements FormdataService {
 			jsonbody = mappingJson(gettabledata, jsonbody);
 
 			boolean function = jsonheader.has("function") ? jsonheader.getBoolean("function") : false;
+			
+			if(gettabledata.has("expectedColumn")) {
+				bodyData=new JSONObject(jsonbody.toString());
+				jsonbody.remove(gettabledata.getString("expectedColumn"));
+				
+			}
 
 			//
 			if (method.equalsIgnoreCase("POST")) {
@@ -129,7 +136,7 @@ public class FormdataServiceImpl implements FormdataService {
 				return new JSONObject().put(GlobalAttributeHandler.getError(), GlobalAttributeHandler.getFailure()).toString();
 			}
 
-			ResponcesHandling.curdMethodResponceHandle(res, jsonbody, jsonheader, gettabledata, method,
+			ResponcesHandling.curdMethodResponceHandle(res, bodyData, jsonheader, gettabledata, method,
 					new ArrayList<>());
 
 			if (gettabledata.has("synchronizedCurdOperation") && synapi) {

@@ -238,6 +238,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 		String res = "";
 		JSONObject documentdata = null;
 		JSONObject jsonObject1 = null;
+		JSONObject bodyData=null;
 		try {
 			JSONObject displayConfig;
 			if (!data.startsWith("{"))
@@ -267,6 +268,12 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 			if (setJsonBody.isEmpty() || setJsonBody.has("error")) {
 				return returndata.put(GlobalAttributeHandler.getError(), setJsonBody.getString("error")).toString();
 			}
+			
+			if(gettabledata.has("expectedColumn")) {
+				bodyData=new JSONObject(jsonbody.toString());
+				jsonbody.remove(gettabledata.getString("expectedColumn"));
+				
+			}
 			// To save a Data.
 			String url = "";
 			String response = "";
@@ -293,7 +300,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 				}
 			}
 
-			res = ResponcesHandling.curdMethodResponceHandle(response, jsonbody, jsonheader, gettabledata, method,
+			res = ResponcesHandling.curdMethodResponceHandle(response, bodyData, jsonheader, gettabledata, method,
 					files);
 
 		} catch (
