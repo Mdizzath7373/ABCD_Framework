@@ -1,6 +1,7 @@
 package com.eit.abcdframework.util;
 
 import java.io.File;
+import java.io.InputStream;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -14,9 +15,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.S3Object;
 import com.eit.abcdframework.globalhandler.GlobalAttributeHandler;
 import com.eit.abcdframework.http.caller.Httpclientcaller;
 import com.eit.abcdframework.serverbo.CommonServices;
@@ -52,14 +59,14 @@ public class AmazonSMTPMail {
 	@Autowired
 	DisplaySingleton displaySingleton;
 
-//	@Value("${applicationurl}")
-//	private String pgrest;
-
 	@Value("${FromNameOfMail}")
 	private String fromOfMail;
 
 	@Autowired
 	Httpclientcaller dataTransmit;
+	
+	@Autowired
+	AmazonS3 amazonS3;
 
 	public String sendEmail(String from, String to, String subject, String body, String smtpUser, String smtpPass,
 			String host, String port) throws MessagingException {
@@ -444,6 +451,43 @@ public class AmazonSMTPMail {
 				getcloumnname = new JSONObject(email.get("getcolumn").toString()).getString("columnname");
 				mailid = jsonbody.getString(getcloumnname);
 			}
+			
+			
+			if(email.has("s3file") && email.getBoolean("s3file")) {
+				
+				JSONArray s3links= jsonbody.getJSONArray(email.getString("s3column"));
+				
+			  s3links.toList().stream().forEach(entry->{
+				  try {
+				  String fileName = entry.toString().split("onboard/")[1];
+
+				    S3Object s3Object = amazonS3.getObject("goldenelement", "onboard/" + fileName);
+				    InputStream inputStream = s3Object.getObjectContent();
+
+				    byte[] content = inputStream.readAllBytes();
+
+				    ByteArrayResource resource = new ByteArrayResource(content);
+
+				    HttpHeaders headers = new HttpHeaders();
+				    headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + fileName);
+
+				    files.add((MultipartFile) ResponseEntity.ok()
+				                         .headers(headers)
+				                         .contentLength(content.length)
+				                         .contentType(MediaType.MULTIPART_FORM_DATA)
+				                         .body(resource));
+				  }catch (Exception e) {
+					LOGGER.error("Exception at S3Files ",Thread.currentThread().getStackTrace()[0].getMethodName(),e);
+				}
+			  });
+				 
+				
+			}
+			
+			
+			
+			
+			
 
 			if (email.getString("getContentNameColumn").equalsIgnoreCase("default")
 					&& email.getJSONArray("getContantType").toList().contains(method)) {
