@@ -1,12 +1,8 @@
 package com.eit.abcdframework.controller;
 
 import java.io.IOException;
-import java.util.concurrent.atomic.AtomicInteger;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
