@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.S3Object;
+import com.eit.abcdframework.config.ConfigurationFile;
 import com.eit.abcdframework.http.caller.Httpclientcaller;
 import com.eit.abcdframework.service.FormdataService;
 
@@ -36,8 +37,7 @@ public class FormdataController {
 	@Autowired
 	Httpclientcaller dHttpclientcaller;
 
-//	@Value("${applicationurl}")
-//	private String pgrest;
+	private String path = ConfigurationFile.getStringConfig("s3bucket.path");
 
 	@GetMapping("/form")
 	public String transmittingDataget(@RequestParam String name, @RequestParam String primary,
@@ -63,8 +63,8 @@ public class FormdataController {
 
 	@GetMapping("/download")
 	public ResponseEntity<InputStreamResource> downloadFileFromS3(String url) throws IOException {
-		url = url.split("onboard/")[1];
-		S3Object s3Object = amazonS3.getObject("goldenelement", "onboard/" + url);
+		url = url.split(path)[1];
+		S3Object s3Object = amazonS3.getObject("goldenelement", path + url);
 
 		InputStreamResource resource = new InputStreamResource(s3Object.getObjectContent());
 
@@ -95,8 +95,6 @@ public class FormdataController {
 ////            System.err.println(data);
 //		  });
 //	}
-	
-	
 
 //	@GetMapping("/test")
 //	public void test() throws IOException {

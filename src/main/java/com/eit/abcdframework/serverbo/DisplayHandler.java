@@ -293,10 +293,12 @@ public class DisplayHandler {
 								+ (where.equalsIgnoreCase("") ? "" : " and " + where);
 						quryJson.put("where", whereCon);
 					}
-					url = GlobalAttributeHandler.getPgrestURL() + "rpc/predefine_function" + "?basequery=" + extraDatas.getJSONObject("QueryData");
+					url = GlobalAttributeHandler.getPgrestURL() + "rpc/predefine_function" + "?basequery="
+							+ extraDatas.getJSONObject("QueryData");
 				} else if (function && !where.isEmpty()) {
 					if (extraDatas.has("name"))
-						url = GlobalAttributeHandler.getPgrestURL() + api + where + "&" + "name=" + extraDatas.getString("name");
+						url = GlobalAttributeHandler.getPgrestURL() + api + where + "&" + "name="
+								+ extraDatas.getString("name");
 					else
 						url = GlobalAttributeHandler.getPgrestURL() + api + where;
 				} else if (function) {
@@ -366,13 +368,13 @@ public class DisplayHandler {
 		JSONObject jsonObject4 = new JSONObject();
 		JSONArray jsonArray = new JSONArray();
 		JSONArray colour = new JSONArray();
+		JSONArray lang = new JSONArray();
 		JSONArray displayName = new JSONArray();
 		JSONArray datavalues = new JSONArray();
 		String where = null;
 		JSONArray res = new JSONArray();
 		JSONObject displayConfig;
 		String url;
-//		String pgrest = applicationurl;
 		try {
 			JSONObject aliesobj = new JSONObject(alias);
 			JSONArray dataBody = aliesobj.getJSONArray("Data");
@@ -386,23 +388,23 @@ public class DisplayHandler {
 
 			LOGGER.info("display object = {}", displayConfig);
 			if (displayConfig != null) {
-				JSONObject displayColumns = new JSONObject(displayConfig.get("discfg").toString());
+				JSONObject displayColumns = new JSONObject(displayConfig.get("discfg").toString())
+						.getJSONObject("jqxdetails");
 				JSONObject extraDatas = new JSONObject(displayConfig.get("datas").toString());
 
-				JSONObject object = displayColumns.getJSONObject("jqxdetails");
-				String chart = "";
-//				if (chartType.equalsIgnoreCase("barchart")) {
-//					chart = "barchart";
-//				} else if(chartType.equalsIgnoreCase("barchart")) {
-//					chart = "piechart";
-//				}
-				chart = chartType;
-				JSONArray jsonArray2 = object.getJSONArray(chart);
+//				JSONObject object = displayColumns.getJSONObject("jqxdetails");
+				String chart = chartType;
+
+				if (displayColumns.has(chart)) {
+					response = new JSONObject(GlobalAttributeHandler.getError(), "Chart Type Dose not exits!")
+							.toString();
+				}
+
+				JSONArray chartConfig = displayColumns.getJSONArray(chart);
 
 				String api = function ? extraDatas.getString("Function") : extraDatas.getString("api");
 
 				String regex = DisplaySingleton.memoryApplicationSetting.getString("UrlEncodeExcept");
-				;
 				StringBuilder result = new StringBuilder();
 				for (int i = 0; i < where.length(); i++) {
 					char c = where.charAt(i);
@@ -422,10 +424,12 @@ public class DisplayHandler {
 								+ (where.equalsIgnoreCase("") ? "" : " and " + where.replace("?datas=", ""));
 						quryJson.put("where", whereCon);
 					}
-					url = GlobalAttributeHandler.getPgrestURL() + extraDatas.getString("Function") + "?basequery=" + extraDatas.getJSONObject("Query");
+					url = GlobalAttributeHandler.getPgrestURL() + extraDatas.getString("Function") + "?basequery="
+							+ extraDatas.getJSONObject("Query");
 				} else if (function && !where.isEmpty()) {
 					if (extraDatas.has("name"))
-						url = GlobalAttributeHandler.getPgrestURL() + api + where + "&" + "name=" + extraDatas.getString("name");
+						url = GlobalAttributeHandler.getPgrestURL() + api + where + "&" + "name="
+								+ extraDatas.getString("name");
 					else
 						url = GlobalAttributeHandler.getPgrestURL() + api + where;
 				} else if (function) {
@@ -447,49 +451,83 @@ public class DisplayHandler {
 				} else {
 					res = dataTransmits.transmitDataspgrest(url, extraDatas.getString("schema"));
 				}
-				if (chartType.equalsIgnoreCase("barchart")) {
-					List<Object> showgirddata = new JSONObject(object.get("showchartbyrole").toString())
-							.getJSONArray(role).toList();
 
-					for (int i = 0; i < res.length(); i++) {
-						JSONObject jsonObject = res.getJSONObject(i);
-						if (showgirddata.contains(jsonObject.get("types"))) {
-							JSONObject object5 = new JSONObject();
-							JSONArray jsonArray3 = new JSONArray();
-							jsonArray3.put(0);
-							jsonArray3.put(jsonObject.get("counts"));
-							object5.put("x", jsonObject.get("types"));
-							object5.put("y", jsonArray3);
-							jsonArray.put(object5);
+				List<Object> showgirddata = new JSONObject(displayColumns.get("showchartbyrole").toString())
+						.getJSONArray(role).toList();
+
+				for (int i = 0; i < res.length(); i++) {
+					JSONObject jsonObject = res.getJSONObject(i);
+					if (showgirddata.contains(jsonObject.get("types"))) {
+						if (chartType.equalsIgnoreCase("barchart")) {
+							JSONObject tempDataObj = new JSONObject();
+							JSONArray count = new JSONArray(0);
+							count.put(jsonObject.get("counts"));
+							tempDataObj.put("x", jsonObject.get("types"));
+							tempDataObj.put("y", count);
+							datavalues.put(tempDataObj);
 						}
-					}
-					response = jsonArray.toString();
-				} else if (chart.equalsIgnoreCase("piechart") || chart.equalsIgnoreCase("linechart")) {
-					if (role != null && !role.equalsIgnoreCase("")) {
-						List<Object> showgirddata = new JSONObject(object.get("showchartbyrole").toString())
-								.getJSONArray(role).toList();
-						for (int i = 0; i < res.length(); i++) {
-							JSONObject jsonObject = res.getJSONObject(i);
-							if (showgirddata.contains(jsonObject.get("types"))) {
-								for (int j = 0; j < jsonArray2.length(); j++) {
-									JSONObject object2 = new JSONObject(jsonArray2.get(j).toString());
-									if (jsonObject.get("types").equals(object2.get("Type"))
-											&& chart.equalsIgnoreCase("piechart")) {
-										colour.put(object2.get("color"));
-										break;
-									}
-								}
-								datavalues.put(jsonObject.get("counts"));
-								displayName.put(jsonObject.get("types"));
+						else if (chart.equalsIgnoreCase("piechart") || chart.equalsIgnoreCase("linechart")) {
+							if (jsonObject.get("types").equals(new JSONObject(chartConfig.get(i).toString()).get("Type"))) {
+								
+								JSONObject tempDataObj = new JSONObject();
+								tempDataObj.put("Colour", new JSONArray().put(new JSONObject(chartConfig.get(i).toString()).get("color")));
+								tempDataObj.put("Lang", new JSONArray().put(new JSONObject(chartConfig.get(i).toString()).get("lang")));
+								tempDataObj.put("Type", new JSONArray().put(new JSONObject(chartConfig.get(i).toString()).get("Type")));
+								tempDataObj.put("Count", new JSONArray().put(jsonObject.get("counts")));
+								datavalues.put(tempDataObj);
 							}
 						}
-						if (chart.equalsIgnoreCase("piechart"))
-							jsonObject4.put("Colour", colour);
-						jsonObject4.put("Type", displayName);
-						jsonObject4.put("Count", datavalues);
 					}
-					response = jsonObject4.toString();
 				}
+				response=datavalues.toString();
+
+//				if (chartType.equalsIgnoreCase("barchart")) {
+////					List<Object> showgirddata = new JSONObject(object.get("showchartbyrole").toString())
+////							.getJSONArray(role).toList();
+//
+//					for (int i = 0; i < res.length(); i++) {
+//						JSONObject jsonObject = res.getJSONObject(i);
+//						if (showgirddata.contains(jsonObject.get("types"))) {
+//							JSONObject object5 = new JSONObject();
+//							JSONArray jsonArray3 = new JSONArray();
+//							jsonArray3.put(0);
+//							jsonArray3.put(jsonObject.get("counts"));
+//							object5.put("x", jsonObject.get("types"));
+//							object5.put("y", jsonArray3);
+//							jsonArray.put(object5);
+//						}
+//					}
+//					response = jsonArray.toString();
+//				} else if (chart.equalsIgnoreCase("piechart") || chart.equalsIgnoreCase("linechart")) {
+//					if (role != null && !role.equalsIgnoreCase("")) {
+////						List<Object> showgirddata = new JSONObject(object.get("showchartbyrole").toString())
+////								.getJSONArray(role).toList();
+//						for (int i = 0; i < res.length(); i++) {
+//							JSONObject jsonObject = res.getJSONObject(i);
+//							if (showgirddata.contains(jsonObject.get("types"))) {
+//								for (int j = 0; j < jsonArray2.length(); j++) {
+//									JSONObject object2 = new JSONObject(jsonArray2.get(j).toString());
+//									if (jsonObject.get("types").equals(object2.get("Type"))
+//											&& chart.equalsIgnoreCase("piechart")) {
+//										colour.put(object2.get("color"));
+//										lang.put(object2.get("lang"));
+//										break;
+//									}
+//								}
+//								datavalues.put(jsonObject.get("counts"));
+//								displayName.put(jsonObject.get("types"));
+//							}
+//						}
+//						if (chart.equalsIgnoreCase("piechart"))
+//							jsonObject4.put("Lang", lang);
+//						jsonObject4.put("Colour", colour);
+//						jsonObject4.put("Type", displayName);
+//						jsonObject4.put("Count", datavalues);
+//					}
+//					response = jsonObject4.toString();
+//				}
+			}else {
+				response=new JSONObject().put(GlobalAttributeHandler.getError(), "Config has not found, Please Check the Config name!").toString();
 			}
 		} catch (Exception e) {
 			e.printStackTrace();

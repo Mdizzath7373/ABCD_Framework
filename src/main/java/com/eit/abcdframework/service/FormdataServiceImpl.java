@@ -59,7 +59,7 @@ public class FormdataServiceImpl implements FormdataService {
 		try {
 			JSONObject jsonheader = null;
 			JSONObject jsonbody = null;
-			JSONObject bodyData=null;
+			JSONObject bodyData = null;
 			boolean synapi = false;
 
 			JSONObject jsonObjectdata = new JSONObject(data);
@@ -99,15 +99,14 @@ public class FormdataServiceImpl implements FormdataService {
 
 				if (checkingFunc.getJSONArray("curd").toList().contains(method)) {
 					String valueOF = new JSONObject(
-							dataTransmit
-									.transmitDataspgrest(GlobalAttributeHandler.getPgrestURL() + checkingFunc.getString("FindTable")
-											+ jsonheader.get("UniqueColumn"), gettabledata.getString("schema"))
-									.get(0).toString())
+							dataTransmit.transmitDataspgrest(GlobalAttributeHandler.getPgrestURL()
+									+ checkingFunc.getString("FindTable") + jsonheader.get("UniqueColumn"),
+									gettabledata.getString("schema")).get(0).toString())
 							.getString("FetchColumn");
 
 					if (valueOF.equalsIgnoreCase("MatchBy")) {
-						return new JSONObject().put(GlobalAttributeHandler.getError(), checkingFunc.getString("Message"))
-								.toString();
+						return new JSONObject()
+								.put(GlobalAttributeHandler.getError(), checkingFunc.getString("Message")).toString();
 					}
 				}
 
@@ -117,11 +116,13 @@ public class FormdataServiceImpl implements FormdataService {
 			jsonbody = mappingJson(gettabledata, jsonbody);
 
 			boolean function = jsonheader.has("function") ? jsonheader.getBoolean("function") : false;
-			
-			if(gettabledata.has("expectedColumn")) {
-				bodyData=new JSONObject(jsonbody.toString());
+
+			if (gettabledata.has("expectedColumn")) {
+				bodyData = new JSONObject(jsonbody.toString());
 				jsonbody.remove(gettabledata.getString("expectedColumn"));
-				
+
+			} else {
+				bodyData = new JSONObject(jsonbody.toString());
 			}
 
 			//
@@ -133,7 +134,8 @@ public class FormdataServiceImpl implements FormdataService {
 			}
 
 			if (res.equalsIgnoreCase(GlobalAttributeHandler.getFailure())) {
-				return new JSONObject().put(GlobalAttributeHandler.getError(), GlobalAttributeHandler.getFailure()).toString();
+				return new JSONObject().put(GlobalAttributeHandler.getError(), GlobalAttributeHandler.getFailure())
+						.toString();
 			}
 
 			ResponcesHandling.curdMethodResponceHandle(res, bodyData, jsonheader, gettabledata, method,
@@ -151,7 +153,8 @@ public class FormdataServiceImpl implements FormdataService {
 			}
 
 			if (councurrentAPIres.equalsIgnoreCase("Success")) {
-				return new JSONObject().put(GlobalAttributeHandler.getReflex(), GlobalAttributeHandler.getSuccess()).toString();
+				return new JSONObject().put(GlobalAttributeHandler.getReflex(), GlobalAttributeHandler.getSuccess())
+						.toString();
 			}
 
 		} catch (Exception e) {
@@ -185,7 +188,8 @@ public class FormdataServiceImpl implements FormdataService {
 		String response = "";
 		try {
 
-			String url = (GlobalAttributeHandler.getPgrestURL() + gettabledata.getString("POST")).replaceAll(" ", "%20");
+			String url = (GlobalAttributeHandler.getPgrestURL() + gettabledata.getString("POST")).replaceAll(" ",
+					"%20");
 			response = dataTransmit.transmitDataspgrestpost(url, jsonbody.toString(),
 					jsonheader.has("primaryvalue") ? jsonheader.getBoolean("primaryvalue") : false,
 					gettabledata.getString("schema"));
@@ -207,8 +211,8 @@ public class FormdataServiceImpl implements FormdataService {
 					.getString(GlobalAttributeHandler.getPrimarycolumnkey());
 
 			if (jsonbody.has(primarykey) && !jsonbody.get(primarykey).toString().equalsIgnoreCase("")) {
-				String url = GlobalAttributeHandler.getPgrestURL() + gettabledata.getString("PUT") + "?" + primarykey + "=eq."
-						+ jsonbody.get(primarykey);
+				String url = GlobalAttributeHandler.getPgrestURL() + gettabledata.getString("PUT") + "?" + primarykey
+						+ "=eq." + jsonbody.get(primarykey);
 				url = url.replace(" ", "%20");
 
 				response = dataTransmit.transmitDataspgrestput(url, jsonbody.toString(),
@@ -272,11 +276,14 @@ public class FormdataServiceImpl implements FormdataService {
 							+ (where.equalsIgnoreCase("") ? "" : " and " + where.replace("?datas=", ""));
 					quryJson.put("where", whereCon);
 				}
-				url = GlobalAttributeHandler.getPgrestURL() + gettabledata.getString("Function") + "?basequery=" + gettabledata.getJSONObject("Query");
+				url = GlobalAttributeHandler.getPgrestURL() + gettabledata.getString("Function") + "?basequery="
+						+ gettabledata.getJSONObject("Query");
 			} else if (primary != null && !primary.equalsIgnoreCase("")) {
-				url = GlobalAttributeHandler.getPgrestURL() + gettabledata.getString(method.toUpperCase()) + "?" + columnprimarykey + "=eq." + primary;
+				url = GlobalAttributeHandler.getPgrestURL() + gettabledata.getString(method.toUpperCase()) + "?"
+						+ columnprimarykey + "=eq." + primary;
 			} else if (primary != null && primary.equalsIgnoreCase("") && !where.equalsIgnoreCase("")) {
-				url = GlobalAttributeHandler.getPgrestURL() + gettabledata.getString(method.toUpperCase()) + URLEncode(where);
+				url = GlobalAttributeHandler.getPgrestURL() + gettabledata.getString(method.toUpperCase())
+						+ URLEncode(where);
 			} else {
 				url = GlobalAttributeHandler.getPgrestURL() + gettabledata.getString("GET");
 			}
@@ -309,7 +316,8 @@ public class FormdataServiceImpl implements FormdataService {
 
 		} catch (Exception e) {
 			LOGGER.error("Exception at {}", Thread.currentThread().getStackTrace()[1].getMethodName(), e);
-			return new JSONObject().put(GlobalAttributeHandler.getError(), GlobalAttributeHandler.getFailure()).toString();
+			return new JSONObject().put(GlobalAttributeHandler.getError(), GlobalAttributeHandler.getFailure())
+					.toString();
 		}
 		return returndata.toString();
 	}
@@ -322,10 +330,11 @@ public class FormdataServiceImpl implements FormdataService {
 		try {
 			String url = "";
 			if (primary != null && !primary.equalsIgnoreCase("")) {
-				url = (GlobalAttributeHandler.getPgrestURL() + gettabledata.getString(method.toUpperCase()) + "?" + columnprimarykey + "=eq."
-						+ primary).replaceAll(" ", "%20");
+				url = (GlobalAttributeHandler.getPgrestURL() + gettabledata.getString(method.toUpperCase()) + "?"
+						+ columnprimarykey + "=eq." + primary).replaceAll(" ", "%20");
 			} else if (primary != null && primary.equalsIgnoreCase("") && !where.equalsIgnoreCase("")) {
-				url = (GlobalAttributeHandler.getPgrestURL() + gettabledata.getString(method.toUpperCase()) + where).replaceAll(" ", "%20");
+				url = (GlobalAttributeHandler.getPgrestURL() + gettabledata.getString(method.toUpperCase()) + where)
+						.replaceAll(" ", "%20");
 				;
 
 			} else if (isdeleteall) {

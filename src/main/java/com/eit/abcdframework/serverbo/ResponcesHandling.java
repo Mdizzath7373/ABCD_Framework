@@ -162,7 +162,7 @@ public class ResponcesHandling {
 			String response = dataTransmit.transmitDataspgrestpost(url, setvalue.toString(), false, schema);
 			if (Integer.parseInt(response) >= 200 && Integer.parseInt(response) <= 226) {
 				if (notification) {
-					sendPushNotification(setvalue, "activitylog", rolename, new JSONObject(), schema);
+					sendPushNotification(setvalue, "activitylog", rolename, getPushNotificationJsonObject, schema);
 				}
 				JSONObject header = new JSONObject();
 				header.put("name", "activitylogs");
