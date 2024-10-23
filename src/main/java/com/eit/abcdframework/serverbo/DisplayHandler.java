@@ -460,26 +460,30 @@ public class DisplayHandler {
 					if (showgirddata.contains(jsonObject.get("types"))) {
 						if (chartType.equalsIgnoreCase("barchart")) {
 							JSONObject tempDataObj = new JSONObject();
-							JSONArray count = new JSONArray(0);
-							count.put(jsonObject.get("counts"));
 							tempDataObj.put("x", jsonObject.get("types"));
-							tempDataObj.put("y", count);
+							tempDataObj.put("y",
+									jsonObject.get("counts").equals(null)
+											? new JSONArray().put(jsonObject.get("counts"))
+											: new JSONArray().put(0));
 							datavalues.put(tempDataObj);
-						}
-						else if (chart.equalsIgnoreCase("piechart") || chart.equalsIgnoreCase("linechart")) {
-							if (jsonObject.get("types").equals(new JSONObject(chartConfig.get(i).toString()).get("Type"))) {
-								
+						} else if (chart.equalsIgnoreCase("piechart") || chart.equalsIgnoreCase("linechart")) {
+							if (jsonObject.get("types")
+									.equals(new JSONObject(chartConfig.get(i).toString()).get("Type"))) {
+
 								JSONObject tempDataObj = new JSONObject();
-								tempDataObj.put("Colour", new JSONArray().put(new JSONObject(chartConfig.get(i).toString()).get("color")));
-								tempDataObj.put("Lang", new JSONArray().put(new JSONObject(chartConfig.get(i).toString()).get("lang")));
-								tempDataObj.put("Type", new JSONArray().put(new JSONObject(chartConfig.get(i).toString()).get("Type")));
+								tempDataObj.put("Colour", new JSONArray()
+										.put(new JSONObject(chartConfig.get(i).toString()).get("color")));
+								tempDataObj.put("Lang",
+										new JSONArray().put(new JSONObject(chartConfig.get(i).toString()).get("lang")));
+								tempDataObj.put("Type",
+										new JSONArray().put(new JSONObject(chartConfig.get(i).toString()).get("Type")));
 								tempDataObj.put("Count", new JSONArray().put(jsonObject.get("counts")));
 								datavalues.put(tempDataObj);
 							}
 						}
 					}
 				}
-				response=datavalues.toString();
+				response = datavalues.toString();
 
 //				if (chartType.equalsIgnoreCase("barchart")) {
 ////					List<Object> showgirddata = new JSONObject(object.get("showchartbyrole").toString())
@@ -526,8 +530,10 @@ public class DisplayHandler {
 //					}
 //					response = jsonObject4.toString();
 //				}
-			}else {
-				response=new JSONObject().put(GlobalAttributeHandler.getError(), "Config has not found, Please Check the Config name!").toString();
+			} else {
+				response = new JSONObject()
+						.put(GlobalAttributeHandler.getError(), "Config has not found, Please Check the Config name!")
+						.toString();
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
