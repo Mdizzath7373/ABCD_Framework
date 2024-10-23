@@ -459,9 +459,8 @@ public class AmazonSMTPMail {
 			if (email.has("s3file") && email.getBoolean("s3file")) {
 
 				JSONArray s3links = jsonbody.getJSONArray(email.getString("s3column"));
-//				System.err.println(s3links.length());
-
 				s3links.toList().stream().forEach(entry -> {
+					File S3file = null;
 					String fileName = entry.toString().split("onboard/")[1];
 
 					S3Object s3Object = amazonS3.getObject("goldenelement", "onboard/" + fileName);
@@ -469,16 +468,28 @@ public class AmazonSMTPMail {
 					try (InputStream inputStream = s3Object.getObjectContent();) {
 						BufferedImage localImage = ImageIO.read(inputStream);
 						String localpath = entry.toString().split("onboard/")[1];
-						File S3file = new File(localpath);
+						 S3file = new File(localpath);
 
 						ImageIO.write(localImage, (entry.toString().split("onboard/")[1]).split("\\.")[0], S3file);
 
-						files.add(new MockMultipartFile(S3file.getName(), S3file.getName(), (entry.toString().split("onboard/")[1]).split("\\.")[0], inputStream));
-						System.err.println();
+						files.add(new MockMultipartFile(S3file.getName(), S3file.getName(),
+								(entry.toString().split("onboard/")[1]).split("\\.")[0], inputStream));
+						
 
 					} catch (Exception e) {
 						LOGGER.error("Exception at S3Files ", Thread.currentThread().getStackTrace()[0].getMethodName(),
 								e);
+					}finally {
+						if (S3file.exists()) {
+							// Attempt to delete the file
+							if (S3file.delete()) {
+								LOGGER.info("Image deleted successfully.");
+							} else {
+								LOGGER.info("Failed to delete the image.");
+							}
+						} else {
+							LOGGER.info("Image file does not exist.");
+						}
 					}
 				});
 
