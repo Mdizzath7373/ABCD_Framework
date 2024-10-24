@@ -194,11 +194,21 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 	private String toSaveObject(String method, JSONObject jsonbody, JSONObject gettabledata, JSONObject jsonheader,
 			List<MultipartFile> files) {
 		String res = "";
+        JSONObject bodyData=null;
 		try {
 			String response = "";
 			String url = "";
 			String columnprimarykey = gettabledata.getJSONObject(GlobalAttributeHandler.getKey())
 					.getString(GlobalAttributeHandler.getPrimarycolumnkey());
+			
+
+			if (gettabledata.has("expectedColumn")) {
+				bodyData = new JSONObject(jsonbody.toString());
+				jsonbody.remove(gettabledata.getString("expectedColumn"));
+
+			} else {
+				bodyData = new JSONObject(jsonbody.toString());
+			}
 
 			if (method.equalsIgnoreCase("POST")) {
 				if (gettabledata.has("dateandtime")) {
@@ -223,7 +233,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 				}
 			}
 
-			res = ResponcesHandling.curdMethodResponceHandle(response, jsonbody, jsonheader, gettabledata, method,
+			res = ResponcesHandling.curdMethodResponceHandle(response, bodyData, jsonheader, gettabledata, method,
 					files);
 
 		} catch (Exception e) {

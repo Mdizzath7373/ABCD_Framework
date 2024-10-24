@@ -461,10 +461,7 @@ public class DisplayHandler {
 						if (chartType.equalsIgnoreCase("barchart")) {
 							JSONObject tempDataObj = new JSONObject();
 							tempDataObj.put("x", jsonObject.get("types"));
-							tempDataObj.put("y",
-									jsonObject.get("counts").equals(null)
-											? new JSONArray().put(jsonObject.get("counts"))
-											: new JSONArray().put(0));
+							tempDataObj.put("y",jsonObject.get("counts"));
 							datavalues.put(tempDataObj);
 						} else if (chart.equalsIgnoreCase("piechart") || chart.equalsIgnoreCase("linechart")) {
 							if (jsonObject.get("types")

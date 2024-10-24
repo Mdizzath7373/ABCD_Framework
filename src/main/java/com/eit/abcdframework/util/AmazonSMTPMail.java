@@ -1,7 +1,9 @@
 package com.eit.abcdframework.util;
 
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -18,16 +20,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.S3Object;
+import com.eit.abcdframework.config.ConfigurationFile;
 import com.eit.abcdframework.globalhandler.GlobalAttributeHandler;
 import com.eit.abcdframework.http.caller.Httpclientcaller;
 import com.eit.abcdframework.serverbo.CommonServices;
@@ -62,6 +61,8 @@ public class AmazonSMTPMail {
 
 	@Autowired
 	DisplaySingleton displaySingleton;
+
+	private String path = ConfigurationFile.getStringConfig("s3bucket.path");
 
 	@Value("${FromNameOfMail}")
 	private String fromOfMail;
@@ -459,38 +460,25 @@ public class AmazonSMTPMail {
 			if (email.has("s3file") && email.getBoolean("s3file")) {
 
 				JSONArray s3links = jsonbody.getJSONArray(email.getString("s3column"));
+
 				s3links.toList().stream().forEach(entry -> {
-					File S3file = null;
-					String fileName = entry.toString().split("onboard/")[1];
+					String fileName = entry.toString().split(path)[1];
 
-					S3Object s3Object = amazonS3.getObject("goldenelement", "onboard/" + fileName);
+					S3Object s3Object = amazonS3.getObject("goldenelement", path + fileName);
 
-					try (InputStream inputStream = s3Object.getObjectContent();) {
+					try (InputStream inputStream = s3Object.getObjectContent()) {
 						BufferedImage localImage = ImageIO.read(inputStream);
-						String localpath = entry.toString().split("onboard/")[1];
-						 S3file = new File(localpath);
 
-						ImageIO.write(localImage, (entry.toString().split("onboard/")[1]).split("\\.")[0], S3file);
+						ByteArrayOutputStream baos = new ByteArrayOutputStream();
+						ImageIO.write(localImage, "png", baos);
 
-						files.add(new MockMultipartFile(S3file.getName(), S3file.getName(),
-								(entry.toString().split("onboard/")[1]).split("\\.")[0], inputStream));
-						
+						files.add(new MockMultipartFile(fileName, fileName,
+								s3Object.getObjectMetadata().getContentType(), baos.toByteArray()));
 
 					} catch (Exception e) {
-						LOGGER.error("Exception at S3Files ", Thread.currentThread().getStackTrace()[0].getMethodName(),
-								e);
-					}finally {
-						if (S3file.exists()) {
-							// Attempt to delete the file
-							if (S3file.delete()) {
-								LOGGER.info("Image deleted successfully.");
-							} else {
-								LOGGER.info("Failed to delete the image.");
-							}
-						} else {
-							LOGGER.info("Image file does not exist.");
-						}
-					}
+						LOGGER.error("Exception at S3Files in method: {}",
+								Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+					} 
 				});
 
 			}
