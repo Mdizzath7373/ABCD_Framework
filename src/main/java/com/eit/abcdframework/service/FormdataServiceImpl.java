@@ -36,18 +36,12 @@ public class FormdataServiceImpl implements FormdataService {
 
 	@Autowired
 	PasswordEncoder encoder;
+	
+	@Autowired
+	ResponcesHandling responcesHandling;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger("DCDesignDataServiceImpl");
-//	private static final String KEY = "primarykey";
-//	private static final String primaryColumnKey = "columnname";
-//	private static final String REFLEX = "reflex";
-//	private static final String SUCCESS = "Success";
-//	private static final String ERROR = "error";
-//	private static final String FAILURE = "Failure";
-//	private static final String DATAVALUE = "datavalue";
 
-//	@Value("${applicationurl}")
-//	private String pgrest;
 
 	@Override
 	public String transmittingToMethod(String method, String data, String which) {
@@ -125,7 +119,6 @@ public class FormdataServiceImpl implements FormdataService {
 				bodyData = new JSONObject(jsonbody.toString());
 			}
 
-			//
 			if (method.equalsIgnoreCase("POST")) {
 				res = transmittingDatatopgrestpost(gettabledata, jsonbody, function, jsonheader);
 			} else {
@@ -138,7 +131,7 @@ public class FormdataServiceImpl implements FormdataService {
 						.toString();
 			}
 
-			ResponcesHandling.curdMethodResponceHandle(res, bodyData, jsonheader, gettabledata, method,
+			responcesHandling.curdMethodResponceHandle(res, bodyData, jsonheader, gettabledata, method,
 					new ArrayList<>());
 
 			if (gettabledata.has("synchronizedCurdOperation") && synapi) {

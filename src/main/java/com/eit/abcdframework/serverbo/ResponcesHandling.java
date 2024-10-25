@@ -2,6 +2,7 @@ package com.eit.abcdframework.serverbo;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import org.apache.commons.httpclient.HttpStatus;
 import org.json.JSONArray;
@@ -9,6 +10,7 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -62,7 +64,8 @@ public class ResponcesHandling {
 							.getJSONObject("sendnotification")
 					: new JSONObject();
 
-	public static String curdMethodResponceHandle(String response, JSONObject jsonbody, JSONObject jsonheader,
+	@Async
+	public  CompletableFuture<String> curdMethodResponceHandle(String response, JSONObject jsonbody, JSONObject jsonheader,
 			JSONObject gettabledata, String method, List<MultipartFile> files) {
 		try {
 
@@ -78,12 +81,12 @@ public class ResponcesHandling {
 				handlerMethod(jsonheader, jsonbody, gettabledata, method, files);
 			} else {
 				String res = HttpStatus.getStatusText(Integer.parseInt(response));
-				return new JSONObject().put(GlobalAttributeHandler.getError(), res).toString();
+				 return CompletableFuture.completedFuture(new JSONObject().put(GlobalAttributeHandler.getError(), res).toString());
 			}
 		} catch (Exception e) {
 			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
 		}
-		return new JSONObject().put(GlobalAttributeHandler.getReflex(), GlobalAttributeHandler.getSuccess()).toString();
+		 return CompletableFuture.completedFuture(new JSONObject().put(GlobalAttributeHandler.getReflex(), GlobalAttributeHandler.getSuccess()).toString());
 
 	}
 
@@ -365,5 +368,18 @@ public class ResponcesHandling {
 		return "success";
 
 	}
+	
+	@Async
+    public CompletableFuture<String> asyncProcess(String response) {
+        // Here you can process the response asynchronously
+        try {
+            // Simulate some processing logic
+            Thread.sleep(2000);
+            System.out.println("Processing response asynchronously: " + response);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        return CompletableFuture.completedFuture("Processing completed");
+    }
 
 }
