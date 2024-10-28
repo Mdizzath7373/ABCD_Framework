@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -26,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import com.eit.abcdframework.globalhandler.GlobalAttributeHandler;
@@ -354,13 +356,12 @@ public class CommonServices {
 
 	}
 
-	public static String MappedCurdOperation(JSONObject getdataObject, String data) {
+	public static String mappedCurdOperation(JSONObject getdataObject, String data) {
 		String res = "";
 		try {
 			Map<String, Boolean> formDataResponces = new HashMap<>();
 			JSONArray methods = getdataObject.getJSONObject("synchronizedCurdOperation").getJSONArray("Methods");
 			JSONArray bodJson = getdataObject.getJSONObject("synchronizedCurdOperation").getJSONArray("bodyJson");
-//			JSONObject body = new JSONObject(data);
 			for (int method = 0; method < methods.length(); method++) {
 				String keyofmethods = methods.get(method).toString();
 				if (keyofmethods.equalsIgnoreCase("post")) {
@@ -388,6 +389,42 @@ public class CommonServices {
 		}
 
 		return res;
+	}
+	
+	@Async
+	public CompletableFuture<String> mappedCurdOperationASYNC(JSONObject getdataObject, String data) {
+		String result="";
+		try {
+			Map<String, Boolean> formDataResponces = new HashMap<>();
+			JSONArray methods = getdataObject.getJSONObject("asyncCurdOperation").getJSONArray("Methods");
+			JSONArray bodJson = getdataObject.getJSONObject("asyncCurdOperation").getJSONArray("bodyJson");
+			for (int method = 0; method < methods.length(); method++) {
+				String keyofmethods = methods.get(method).toString();
+				if (keyofmethods.equalsIgnoreCase("post")) {
+					result = formdataServiceImpl.transmittingToMethod("POST", data, bodJson.get(method).toString());
+					formDataResponces.put(bodJson.get(method).toString(),
+							(new JSONObject(result).has("reflex") ? true : false));
+				} else if (keyofmethods.equalsIgnoreCase("put")) {
+					result = formdataServiceImpl.transmittingToMethod("PUT", data, bodJson.get(method).toString());
+					formDataResponces.put(bodJson.get(method).toString(),
+							(new JSONObject(result).has("reflex") ? true : false));
+				} else {
+
+				}
+
+				Set<String> Failed = formDataResponces.entrySet().stream().filter(entry -> !entry.getValue())
+						.map(Map.Entry::getKey).collect(Collectors.toSet());
+				result = Failed.isEmpty() ? "Success" : "Missed Api" + Failed;
+				LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName() + "{}-->{}", bodJson.get(method),
+						result);
+
+			}
+
+		} catch (Exception e) {
+			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+		}
+
+		return CompletableFuture.completedFuture(result);
 	}
 
 	public String whereFormation(JSONObject jsonbody, JSONObject whereFormation) {

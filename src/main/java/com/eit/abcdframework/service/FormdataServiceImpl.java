@@ -138,7 +138,7 @@ public class FormdataServiceImpl implements FormdataService {
 				JSONArray typeOfMehods = gettabledata.getJSONObject("synchronizedCurdOperation").getJSONArray("type");
 				for (int typeOfMehod = 0; typeOfMehod < typeOfMehods.length(); typeOfMehod++) {
 					if (typeOfMehods.get(typeOfMehod).toString().equalsIgnoreCase("Map")) {
-						councurrentAPIres = CommonServices.MappedCurdOperation(gettabledata, data);
+						councurrentAPIres = CommonServices.mappedCurdOperation(gettabledata, data);
 						LOGGER.info("Councurrent API Response----->{}", councurrentAPIres);
 					}
 				}

@@ -1,5 +1,6 @@
 package com.eit.abcdframework.serverbo;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -181,7 +182,7 @@ public class WorkFlowEngine {
 						JSONObject getJson = new JSONObject(currentFlow.getJSONObject("Email").toString());
 						String Email = jsonBody.getString(getJson.getString("emailaddresscolumn"));
 						JSONArray mailContentname = getJson.getJSONArray("mail");
-						List<MultipartFile> filedata = new ArrayList<>();
+						List<File> filedata = new ArrayList<>();
 						String restulofMail = amazonSMTPMail.mailSender2(mailContentname, Email, getJson, jsonBody,
 								filedata, headerdata.has("lang") ? headerdata.getString("lang") : "en",
 								GlobalAttributeHandler.getSchemas());

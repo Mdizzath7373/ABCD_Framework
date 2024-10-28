@@ -1,9 +1,12 @@
 package com.eit.abcdframework.service;
 
+import java.io.File;
 import java.net.URLEncoder;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -47,12 +50,14 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 	@Autowired
 	WebSocketService socketService;
 
-
 	@Autowired
 	DisplayHandler displayHandler;
-	
+
 	@Autowired
 	ResponcesHandling responcesHandling;
+
+	@Autowired
+	CommonServices commonServices;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger("DCDesignDataServiceImpl");
 
@@ -138,21 +143,6 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 
 			toSaveObject(method, jsonbody, gettabledata, jsonheader, files);
 
-			if (gettabledata.has("synchronizedCurdOperation")) {
-				JSONArray typeOfMehods = gettabledata.getJSONObject("synchronizedCurdOperation").getJSONArray("type");
-				for (int typeOfMehod = 0; typeOfMehod < typeOfMehods.length(); typeOfMehod++) {
-					String councurrentAPIres = "";
-					if (typeOfMehods.get(typeOfMehod).toString().equalsIgnoreCase("Map")) {
-						councurrentAPIres = CommonServices.MappedCurdOperation(gettabledata, data);
-						LOGGER.info("Councurrent API Response----->{}", councurrentAPIres);
-					}
-					if (!councurrentAPIres.equalsIgnoreCase("Success")) {
-						return new JSONObject()
-								.put(GlobalAttributeHandler.getError(), GlobalAttributeHandler.getFailure()).toString();
-					}
-				}
-			}
-
 			if (isprogress) {
 				Map<String, AtomicInteger> progress = fileuploadServices.getProgress();
 				progress.put(jsonbody.get("ids").toString() + "-" + (jsonbody
@@ -170,6 +160,41 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 				new JSONObject().put(GlobalAttributeHandler.getError(), GlobalAttributeHandler.getFailure()).toString();
 			}
 
+			if (gettabledata.has("asynOperation")) {
+				LOGGER.info("Enter into Async Curd Opertion!");
+				JSONArray typeOfMehods = gettabledata.getJSONObject("asynOperation").getJSONArray("type");
+				for (int typeOfMehod = 0; typeOfMehod < typeOfMehods.length(); typeOfMehod++) {
+					CompletableFuture<String> councurrentAPIres = new CompletableFuture<String>();
+					if (typeOfMehods.get(typeOfMehod).toString().equalsIgnoreCase("Map")) {
+						councurrentAPIres = commonServices.mappedCurdOperationASYNC(gettabledata, data);
+						LOGGER.info("Councurrent API Response----->{}", councurrentAPIres);
+					}
+					if (!councurrentAPIres.isDone()) {
+						return new JSONObject()
+								.put(GlobalAttributeHandler.getError(), GlobalAttributeHandler.getFailure()).toString();
+					}
+				}
+				LOGGER.info("Finish the Async Curd Opertion!");
+			}
+			System.err.println("start async");
+
+			if (gettabledata.has("synchronizedCurdOperation")) {
+				LOGGER.info("Enter into synchronized Curd Opertion!");
+				JSONArray typeOfMehods = gettabledata.getJSONObject("synchronizedCurdOperation").getJSONArray("type");
+				for (int typeOfMehod = 0; typeOfMehod < typeOfMehods.length(); typeOfMehod++) {
+					String councurrentAPIres = "";
+					if (typeOfMehods.get(typeOfMehod).toString().equalsIgnoreCase("Map")) {
+						councurrentAPIres = CommonServices.mappedCurdOperation(gettabledata, data);
+						LOGGER.info("Councurrent API Response----->{}", councurrentAPIres);
+					}
+					if (!councurrentAPIres.equalsIgnoreCase("Success")) {
+						return new JSONObject()
+								.put(GlobalAttributeHandler.getError(), GlobalAttributeHandler.getFailure()).toString();
+					}
+				}
+				LOGGER.info("Finish the synchronized Curd Opertion!");
+			}
+
 		} catch (
 
 		Exception e) {
@@ -180,14 +205,12 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 
 	private String toSaveObject(String method, JSONObject jsonbody, JSONObject gettabledata, JSONObject jsonheader,
 			List<MultipartFile> files) {
-		String res = "";
-        JSONObject bodyData=null;
+		JSONObject bodyData = null;
 		try {
 			String response = "";
 			String url = "";
 			String columnprimarykey = gettabledata.getJSONObject(GlobalAttributeHandler.getKey())
 					.getString(GlobalAttributeHandler.getPrimarycolumnkey());
-			
 
 			if (gettabledata.has("expectedColumn")) {
 				bodyData = new JSONObject(jsonbody.toString());
@@ -220,16 +243,27 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 				}
 			}
 
-			responcesHandling.curdMethodResponceHandle(response, bodyData, jsonheader, gettabledata, method,
-					files);
+			List<File> filedata = new ArrayList<>();
+
+			files.stream().forEach(entry -> {
+				try {
+				File file = Files.createTempFile(null, entry.getOriginalFilename()).toFile();
+				entry.transferTo(file);
+				filedata.add(file);
+				}catch (Exception e) {
+					LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(),e);
+				}
+			});
+
+			
+			responcesHandling.curdMethodResponceHandle(response, bodyData, jsonheader, gettabledata, method, filedata);
+			LOGGER.info("Enter into Responce handle to Async Process");
 
 		} catch (Exception e) {
 			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
 		}
 		return "";
 	}
-
-       
 
 	@Override
 	public String getwidgetsdata(String data) {
@@ -494,6 +528,5 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 			}
 		}
 	}
-	
-	
+
 }

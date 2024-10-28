@@ -1,5 +1,6 @@
 package com.eit.abcdframework.serverbo;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -12,7 +13,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
 import com.eit.abcdframework.globalhandler.GlobalAttributeHandler;
 import com.eit.abcdframework.http.caller.Httpclientcaller;
@@ -39,14 +39,6 @@ public class ResponcesHandling {
 		ResponcesHandling.socketService = socketService;
 	}
 
-//	@Value("${applicationurl}")
-//	private static String applicationurl;
-//
-//	@Value("${applicationurl}")
-//	public void setProductService(String applicationurl) {
-//		ResponcesHandling.applicationurl = applicationurl;
-//	}
-
 	static Httpclientcaller dataTransmit;
 
 	@Autowired
@@ -57,16 +49,11 @@ public class ResponcesHandling {
 	private static final Logger LOGGER = LoggerFactory.getLogger("ResponcesHandling");
 
 	private static JSONObject email = null;
-
-	private static JSONObject getPushNotificationJsonObject = DisplaySingleton.memoryApplicationSetting
-			.has("notificationConfig")
-					? new JSONObject(DisplaySingleton.memoryApplicationSetting.get("notificationConfig").toString())
-							.getJSONObject("sendnotification")
-					: new JSONObject();
+	
 
 	@Async
-	public  CompletableFuture<String> curdMethodResponceHandle(String response, JSONObject jsonbody, JSONObject jsonheader,
-			JSONObject gettabledata, String method, List<MultipartFile> files) {
+	public CompletableFuture<String> curdMethodResponceHandle(String response, JSONObject jsonbody, JSONObject jsonheader,
+			JSONObject gettabledata, String method, List<File> files) {
 		try {
 
 			if (response.startsWith("{")) {
@@ -91,7 +78,7 @@ public class ResponcesHandling {
 	}
 
 	private static void handlerMethod(JSONObject jsonheader, JSONObject jsonbody, JSONObject gettabledata,
-			String method, List<MultipartFile> files) {
+			String method, List<File> files) {
 		try {
 			String rolename = jsonheader.has("rolename") ? jsonheader.getString("rolename") : "";
 			String message = jsonheader.has("message") ? jsonheader.getString("message") : "";
@@ -100,8 +87,20 @@ public class ResponcesHandling {
 			boolean notification = jsonheader.has("notification") ? jsonheader.getBoolean("notification") : false;
 
 			String socketRes = socketService.pushSocketData(jsonheader, jsonbody, "");
-			if (!socketRes.equalsIgnoreCase("Success")) {
+			if (socketRes!=null &&  !socketRes.equalsIgnoreCase("Success")) {
 				LOGGER.error("Push Socket responce::{}", socketRes);
+			}
+			if (gettabledata.has("email")) {
+				try {
+					email = new JSONObject(gettabledata.get("email").toString());
+					if (!new JSONObject(email.get("mail").toString()).isEmpty()) {
+						amazonSMTPMail.emailconfig(email, jsonbody, files,
+								jsonheader.has("lang") ? jsonheader.getString("lang") : "en", method,
+								gettabledata.getString("schema"));
+					}
+				} catch (Exception e) {
+					LOGGER.error("Throw Email Failure! -->:: {}", e.getMessage());
+				}
 			}
 
 			if (jsonheader.has("sms")) {
@@ -109,9 +108,9 @@ public class ResponcesHandling {
 				LOGGER.warn("SMS -->{}", sms);
 			}
 
-			if (!getPushNotificationJsonObject.isEmpty() && getPushNotificationJsonObject.getJSONArray("tablename")
+			if (!GlobalAttributeHandler.getNotificationConfig().isEmpty() && GlobalAttributeHandler.getNotificationConfig().getJSONArray("tablename")
 					.toList().contains(gettabledata.getString("api"))) {
-				sendPushNotification(jsonbody, gettabledata.getString("api"), rolename, getPushNotificationJsonObject,
+				sendPushNotification(jsonbody, gettabledata.getString("api"), rolename, GlobalAttributeHandler.getNotificationConfig(),
 						gettabledata.getString("schema"));
 			}
 
@@ -128,18 +127,7 @@ public class ResponcesHandling {
 					LOGGER.error("ActivityLogs Failure!,Check it api -->:: {}", e.getMessage());
 				}
 			}
-			if (gettabledata.has("email")) {
-				try {
-					email = new JSONObject(gettabledata.get("email").toString());
-					if (!new JSONObject(email.get("mail").toString()).isEmpty()) {
-						amazonSMTPMail.emailconfig(email, jsonbody, files,
-								jsonheader.has("lang") ? jsonheader.getString("lang") : "en", method,
-								gettabledata.getString("schema"));
-					}
-				} catch (Exception e) {
-					LOGGER.error("Throw Email Failure! -->:: {}", e.getMessage());
-				}
-			}
+			
 		} catch (Exception e) {
 			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
 		}
@@ -165,7 +153,7 @@ public class ResponcesHandling {
 			String response = dataTransmit.transmitDataspgrestpost(url, setvalue.toString(), false, schema);
 			if (Integer.parseInt(response) >= 200 && Integer.parseInt(response) <= 226) {
 				if (notification) {
-					sendPushNotification(setvalue, "activitylog", rolename, getPushNotificationJsonObject, schema);
+					sendPushNotification(setvalue, "activitylog", rolename, GlobalAttributeHandler.getNotificationConfig(), schema);
 				}
 				JSONObject header = new JSONObject();
 				header.put("name", "activitylogs");

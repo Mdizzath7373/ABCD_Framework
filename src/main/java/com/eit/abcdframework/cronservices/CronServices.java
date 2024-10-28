@@ -1,5 +1,6 @@
 package com.eit.abcdframework.cronservices;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Date;
 
@@ -39,7 +40,7 @@ public class CronServices {
 			JSONObject jobScheduler = new JSONObject(
 					DisplaySingleton.memoryApplicationSetting.get("JobScheduler").toString());
 				
-				amazonSMTPMail.cornEmialScheduler(jobScheduler.getJSONArray("listOfJob"),jobScheduler.getJSONObject("emailConfig"),jobScheduler.getJSONObject("findby"), new ArrayList<>());
+				amazonSMTPMail.cornEmialScheduler(jobScheduler.getJSONArray("listOfJob"),jobScheduler.getJSONObject("emailConfig"),jobScheduler.getJSONObject("findby"), new ArrayList<File>());
 				
 		
 			

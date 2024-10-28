@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -41,7 +42,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.amazonaws.services.s3.AmazonS3;
@@ -52,7 +55,7 @@ import com.eit.abcdframework.http.caller.Httpclientcaller;
 import com.eit.abcdframework.s3bucket.S3Upload;
 import com.eit.abcdframework.websocket.WebSocketService;
 
-@Component
+@Service
 public class FileuploadServices {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger("FileuploadServices");
@@ -75,9 +78,6 @@ public class FileuploadServices {
 
 	@Autowired
 	CommonServices commonServices;
-
-//	@Value("${applicationurl}")
-//	private String pgresturl;
 
 	public static String s3url = ConfigurationFile.getStringConfig("s3bucket.url");
 
@@ -111,16 +111,18 @@ public class FileuploadServices {
 			for (int i = 0; i < jarr.length(); i++) {
 				filename += jsonbody.get(jarr.get(i).toString());
 			}
+
 			for (int i = 0; i < files.size(); i++) {
 				if (files.get(i).getOriginalFilename().split("\\.")[1] != null && new JSONArray(execeptFileTypes)
 						.toList().contains(files.get(i).getOriginalFilename().split("\\.")[1])) {
 					return new JSONObject().put("error", "Please upload a vaild file format!");
 				}
-				if (files.get(i).getOriginalFilename() != null
-						&& !files.get(i).getOriginalFilename().equalsIgnoreCase("File name")
-						&& !files.get(i).getOriginalFilename().equalsIgnoreCase("")) {
+
+//				String[] getfilename = files.get(i).getOriginalFilename().split("\\.");
+				StringBuilder getfilename = new StringBuilder(files.get(i).getOriginalFilename().split("\\.")[0]);
+
+				if (!files.get(i).getOriginalFilename().equalsIgnoreCase("File name")) {
 					// Get File Name.
-					StringBuilder getfilename = new StringBuilder(files.get(i).getOriginalFilename().split("\\.")[0]);
 					// Split into Name only Remove Annoying Data.
 					String name = "";
 					if (getfilename.toString().contains("$$")) {
@@ -128,6 +130,10 @@ public class FileuploadServices {
 					} else {
 						name = getfilename.deleteCharAt(getfilename.length() - 1).toString();
 					}
+//					String name = getfilename[0];
+//					if (name.contains("$$"))
+//						name = getfilename.toString().split("\\$\\$")[0];
+
 					// Then Set FilePath Name.
 					String[] extensen = files.get(i).getOriginalFilename().split("\\.");
 					String filePath = path + filename + i + dateFormat.format(new Date()) + "."
@@ -252,7 +258,8 @@ public class FileuploadServices {
 
 		String primaryKey = jsonbody.get(Splitter_primary_id).toString();
 
-		ExecutorService executorService = Executors.newFixedThreadPool(20);
+		int optimalThreadCount = Runtime.getRuntime().availableProcessors() * 2;
+		ExecutorService executorService = Executors.newFixedThreadPool(optimalThreadCount);
 
 		int pageCount = 0;
 		Instant startTime = Instant.now();
@@ -266,21 +273,40 @@ public class FileuploadServices {
 			pageCount = document.getNumberOfPages();
 			AtomicInteger preProgresCount = new AtomicInteger(0);
 			List<Future<Boolean>> futures = new ArrayList<>();
+
+//			for (int pageIndex = 0; pageIndex < pageCount; pageIndex++) {
+//				int currentIndex = pageIndex;
+//				futures.add(executorService
+//						.submit(() -> processPage(document, pdfRenderer, currentIndex, base64String, primaryKey,
+//								progressCount, FaildPages, jsonbody.get("ids").toString(), jsonbody, preProgresCount)));
+//			}
+
+//			for (Future<Boolean> future : futures) {
+//				try {
+//					future.get();
+//				} catch (Exception e) {
+//					LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+//				}
+//			}
+			List<CompletableFuture<Boolean>> completableFutures = new ArrayList<>();
+
+
 			for (int pageIndex = 0; pageIndex < pageCount; pageIndex++) {
 				int currentIndex = pageIndex;
-				futures.add(executorService
-						.submit(() -> processPage(document, pdfRenderer, currentIndex, base64String, primaryKey,
-								progressCount, FaildPages, jsonbody.get("ids").toString(), jsonbody, preProgresCount)));
+				CompletableFuture<Boolean> completableFuture = CompletableFuture.supplyAsync(
+						() -> processPage(document, pdfRenderer, currentIndex, base64String, primaryKey, progressCount,
+								FaildPages, jsonbody.get("ids").toString(), jsonbody, preProgresCount),
+						executorService);
+				completableFutures.add(completableFuture);
 			}
 
-			for (Future<Boolean> future : futures) {
-				try {
-					future.get();
-				} catch (Exception e) {
-					LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
-				}
-			}
+			// Wait for all tasks to complete
+			CompletableFuture<Void> allTasks = CompletableFuture
+					.allOf(completableFutures.toArray(new CompletableFuture[0]));
+			allTasks.join();
+			
 		} finally {
+			System.err.println("enter to shudown");
 			executorService.shutdown();
 			try {
 				if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
@@ -293,19 +319,24 @@ public class FileuploadServices {
 			}
 		}
 
-		LOGGER.warn("ENTER INTO saveOrUpdateData {BASE64iMAGES}---------->" + Instant.now());
-		saveOrUpdateData(base64String, primaryKey, progressCount, jsonbody.get("ids").toString(), jsonbody,
-				gettabledata.getString("schema"));
-		LOGGER.warn("EXIT saveOrUpdateData {BASE64iMAGES}------->" + Instant.now());
+//		LOGGER.warn("ENTER INTO saveOrUpdateData {BASE64iMAGES}---------->" + Instant.now());
+		saveOrUpdateData(base64String, primaryKey, progressCount, jsonbody.get("ids").toString(),
+				jsonbody, gettabledata.getString("schema"));
+//		LOGGER.warn("EXIT saveOrUpdateData {BASE64iMAGES}------->" + Instant.now());
+		LOGGER.info("Enter into Async Process to save Splited Image!!!");
+		progressCount.set(85);
+		progress.put(jsonbody.get("ids") + "-" + primaryKey, progressCount);
+		socketService.pushSocketData(new JSONObject(), jsonbody, "progress");
 
-		Instant endTime = Instant.now();
-		Duration duration = Duration.between(startTime, endTime);
-		LOGGER.warn(startTime + "_" + endTime + " Processing time: " + duration.toMillis() + " milliseconds");
+//		Instant endTime = Instant.now();
+//		Duration duration = Duration.between(startTime, endTime);
+//		LOGGER.warn(startTime + "_" + endTime + " Processing time: " + duration.toMillis() + " milliseconds");
 
 		return "Success";
 	}
 
-	private boolean processPage(PDDocument document, PDFRenderer pdfRenderer, int pageIndex,
+	@Async
+	private Boolean processPage(PDDocument document, PDFRenderer pdfRenderer, int pageIndex,
 			Map<Integer, String> base64String, String primaryKey, AtomicInteger progressCount, List<Integer> FaildPages,
 			String id, JSONObject jsonbody, AtomicInteger preProgresCount) {
 		for (int attempt = 0; attempt <= maxRetries; attempt++) {
@@ -365,7 +396,8 @@ public class FileuploadServices {
 		return false;
 	}
 
-	private void saveOrUpdateData(Map<Integer, String> base64String, String primarykey, AtomicInteger progressCount,
+	@Async
+	public CompletableFuture<String> saveOrUpdateData(Map<Integer, String> base64String, String primarykey, AtomicInteger progressCount,
 			String id, JSONObject jsonbody, String schema) {
 		String res = "";
 		try {
@@ -374,23 +406,24 @@ public class FileuploadServices {
 			savePDF.put("primary_id_pdf", primarykey);
 			savePDF.put("document", base64String);
 			savePDF.put("total_pages", total);
-			progressCount.set(80);
-			progress.put(id + "-" + primarykey, progressCount);
-			socketService.pushSocketData(new JSONObject(), jsonbody, "progress");
+//			progressCount.set(80);
+//			progress.put(id + "-" + primarykey, progressCount);
+//			socketService.pushSocketData(new JSONObject(), jsonbody, "progress");
 
 			LOGGER.warn("Enter into save");
 			String url = GlobalAttributeHandler.getPgrestURL() + "pdf_splitter";
 			res = daHttpclientcaller.transmitDataspgrestpost(url, savePDF.toString(), false, schema);
 			if (Integer.parseInt(res) >= 200 && Integer.parseInt(res) <= 226) {
-				progressCount.set(85);
-				progress.put(id + "-" + primarykey, progressCount);
-				socketService.pushSocketData(new JSONObject(), jsonbody, "progress");
+//				progressCount.set(85);
+//				progress.put(id + "-" + primarykey, progressCount);
+//				socketService.pushSocketData(new JSONObject(), jsonbody, "progress");
 			}
 			LOGGER.warn(daHttpclientcaller.transmitDataspgrestpost(url, savePDF.toString(), false, schema));
 
 		} catch (Exception e) {
 			LOGGER.error("Error during save/update", e);
 		}
+		return CompletableFuture.completedFuture("Succes");
 	}
 
 	private void writePDF(PDDocument document, List<String> paths) {
@@ -646,17 +679,22 @@ public class FileuploadServices {
 		return primary_id;
 	}
 
-	public boolean uploadfile(MultipartFile multipartFile, int count,JSONObject S3urls, JSONObject jsonbody) {
+	public boolean uploadfile(MultipartFile multipartFile, int count, JSONObject S3urls, JSONObject jsonbody) {
 		try {
-			String filePath = path+ multipartFile.getOriginalFilename().split("\\.")[0]  + count + dateFormat.format(new Date()) + "."
-					+ multipartFile.getContentType().split("/")[1];
+			String filePath = path + multipartFile.getOriginalFilename().split("\\.")[0] + count
+					+ dateFormat.format(new Date()) + "." + multipartFile.getContentType().split("/")[1];
 			synchronized (multipartFile) {
-				progress.put(jsonbody.get("ids") + "-" +(jsonbody.getString("serialid")+"$"+ multipartFile.getOriginalFilename()), new AtomicInteger(50));
+				progress.put(
+						jsonbody.get("ids") + "-"
+								+ (jsonbody.getString("serialid") + "$" + multipartFile.getOriginalFilename()),
+						new AtomicInteger(50));
 				socketService.pushSocketData(new JSONObject(), jsonbody, "progress");
 
 				if (uploadFile(multipartFile, filePath)) {
 
-					progress.put(jsonbody.get("ids") + "-" +(jsonbody.getString("serialid")+"$"+ multipartFile.getOriginalFilename()),
+					progress.put(
+							jsonbody.get("ids") + "-"
+									+ (jsonbody.getString("serialid") + "$" + multipartFile.getOriginalFilename()),
 							new AtomicInteger(100));
 					socketService.pushSocketData(new JSONObject(), jsonbody, "progress");
 

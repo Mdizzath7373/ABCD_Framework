@@ -1,8 +1,11 @@
 package com.eit.abcdframework.globalhandler;
 
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ModelAttribute;
+
+import com.eit.abcdframework.serverbo.DisplaySingleton;
 
 import jakarta.annotation.PostConstruct;
 
@@ -28,8 +31,13 @@ public class GlobalAttributeHandler {
 	private static final String IV = "ABCDFRAMIV098765"; // 16-byte IV for AES
 	private static String schemas;
 	private static String pgrestURL;
-	
-	
+
+	private static JSONObject getPushNotificationJsonObject = DisplaySingleton.memoryApplicationSetting
+			.has("notificationConfig")
+					? new JSONObject(DisplaySingleton.memoryApplicationSetting.get("notificationConfig").toString())
+							.getJSONObject("sendnotification")
+					: new JSONObject();
+
 	@Value("${applicationurl}")
 	private String pgrest;
 
@@ -39,23 +47,24 @@ public class GlobalAttributeHandler {
 	@PostConstruct
 	public void init() {
 		schemas = schema;
-		pgrestURL=pgrest;
-		
+		pgrestURL = pgrest;
+
 	}
 
+	@ModelAttribute("notificationConfig")
+	public static JSONObject getNotificationConfig() {
+		return getPushNotificationJsonObject;
+	}
 	
 	@ModelAttribute("schemas")
 	public static String getSchemas() {
 		return schemas;
 	}
 
-
 	@ModelAttribute("pgrestURL")
 	public static String getPgrestURL() {
 		return pgrestURL;
 	}
-
-
 
 	@ModelAttribute("ALLOWED_CHARACTERS")
 	public static String getAllowedCharacters() {

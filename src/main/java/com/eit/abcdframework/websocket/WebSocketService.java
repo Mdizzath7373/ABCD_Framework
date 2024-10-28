@@ -12,13 +12,13 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
+import com.eit.abcdframework.globalhandler.GlobalAttributeHandler;
 import com.eit.abcdframework.http.caller.Httpclientcaller;
 import com.eit.abcdframework.serverbo.DisplaySingleton;
 import com.eit.abcdframework.serverbo.FileuploadServices;
@@ -36,9 +36,6 @@ public class WebSocketService extends TextWebSocketHandler {
 		this.dashboardDataService = dashboardDataService;
 	}
 
-	@Value("${applicationurl}")
-	private String applicationurl;
-
 	@Autowired
 	Httpclientcaller dataTransmit;
 
@@ -48,8 +45,6 @@ public class WebSocketService extends TextWebSocketHandler {
 	public void setProductService(FileuploadServices fileuploadServices) {
 		this.fileuploadServices = fileuploadServices;
 	}
-//	@Autowired
-//	FileuploadServices fileuploadServices;
 
 	@Autowired
 	WebSocketService socketService;
@@ -67,7 +62,10 @@ public class WebSocketService extends TextWebSocketHandler {
 		JSONObject json = new JSONObject(data);
 		try {
 			String getsocketdata = null;
-			if (json.getBoolean("Isfirst")) {
+			if (json.has("type")) {
+               LOGGER.info("Ping the connection establised.");
+			}
+			if (json.has("Isfirst") && json.getBoolean("Isfirst")) {
 				getsocketdata = dashboardDataService.handlerOfSocket(json.getString("displaytab"),
 						json.getBoolean("Isfirst"), json.getString("push"), json.get("where").toString());
 				lastdata.put(json.get("id").toString(), new JSONObject(getsocketdata.toString()));
@@ -94,11 +92,11 @@ public class WebSocketService extends TextWebSocketHandler {
 				}
 			}
 
-			if (json.getString("displaytab").equalsIgnoreCase("progress")) {
+			if (json.has("displaytab") && json.getString("displaytab").equalsIgnoreCase("progress")) {
 				if (json.has("push") && json.getString("push").equalsIgnoreCase("Company Admin")) {
 
 					if (ProgressSessionCA.isEmpty() || !ProgressSessionCA.containsKey(json.get("id").toString())) {
-						List<WebSocketSession> newsession = new ArrayList();
+						List<WebSocketSession> newsession = new ArrayList<WebSocketSession>();
 						newsession.add(session);
 						ProgressSessionCA.put(json.get("id").toString(), newsession);
 						LOGGER.warn("Check progress Session is created :: {}",
@@ -113,7 +111,7 @@ public class WebSocketService extends TextWebSocketHandler {
 				} else if (json.has("push") && (json.getString("push").equalsIgnoreCase("Airport Officer")
 						|| json.getString("push").equalsIgnoreCase("Airport Admin"))) {
 					if (ProgressSessionAA.isEmpty() || !ProgressSessionAA.containsKey(json.get("id").toString())) {
-						List<WebSocketSession> newsession = new ArrayList();
+						List<WebSocketSession> newsession = new ArrayList<WebSocketSession>();
 						newsession.add(session);
 						ProgressSessionAA.put(json.get("id").toString(), newsession);
 						LOGGER.warn("Check progress Session is created :: {}",
@@ -130,7 +128,7 @@ public class WebSocketService extends TextWebSocketHandler {
 			} else {
 				if (json.has("push") && json.getString("push").equalsIgnoreCase("Company Admin")) {
 					if (CompanySession.isEmpty() || !CompanySession.containsKey(json.get("id").toString())) {
-						List<WebSocketSession> newsession = new ArrayList();
+						List<WebSocketSession> newsession = new ArrayList<WebSocketSession>();
 						newsession.add(session);
 						CompanySession.put(json.get("id").toString(), newsession);
 						LOGGER.warn("Check Session is created :: {}",
@@ -268,15 +266,17 @@ public class WebSocketService extends TextWebSocketHandler {
 					if (name.equalsIgnoreCase("OverViewOfDashboard")) {
 						String url = "";
 						if (role.equalsIgnoreCase("Company Admin")) {
-							url = applicationurl + "rpc/overviewofdashboard?datas=ids=" + jsonbody.get("ids");
+							url = GlobalAttributeHandler.getPgrestURL() + "rpc/overviewofdashboard?datas=ids="
+									+ jsonbody.get("ids");
 						} else {
-							url = applicationurl + "rpc/overviewofdashboard";
+							url = GlobalAttributeHandler.getPgrestURL() + "rpc/overviewofdashboard";
 						}
 						datavalues = new JSONObject(
 								dataTransmit.transmitDataspgrest(url, getdatas.getString("schema")).get(0).toString());
 						datavalues.put("companyname",
-								new JSONObject(dataTransmit.transmitDataspgrest(applicationurl + "company?id=eq."
-										+ jsonbody.get("ids").toString() + "&select=companyname",
+								new JSONObject(dataTransmit.transmitDataspgrest(
+										GlobalAttributeHandler.getPgrestURL() + "company?id=eq."
+												+ jsonbody.get("ids").toString() + "&select=companyname",
 										getdatas.getString("schema")).get(0).toString()).getString("companyname"));
 						datavalues.put("companyid", jsonbody.get("ids").toString());
 						orignalJson = getConfigjson.getJSONObject(name).getJSONArray("push");
@@ -332,31 +332,47 @@ public class WebSocketService extends TextWebSocketHandler {
 			}
 			if (!RemoveCloseSession.isEmpty()) {
 				for (Entry<String, List<WebSocketSession>> data : RemoveCloseSession.entrySet()) {
+					String key = data.getKey();
+					List<WebSocketSession> sessionsToRemove = data.getValue();
+
 					if (CompanySession.get(data.getKey()) != null) {
-						List<WebSocketSession> arrayofsession = CompanySession.get(data.getKey());
-						if (arrayofsession.contains(data.getValue())) {
-							arrayofsession.remove(data.getValue());
-							CompanySession.put(data.getKey(), data.getValue());
+						boolean hasCommonElements = sessionsToRemove.stream()
+								.anyMatch(CompanySession.get(key)::contains);
+						if (hasCommonElements) {
+							List<WebSocketSession> arrayofsession = CompanySession.get(data.getKey());
+							arrayofsession.removeAll(data.getValue());
+							CompanySession.put(data.getKey(), arrayofsession);
+							RemoveCloseSession.get(key).removeAll(data.getValue());
 						}
 					} else if (AdminSession.get(data.getKey()) != null) {
-						List<WebSocketSession> arrayofsession = AdminSession.get(data.getKey());
-						if (arrayofsession.contains(data.getValue())) {
-							arrayofsession.remove(data.getValue());
-							AdminSession.put(data.getKey(), data.getValue());
+						boolean hasCommonElements = sessionsToRemove.stream().anyMatch(AdminSession.get(key)::contains);
+						if (hasCommonElements) {
+							List<WebSocketSession> arrayofsession = AdminSession.get(data.getKey());
+							arrayofsession.removeAll(data.getValue());
+							AdminSession.put(data.getKey(), arrayofsession);
+							RemoveCloseSession.get(key).removeAll(data.getValue());
 						}
-					} else if (ProgressSessionCA.get(data.getKey()) != null) {
-						List<WebSocketSession> arrayofsession = ProgressSessionCA.get(data.getKey());
-						if (arrayofsession.contains(data.getValue())) {
-							arrayofsession.remove(data.getValue());
-							ProgressSessionCA.put(data.getKey(), data.getValue());
+					} else if (ProgressSessionCA.get(key) != null) {
+						boolean hasCommonElements = sessionsToRemove.stream()
+								.anyMatch(ProgressSessionCA.get(key)::contains);
+						if (hasCommonElements) {
+							List<WebSocketSession> arrayofsession = ProgressSessionCA.get(data.getKey());
+							arrayofsession.removeAll(data.getValue());
+							ProgressSessionCA.put(data.getKey(), arrayofsession);
+							RemoveCloseSession.get(key).removeAll(data.getValue());
 						}
-					}else if (ProgressSessionAA.get(data.getKey()) != null) {
-						List<WebSocketSession> arrayofsession = ProgressSessionAA.get(data.getKey());
-						if (arrayofsession.contains(data.getValue())) {
-							arrayofsession.remove(data.getValue());
-							ProgressSessionAA.put(data.getKey(), data.getValue());
+					} else if (ProgressSessionAA.get(data.getKey()) != null) {
+						boolean hasCommonElements = sessionsToRemove.stream()
+								.anyMatch(ProgressSessionAA.get(key)::contains);
+						if (hasCommonElements) {
+							List<WebSocketSession> arrayofsession = ProgressSessionAA.get(data.getKey());
+							arrayofsession.removeAll(data.getValue());
+							ProgressSessionAA.put(data.getKey(), arrayofsession);
+							RemoveCloseSession.get(key).removeAll(data.getValue());
 						}
 					}
+					if (RemoveCloseSession.get(key).isEmpty())
+						RemoveCloseSession.remove(key);
 				}
 			}
 

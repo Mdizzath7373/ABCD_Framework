@@ -1,9 +1,7 @@
 package com.eit.abcdframework.util;
 
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.InputStream;
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -20,9 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.stereotype.Component;
-import org.springframework.web.multipart.MultipartFile;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.S3Object;
@@ -35,15 +31,16 @@ import com.eit.abcdframework.serverbo.DisplaySingleton;
 import jakarta.activation.DataHandler;
 import jakarta.activation.DataSource;
 import jakarta.activation.FileDataSource;
+import jakarta.mail.BodyPart;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
+import jakarta.mail.Multipart;
 import jakarta.mail.Session;
 import jakarta.mail.Transport;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
-import jakarta.mail.util.ByteArrayDataSource;
 
 @Component
 public class AmazonSMTPMail {
@@ -108,66 +105,62 @@ public class AmazonSMTPMail {
 	}
 
 	public String sendEmailWithFile(String from, String to, String subject, String body, String smtpUser,
-			String smtpPass, String host, String port, List<MultipartFile> files) throws MessagingException {
-		LOGGER.error("AmazonSMTPMail:: Entered:: for {}", to);
-		try {
-			Properties props = System.getProperties();
-			props.put(MAILTRANSPORTPROTOCOL, "smtps");
-			props.put(MAILSMTPPORT, port);
-			props.put(MAILSMTPAUTH, "true");
-			props.put(MAILSMTPSTARTTLSENABLE, "true");
-			props.put(MAILSMTPSTARTTLSREQUIRED, "true");
-			props.put(MAILSMTPSSLENABLE, "true");
+			String smtpPass, String host, String port, List<File> files) throws MessagingException {
+    LOGGER.error("AmazonSMTPMail:: Entered:: for {}", to);
+    try {
+    	Properties props = System.getProperties();
+		props.put(MAILTRANSPORTPROTOCOL, "smtps");
+		props.put(MAILSMTPPORT, port);
+		props.put(MAILSMTPAUTH, "true");
+		props.put(MAILSMTPSTARTTLSENABLE, "true");
+		props.put(MAILSMTPSTARTTLSREQUIRED, "true");
+		props.put(MAILSMTPSSLENABLE, "true");
+        Session session = Session.getDefaultInstance(props);
+        MimeMessage msg = new MimeMessage(session);
 
-			Session session = Session.getDefaultInstance(props);
-			MimeMessage msg = new MimeMessage(session);
+        msg.setFrom(new InternetAddress(from,fromOfMail));
+        msg.setRecipient(Message.RecipientType.TO, new InternetAddress(to));
+        msg.setSubject(subject);
 
-// MimeMultipart multipart = new MimeMultipart();
-			msg.setFrom(new InternetAddress(from, fromOfMail));
-			msg.setRecipient(Message.RecipientType.TO, new InternetAddress(to));
-			msg.setSubject(subject);
+        Multipart multipart = new MimeMultipart();
 
-			MimeMultipart topLevelMultipart = new MimeMultipart();
+        // Body part for the email text
+        BodyPart messageBodyPart = new MimeBodyPart();
+        messageBodyPart.setContent(body, "text/html;charset=utf-8");
+        multipart.addBodyPart(messageBodyPart);
 
-			MimeBodyPart textPart = new MimeBodyPart();
-			textPart.setContent(body, "text/html;charset=utf-8");
-			topLevelMultipart.addBodyPart(textPart);
+        // Attachments
+        if (files != null) {
+            for (File file : files) {
+                MimeBodyPart messageBodyPart2 = new MimeBodyPart();
+                DataSource source = new FileDataSource(file);
+                messageBodyPart2.setDataHandler(new DataHandler(source));
+                messageBodyPart2.setFileName(file.getName());
+                multipart.addBodyPart(messageBodyPart2);
+            }
+        }
 
-			MimeMultipart attachmentMultipart = new MimeMultipart();
-			if (files != null) {
-				for (MultipartFile file : files) {
-					MimeBodyPart attachmentPart = new MimeBodyPart();
-					ByteArrayDataSource source = new ByteArrayDataSource(file.getInputStream(), file.getContentType());
+        msg.setContent(multipart);
 
-					attachmentPart.setDataHandler(new DataHandler(source));
-					attachmentPart.setFileName(file.getOriginalFilename());
-					attachmentMultipart.addBodyPart(attachmentPart);
-				}
-			}
+        // Send message
+        Transport transport = session.getTransport("smtps");
+        try {
+            transport.connect(host, smtpUser, smtpPass);
+            transport.sendMessage(msg, msg.getAllRecipients());
+        } finally {
+            transport.close();
+        }
 
-			MimeBodyPart attachmentMultipartPart = new MimeBodyPart();
-			attachmentMultipartPart.setContent(attachmentMultipart);
-			topLevelMultipart.addBodyPart(attachmentMultipartPart);
-
-			msg.setContent(topLevelMultipart);
-
-			transport = session.getTransport();
-			transport.connect(host, smtpUser, smtpPass);
-			transport.sendMessage(msg, msg.getAllRecipients());
-
-			status = "Success";
-		} catch (Exception e) {
-			LOGGER.error("AmazonSMTPMail:: Entered:: Logger :: From = " + from + ", Port = " + port + ", host = " + host
-					+ ", smtpUser = " + smtpUser + ", to = " + to + " ::", e);
-			status = FAILED;
-		} finally {
-			transport.close();
-		}
-		return status;
-	}
+        return "Success";
+    } catch (Exception e) {
+        LOGGER.error("AmazonSMTPMail:: Error while sending email :: From = {}, Port = {}, Host = {}, SMTP User = {}, To = {}", 
+                     from, port, host, smtpUser, to, e);
+        return "Failed";
+    }
+}
 
 	public String mailSender2(JSONArray mail, String email, JSONObject getJson, JSONObject jsonBody,
-			List<MultipartFile> files, String lang, String schema) {
+			List<File> files, String lang, String schema) {
 		String resultOfMail = "";
 		String body = "";
 		JSONArray mailContent = null;
@@ -229,6 +222,8 @@ public class AmazonSMTPMail {
 					for (int m = 0; m < emails.size(); m++) {
 						int k = 0;
 						do {
+							if (k != 0)
+								LOGGER.info("Enter into Attempt {}", k);
 							k++;
 							if (k == 3) {
 								return resultOfMail = FAILED;
@@ -439,7 +434,7 @@ public class AmazonSMTPMail {
 		return resultOfMail;
 	}
 
-	public String emailconfig(JSONObject email, JSONObject jsonbody, List<MultipartFile> files, String lang,
+	public String emailconfig(JSONObject email, JSONObject jsonbody, List<File> files, String lang,
 			String method, String schema) {
 		String returndata = "";
 		try {
@@ -469,28 +464,36 @@ public class AmazonSMTPMail {
 					try (InputStream inputStream = s3Object.getObjectContent()) {
 						BufferedImage localImage = ImageIO.read(inputStream);
 
-						ByteArrayOutputStream baos = new ByteArrayOutputStream();
-						ImageIO.write(localImage, "png", baos);
+//						ByteArrayOutputStream baos = new ByteArrayOutputStream();
+//						ImageIO.write(localImage, "png", baos);
 
-						files.add(new MockMultipartFile(fileName, fileName,
-								s3Object.getObjectMetadata().getContentType(), baos.toByteArray()));
+//						files.add(new MockMultipartFile(fileName, fileName,
+//								s3Object.getObjectMetadata().getContentType(), baos.toByteArray()));
+						
+						File tempFile = File.createTempFile("s3file-", ".png");
+			            tempFile.deleteOnExit(); // Optionally delete the temp file on JVM exit
+
+			            // Write the image to the file
+			            ImageIO.write(localImage, "png", tempFile);
+			            files.add(tempFile);
 
 					} catch (Exception e) {
 						LOGGER.error("Exception at S3Files in method: {}",
 								Thread.currentThread().getStackTrace()[0].getMethodName(), e);
-					} 
+					}
 				});
 
 			}
 
-			if (email.getString("getContentNameColumn").equalsIgnoreCase("default")
+			if (email.getString("getContentNameColumn").equalsIgnoreCase("Default")
 					&& email.getJSONArray("getContantType").toList().contains(method)) {
 				int index = email.getJSONArray("getContantType").toList().indexOf(method);
 				mail = email.getJSONObject("mail")
 						.getJSONArray(email.getJSONArray("getContantType").get(index).toString());
 
-			} else if (email.getJSONArray("getContantType").toList()
-					.contains(jsonbody.get(email.getString("getContentNameColumn")))) {
+			} else if (!email.getString("getContentNameColumn").equalsIgnoreCase("Default")
+					&& email.getJSONArray("getContantType").toList()
+							.contains(jsonbody.get(email.getString("getContentNameColumn")))) {
 				int index = email.getJSONArray("getContantType").toList()
 						.indexOf(jsonbody.get(email.getString("getContentNameColumn")));
 				mail = email.getJSONObject("mail")
@@ -499,8 +502,6 @@ public class AmazonSMTPMail {
 			} else {
 				return returndata = "No Email Through";
 			}
-//			System.err.println(files.size());
-
 			returndata = mailSender2(mail, mailid, email, jsonbody, files, lang, schema);
 
 		} catch (Exception e) {
@@ -512,7 +513,7 @@ public class AmazonSMTPMail {
 	}
 
 	public String cornEmialScheduler(JSONArray listofjob, JSONObject emailConfig, JSONObject urlFormation,
-			List<MultipartFile> files) {
+			List<File> files) {
 
 		listofjob.toList().forEach(jobs -> {
 			String result = "";
