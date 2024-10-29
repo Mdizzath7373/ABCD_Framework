@@ -128,20 +128,31 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 
 			boolean isprogress = false;
 
+			
 			List<File> filedata = new ArrayList<>();
-			for (MultipartFile mfile : files) {
-				try {
-					File file = Files.createTempFile(null, mfile.getOriginalFilename()).toFile();
-					mfile.transferTo(file);
-					filedata.add(file);
-				} catch (Exception e) {
-					LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
-				}
-			}
 
 			if (transmitMethod.equalsIgnoreCase("Upload")) {
 				fileuploadServices.fileupload(gettabledata, files, jsonbody, documentdata);
+				for (MultipartFile mfile : files) {
+					try {
+						File file = Files.createTempFile(null, mfile.getOriginalFilename()).toFile();
+						mfile.transferTo(file);
+						filedata.add(file);
+					} catch (Exception e) {
+						LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+					}
+				}
+				
 			} else if (transmitMethod.equalsIgnoreCase("UploadWithProgress")) {
+				for (MultipartFile mfile : files) {
+					try {
+						File file = Files.createTempFile(null, mfile.getOriginalFilename()).toFile();
+						mfile.transferTo(file);
+						filedata.add(file);
+					} catch (Exception e) {
+						LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+					}
+				}
 				res = fileuploadServices.convertPdfToMultipart(filedata.get(0), gettabledata, jsonbody);
 				isprogress = true;
 				if (res.equalsIgnoreCase("Failed")) {
@@ -149,6 +160,15 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 							.toString();
 				}
 			} else if (transmitMethod.equalsIgnoreCase("MergeFile")) {
+				for (MultipartFile mfile : files) {
+					try {
+						File file = Files.createTempFile(null, mfile.getOriginalFilename()).toFile();
+						mfile.transferTo(file);
+						filedata.add(file);
+					} catch (Exception e) {
+						LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+					}
+				}
 				fileuploadServices.mergebase64ToPDF(gettabledata, jsonbody, filedata.get(0));
 			}
 

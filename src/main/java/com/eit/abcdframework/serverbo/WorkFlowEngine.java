@@ -1,6 +1,8 @@
 package com.eit.abcdframework.serverbo;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -42,10 +44,9 @@ public class WorkFlowEngine {
 
 //	@Value("${applicationurl}")
 //	private String pgresturl;
-	
+
 //	@Value("${schema}")
 //	private String schema;
-
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(WorkFlowEngine.class);
 
@@ -215,14 +216,15 @@ public class WorkFlowEngine {
 							result = dataTransmit.transmitDataspgrestpost(url, jsonBody.toString(),
 									currentFlow.has("returnSaveData") ? currentFlow.getBoolean("returnSaveData")
 											: false,
-											GlobalAttributeHandler.getSchemas());
+									GlobalAttributeHandler.getSchemas());
 						}
 						if (NextStep.equalsIgnoreCase("update")) {
-							String url = GlobalAttributeHandler.getPgrestURL() + tablename + "?" + primarykey + "=eq." + primaryValue;
+							String url = GlobalAttributeHandler.getPgrestURL() + tablename + "?" + primarykey + "=eq."
+									+ primaryValue;
 							result = dataTransmit.transmitDataspgrestput(url, jsonBody.toString(),
 									currentFlow.has("returnSaveData") ? currentFlow.getBoolean("returnSaveData")
 											: false,
-											GlobalAttributeHandler.getSchemas());
+									GlobalAttributeHandler.getSchemas());
 						}
 
 						// handle the response
@@ -351,13 +353,15 @@ public class WorkFlowEngine {
 					if (getdata.getJSONObject("where").has("defaultWhere")
 							&& !getdata.getJSONObject("where").getString("defaultWhere").equalsIgnoreCase("")) {
 						if (!whereClass.equalsIgnoreCase(""))
-							url = (GlobalAttributeHandler.getPgrestURL() + getdata.getString("tablename") + whereClass + "&"
-									+ getdata.getJSONObject("where").getString("defaultWhere")).replaceAll(" ", "%20");
+							url = (GlobalAttributeHandler.getPgrestURL() + getdata.getString("tablename") + whereClass
+									+ "&" + getdata.getJSONObject("where").getString("defaultWhere"))
+									.replaceAll(" ", "%20");
 						else
 							url = (GlobalAttributeHandler.getPgrestURL() + getdata.getString("tablename") + "?"
 									+ getdata.getJSONObject("where").getString("defaultWhere")).replaceAll(" ", "%20");
 					} else {
-						url = (GlobalAttributeHandler.getPgrestURL() + getdata.getString("tablename") + whereClass).replaceAll(" ", "%20");
+						url = (GlobalAttributeHandler.getPgrestURL() + getdata.getString("tablename") + whereClass)
+								.replaceAll(" ", "%20");
 
 					}
 				}
@@ -383,11 +387,12 @@ public class WorkFlowEngine {
 								+ getdata.getJSONObject("where").getString("defaultWhere")).replaceAll(" ", "%20");
 					}
 				} else {
-					url = (GlobalAttributeHandler.getPgrestURL() + getdata.getString("tablename") + whereClass).replaceAll(" ", "%20");
+					url = (GlobalAttributeHandler.getPgrestURL() + getdata.getString("tablename") + whereClass)
+							.replaceAll(" ", "%20");
 
 				}
 			}
-			isGetdata = dataTransmit.transmitDataspgrest(url,GlobalAttributeHandler.getSchemas());
+			isGetdata = dataTransmit.transmitDataspgrest(url, GlobalAttributeHandler.getSchemas());
 		} catch (Exception e) {
 			LOGGER.error("Exception At Search Data Isexsiting data", e);
 			isGetdata.put(new JSONObject().put("error", e.getMessage()));

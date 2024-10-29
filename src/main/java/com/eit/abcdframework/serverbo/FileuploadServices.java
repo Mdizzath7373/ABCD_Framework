@@ -55,6 +55,8 @@ import com.eit.abcdframework.http.caller.Httpclientcaller;
 import com.eit.abcdframework.s3bucket.S3Upload;
 import com.eit.abcdframework.websocket.WebSocketService;
 
+import jakarta.mail.Multipart;
+
 @Service
 public class FileuploadServices {
 
@@ -99,6 +101,7 @@ public class FileuploadServices {
 	public JSONObject fileupload(JSONObject gettabledata, List<MultipartFile> files, JSONObject jsonbody,
 			JSONObject documentdata) {
 		JSONObject oldFile = new JSONObject();
+		File convFile=null;
 		try {
 			List<String> prefilename = new ArrayList<>();
 			// filepathname was define which column value was set on file path
@@ -138,6 +141,17 @@ public class FileuploadServices {
 					String[] extensen = files.get(i).getOriginalFilename().split("\\.");
 					String filePath = path + filename + i + dateFormat.format(new Date()) + "."
 							+ extensen[extensen.length - 1];
+					
+
+//					 convFile = new File(files.get(i).getOriginalFilename());
+////					 try (InputStream inputStream = files.get(i).getInputStream()) {
+//					 System.err.println(files.get(i).getSize());
+//					        Files.copy(files.get(i).getInputStream(), convFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+////					    } catch (IOException e) {
+////					        LOGGER.error("Exception at : ", e);
+////					    }
+//					System.err.println( convFile.length());
+
 					// Start to Upload File in S3Bucket.
 					if (uploadFile(files.get(i), filePath)) {
 						String path = s3url + filePath;
@@ -191,6 +205,18 @@ public class FileuploadServices {
 		}
 		return jsonbody;
 
+	}
+
+	public boolean uploadFile(File mFile, String path) throws Exception {
+//		File file = convertMultiPartFileToFile(mFile);
+//		S3Upload s3Upload = new S3Upload();
+		if (s3Upload.NewuploadFile(ConfigurationFile.getStringConfig("s3bucket.bucketName").toString(), path, mFile,
+				true)) {
+			mFile.delete();
+			return true;
+		} else {
+			return false;
+		}
 	}
 
 	public boolean uploadFile(MultipartFile mFile, String path) throws Exception {
@@ -252,8 +278,7 @@ public class FileuploadServices {
 		return json;
 	}
 
-	public String convertPdfToMultipart(File file, JSONObject gettabledata, JSONObject jsonbody)
-			throws IOException {
+	public String convertPdfToMultipart(File file, JSONObject gettabledata, JSONObject jsonbody) throws IOException {
 		String Splitter_primary_id = gettabledata.getJSONObject("Splitter").getString("Splitter_primary_id");
 
 		String primaryKey = jsonbody.get(Splitter_primary_id).toString();
@@ -267,8 +292,7 @@ public class FileuploadServices {
 		final Map<Integer, String> base64String = new TreeMap<>();
 		List<Integer> FaildPages = new ArrayList<>();
 
-		try (InputStream inputStream = new FileInputStream(file);
-				PDDocument document = PDDocument.load(inputStream)) {
+		try (InputStream inputStream = new FileInputStream(file); PDDocument document = PDDocument.load(inputStream)) {
 			PDFRenderer pdfRenderer = new PDFRenderer(document);
 			pageCount = document.getNumberOfPages();
 			AtomicInteger preProgresCount = new AtomicInteger(0);
@@ -479,14 +503,13 @@ public class FileuploadServices {
 
 		String nameofPDF = "split.pdf";
 
-		String splitPDFPath = currentDir +"\\" +nameofPDF;
+		String splitPDFPath = currentDir + "\\" + nameofPDF;
 		Map<String, String> s3paths = new HashMap<>();
 		s3paths.put(nameofPDF.split("\\.")[0], splitPDFPath);
 
 		if (!PDFpath.equalsIgnoreCase("")) {
 			s3paths.put("original", PDFpath);
 		}
-
 
 		boolean IsFirst = true;
 
