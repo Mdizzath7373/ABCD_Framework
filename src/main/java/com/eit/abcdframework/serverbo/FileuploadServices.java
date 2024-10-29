@@ -4,13 +4,14 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Comparator;
@@ -43,7 +44,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -252,7 +252,7 @@ public class FileuploadServices {
 		return json;
 	}
 
-	public String convertPdfToMultipart(MultipartFile multipartFile, JSONObject gettabledata, JSONObject jsonbody)
+	public String convertPdfToMultipart(File file, JSONObject gettabledata, JSONObject jsonbody)
 			throws IOException {
 		String Splitter_primary_id = gettabledata.getJSONObject("Splitter").getString("Splitter_primary_id");
 
@@ -262,25 +262,24 @@ public class FileuploadServices {
 		ExecutorService executorService = Executors.newFixedThreadPool(optimalThreadCount);
 
 		int pageCount = 0;
-		Instant startTime = Instant.now();
+//		Instant startTime = Instant.now();
 		AtomicInteger progressCount = new AtomicInteger(0);
 		final Map<Integer, String> base64String = new TreeMap<>();
 		List<Integer> FaildPages = new ArrayList<>();
 
-		try (InputStream inputStream = multipartFile.getInputStream();
+		try (InputStream inputStream = new FileInputStream(file);
 				PDDocument document = PDDocument.load(inputStream)) {
 			PDFRenderer pdfRenderer = new PDFRenderer(document);
 			pageCount = document.getNumberOfPages();
 			AtomicInteger preProgresCount = new AtomicInteger(0);
-			List<Future<Boolean>> futures = new ArrayList<>();
-
+//			int batchSize = Math.max(100, pageCount / optimalThreadCount); 
+//			List<Future<Boolean>> futures = new ArrayList<>();
 //			for (int pageIndex = 0; pageIndex < pageCount; pageIndex++) {
 //				int currentIndex = pageIndex;
 //				futures.add(executorService
 //						.submit(() -> processPage(document, pdfRenderer, currentIndex, base64String, primaryKey,
 //								progressCount, FaildPages, jsonbody.get("ids").toString(), jsonbody, preProgresCount)));
 //			}
-
 //			for (Future<Boolean> future : futures) {
 //				try {
 //					future.get();
@@ -289,7 +288,6 @@ public class FileuploadServices {
 //				}
 //			}
 			List<CompletableFuture<Boolean>> completableFutures = new ArrayList<>();
-
 
 			for (int pageIndex = 0; pageIndex < pageCount; pageIndex++) {
 				int currentIndex = pageIndex;
@@ -304,7 +302,7 @@ public class FileuploadServices {
 			CompletableFuture<Void> allTasks = CompletableFuture
 					.allOf(completableFutures.toArray(new CompletableFuture[0]));
 			allTasks.join();
-			
+
 		} finally {
 			System.err.println("enter to shudown");
 			executorService.shutdown();
@@ -320,8 +318,8 @@ public class FileuploadServices {
 		}
 
 //		LOGGER.warn("ENTER INTO saveOrUpdateData {BASE64iMAGES}---------->" + Instant.now());
-		saveOrUpdateData(base64String, primaryKey, progressCount, jsonbody.get("ids").toString(),
-				jsonbody, gettabledata.getString("schema"));
+		saveOrUpdateData(base64String, primaryKey, progressCount, jsonbody.get("ids").toString(), jsonbody,
+				gettabledata.getString("schema"));
 //		LOGGER.warn("EXIT saveOrUpdateData {BASE64iMAGES}------->" + Instant.now());
 		LOGGER.info("Enter into Async Process to save Splited Image!!!");
 		progressCount.set(85);
@@ -397,8 +395,8 @@ public class FileuploadServices {
 	}
 
 	@Async
-	public CompletableFuture<String> saveOrUpdateData(Map<Integer, String> base64String, String primarykey, AtomicInteger progressCount,
-			String id, JSONObject jsonbody, String schema) {
+	public CompletableFuture<String> saveOrUpdateData(Map<Integer, String> base64String, String primarykey,
+			AtomicInteger progressCount, String id, JSONObject jsonbody, String schema) {
 		String res = "";
 		try {
 			int total = base64String.size();
@@ -474,14 +472,14 @@ public class FileuploadServices {
 	}
 
 	public JSONObject writeImage(Map<String, Object> base64Images, String PDFpath, String filename, PDDocument document,
-			MultipartFile file) {
+			File file) throws IOException {
 
 		JSONObject res = new JSONObject();
 		String currentDir = System.getProperty("user.dir");
 
 		String nameofPDF = "split.pdf";
 
-		String splitPDFPath = currentDir + nameofPDF;
+		String splitPDFPath = currentDir +"\\" +nameofPDF;
 		Map<String, String> s3paths = new HashMap<>();
 		s3paths.put(nameofPDF.split("\\.")[0], splitPDFPath);
 
@@ -489,23 +487,22 @@ public class FileuploadServices {
 			s3paths.put("original", PDFpath);
 		}
 
-		ExecutorService executorService = Executors.newFixedThreadPool(10);
 
 		boolean IsFirst = true;
 
-		if (IsFirst && !file.isEmpty()) {
+		if (IsFirst && file.exists()) {
 
-			String paramImagePath = currentDir + "/MaterialPage." + file.getOriginalFilename().split("\\.")[1];
+			String paramImagePath = currentDir + "\\MaterialPage." + file.getName();
 			File convFile = new File(paramImagePath);
 			try {
-				file.transferTo(convFile);
+				Files.copy(file.toPath(), convFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
 				S3Object s3Object = amazonS3.getObject("goldenelement", "download22.png");
 				BufferedImage localImage = null;
 				File S3file = null;
 				try (InputStream inputStream = s3Object.getObjectContent();) {
 					localImage = ImageIO.read(inputStream);
-					String localpath = currentDir + "/S3Images.png";
+					String localpath = currentDir + "\\S3Images.png";
 					S3file = new File(localpath);
 
 					ImageIO.write(localImage, "png", S3file);
@@ -542,6 +539,7 @@ public class FileuploadServices {
 			}
 
 		}
+		ExecutorService executorService = Executors.newFixedThreadPool(10);
 		List<Future<String>> futures = new ArrayList<>();
 
 		base64Images.entrySet().stream().sorted(Map.Entry.comparingByKey(Comparator.comparingInt(Integer::parseInt)))
@@ -593,10 +591,10 @@ public class FileuploadServices {
 
 			document.save(splitPDFPath);
 
-			if (!file.isEmpty() && !PDFpath.equalsIgnoreCase("")) {
+			if (file.exists() && !PDFpath.equalsIgnoreCase("")) {
 				document.removePage(0);
 				document.save(PDFpath);
-			} else if (file.isEmpty() && PDFpath.equalsIgnoreCase("")) {
+			} else if (!file.exists() && PDFpath.equalsIgnoreCase("")) {
 				document.save(PDFpath);
 			} else {
 				LOGGER.info("Original PDF Not saved!");
@@ -635,7 +633,7 @@ public class FileuploadServices {
 		}
 	}
 
-	public int mergebase64ToPDF(JSONObject gettabledata, JSONObject jsonbody, MultipartFile files) {
+	public int mergebase64ToPDF(JSONObject gettabledata, JSONObject jsonbody, File files) {
 		int primary_id = 0;
 		try {
 

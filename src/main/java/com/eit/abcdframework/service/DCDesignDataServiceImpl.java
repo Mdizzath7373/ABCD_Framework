@@ -128,20 +128,31 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 
 			boolean isprogress = false;
 
+			List<File> filedata = new ArrayList<>();
+			for (MultipartFile mfile : files) {
+				try {
+					File file = Files.createTempFile(null, mfile.getOriginalFilename()).toFile();
+					mfile.transferTo(file);
+					filedata.add(file);
+				} catch (Exception e) {
+					LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+				}
+			}
+
 			if (transmitMethod.equalsIgnoreCase("Upload")) {
 				fileuploadServices.fileupload(gettabledata, files, jsonbody, documentdata);
 			} else if (transmitMethod.equalsIgnoreCase("UploadWithProgress")) {
-				res = fileuploadServices.convertPdfToMultipart(files.get(0), gettabledata, jsonbody);
+				res = fileuploadServices.convertPdfToMultipart(filedata.get(0), gettabledata, jsonbody);
 				isprogress = true;
 				if (res.equalsIgnoreCase("Failed")) {
 					new JSONObject().put(GlobalAttributeHandler.getError(), GlobalAttributeHandler.getFailure())
 							.toString();
 				}
 			} else if (transmitMethod.equalsIgnoreCase("MergeFile")) {
-				fileuploadServices.mergebase64ToPDF(gettabledata, jsonbody, files.get(0));
+				fileuploadServices.mergebase64ToPDF(gettabledata, jsonbody, filedata.get(0));
 			}
 
-			toSaveObject(method, jsonbody, gettabledata, jsonheader, files);
+			toSaveObject(method, jsonbody, gettabledata, jsonheader, filedata);
 
 			if (isprogress) {
 				Map<String, AtomicInteger> progress = fileuploadServices.getProgress();
@@ -176,7 +187,6 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 				}
 				LOGGER.info("Finish the Async Curd Opertion!");
 			}
-			System.err.println("start async");
 
 			if (gettabledata.has("synchronizedCurdOperation")) {
 				LOGGER.info("Enter into synchronized Curd Opertion!");
@@ -204,7 +214,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 	}
 
 	private String toSaveObject(String method, JSONObject jsonbody, JSONObject gettabledata, JSONObject jsonheader,
-			List<MultipartFile> files) {
+			List<File> files) {
 		JSONObject bodyData = null;
 		try {
 			String response = "";
@@ -243,20 +253,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 				}
 			}
 
-			List<File> filedata = new ArrayList<>();
-
-			files.stream().forEach(entry -> {
-				try {
-				File file = Files.createTempFile(null, entry.getOriginalFilename()).toFile();
-				entry.transferTo(file);
-				filedata.add(file);
-				}catch (Exception e) {
-					LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(),e);
-				}
-			});
-
-			
-			responcesHandling.curdMethodResponceHandle(response, bodyData, jsonheader, gettabledata, method, filedata);
+			responcesHandling.curdMethodResponceHandle(response, bodyData, jsonheader, gettabledata, method, files);
 			LOGGER.info("Enter into Responce handle to Async Process");
 
 		} catch (Exception e) {

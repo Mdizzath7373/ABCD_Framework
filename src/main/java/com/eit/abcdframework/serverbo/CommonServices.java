@@ -351,7 +351,6 @@ public class CommonServices {
 				}
 			}
 		}
-		System.err.println(base64String.size());
 		return base64String;
 
 	}
