@@ -101,7 +101,7 @@ public class FileuploadServices {
 	public JSONObject fileupload(JSONObject gettabledata, List<MultipartFile> files, JSONObject jsonbody,
 			JSONObject documentdata) {
 		JSONObject oldFile = new JSONObject();
-		File convFile=null;
+		File convFile = null;
 		try {
 			List<String> prefilename = new ArrayList<>();
 			// filepathname was define which column value was set on file path
@@ -141,24 +141,20 @@ public class FileuploadServices {
 					String[] extensen = files.get(i).getOriginalFilename().split("\\.");
 					String filePath = path + filename + i + dateFormat.format(new Date()) + "."
 							+ extensen[extensen.length - 1];
-					
-
-//					 convFile = new File(files.get(i).getOriginalFilename());
-////					 try (InputStream inputStream = files.get(i).getInputStream()) {
-//					 System.err.println(files.get(i).getSize());
-//					        Files.copy(files.get(i).getInputStream(), convFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-////					    } catch (IOException e) {
-////					        LOGGER.error("Exception at : ", e);
-////					    }
-//					System.err.println( convFile.length());
 
 					// Start to Upload File in S3Bucket.
 					if (uploadFile(files.get(i), filePath)) {
 						String path = s3url + filePath;
 						// Set the Url to Table column.
-						if (jsonbody.has(column.get(0).toString())
-								&& !jsonbody.get(column.get(0).toString()).equals(null)) {
-							JSONObject json = new JSONObject(jsonbody.get(column.get(0).toString()).toString());
+						if (jsonbody.has(column.get(0).toString())) {
+//								&& !jsonbody.get(column.get(0).toString()).equals(null)) {
+							JSONObject json = null;
+							if (jsonbody.get(column.get(0).toString()).equals(null)
+									|| jsonbody.get(column.get(0).toString()).equals("null"))
+								json = new JSONObject();
+							else
+								json = new JSONObject(jsonbody.get(column.get(0).toString()).toString());
+
 							if (!documentdata.isEmpty()) {
 								JSONObject setDocumentData = new JSONObject(
 										documentdata.getJSONObject(name).toString());
