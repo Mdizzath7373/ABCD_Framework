@@ -242,7 +242,7 @@ public class DisplayHandler {
 			JSONObject aliesobj = new JSONObject(alias);
 			JSONArray dataBody = aliesobj.getJSONArray("Data");
 			JSONObject whereCondition = (JSONObject) dataBody.get(0);
-
+			
 			where = whereCondition.getString("Where");
 			String displayAlias = whereCondition.getString("Name");
 

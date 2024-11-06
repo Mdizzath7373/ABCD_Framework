@@ -100,10 +100,10 @@ public class FileuploadServices {
 
 	public JSONObject fileupload(JSONObject gettabledata, List<MultipartFile> files, JSONObject jsonbody,
 			JSONObject documentdata) {
-		JSONObject oldFile = new JSONObject();
+//		JSONObject oldFile = new JSONObject();
 		File convFile = null;
 		try {
-			List<String> prefilename = new ArrayList<>();
+//			List<String> prefilename = new ArrayList<>();
 			// filepathname was define which column value was set on file path
 			JSONArray jarr = new JSONArray(gettabledata.getJSONArray("filepathname").toString());
 
@@ -145,51 +145,80 @@ public class FileuploadServices {
 					// Start to Upload File in S3Bucket.
 					if (uploadFile(files.get(i), filePath)) {
 						String path = s3url + filePath;
-						// Set the Url to Table column.
-						if (jsonbody.has(column.get(0).toString())) {
-//								&& !jsonbody.get(column.get(0).toString()).equals(null)) {
-							JSONObject json = null;
-							if (jsonbody.get(column.get(0).toString()).equals(null)
-									|| jsonbody.get(column.get(0).toString()).equals("null"))
-								json = new JSONObject();
-							else
-								json = new JSONObject(jsonbody.get(column.get(0).toString()).toString());
 
-							if (!documentdata.isEmpty()) {
-								JSONObject setDocumentData = new JSONObject(
-										documentdata.getJSONObject(name).toString());
-								setDocumentData.put(files.get(i).getOriginalFilename(), path);
-								json.put(name, setDocumentData);
-								prefilename.add(name);
-								oldFile.put(files.get(i).getOriginalFilename(), path);
-							} else {
-								if (json.has(name)) {
-									JSONObject getjson = json.getJSONObject(name);
-									getjson.put(files.get(i).getOriginalFilename(), path);
-									json.put(name, getjson);
-								} else {
-									JSONObject getjson = new JSONObject();
-									getjson.put(files.get(i).getOriginalFilename(), path);
-									json.put(name, getjson);
-								}
-							}
-							jsonbody.put(column.get(0).toString(), json);
-						} else {
-							JSONObject json = new JSONObject();
-							if (!documentdata.isEmpty()) {
-								JSONObject setDocumentData = new JSONObject(
-										documentdata.getJSONObject(name).toString());
-								setDocumentData.put(files.get(i).getOriginalFilename(), path);
-								json.put(name, setDocumentData);
-							} else {
-								JSONObject getjson = new JSONObject();
-								getjson.put(files.get(i).getOriginalFilename(), path);
-								json.put(name, getjson);
-							}
-							jsonbody.put(column.get(0).toString(), json);
+						String columnName = column.get(0).toString();
+						JSONObject json = jsonbody.optJSONObject(columnName);
+
+						if (json == null || json.equals(JSONObject.NULL)) {
+						    json = new JSONObject();
 						}
-					} else {
-						throw new Exception("Exception In Adding Document");
+
+						JSONObject documentDataJson = new JSONObject();
+						if (!documentdata.isEmpty()) {
+						    documentDataJson = new JSONObject(documentdata.optJSONObject(name).toString());
+						}
+
+						// Add the file path to the document data
+						documentDataJson.put(files.get(i).getOriginalFilename(), path);
+
+						// Update json with document data under the specified name
+						json.put(name, documentDataJson);
+
+						// Update the jsonbody with the new or modified json
+						jsonbody.put(columnName, json);
+
+						// Maintain references for file paths
+//						if (!documentdata.isEmpty()) {
+//						    prefilename.add(name);
+//						    oldFile.put(files.get(i).getOriginalFilename(), path);
+//						}
+
+						// Set the Url to Table column.
+////						if (jsonbody.has(column.get(0).toString())) {
+//////								&& !jsonbody.get(column.get(0).toString()).equals(null)) {
+////							JSONObject json = null;
+////							if (jsonbody.get(column.get(0).toString()).equals(null)
+////									|| jsonbody.get(column.get(0).toString()).equals("null"))
+////								json = new JSONObject();
+////							else
+////								json = new JSONObject(jsonbody.get(column.get(0).toString()).toString());
+////
+////							if (!documentdata.isEmpty()) {
+////								JSONObject setDocumentData = new JSONObject(
+////										documentdata.getJSONObject(name).toString());
+////								setDocumentData.put(files.get(i).getOriginalFilename(), path);
+////								json.put(name, setDocumentData);
+////								prefilename.add(name);
+////								oldFile.put(files.get(i).getOriginalFilename(), path);
+////							} else {
+////								if (json.has(name)) {
+////									JSONObject getjson = json.getJSONObject(name);
+////									getjson.put(files.get(i).getOriginalFilename(), path);
+////									json.put(name, getjson);
+////								} else {
+////									JSONObject getjson = new JSONObject();
+////									getjson.put(files.get(i).getOriginalFilename(), path);
+////									json.put(name, getjson);
+////								}
+////							}
+////							jsonbody.put(column.get(0).toString(), json);
+////						} else {
+////							JSONObject json = new JSONObject();
+////							if (!documentdata.isEmpty()) {
+////								JSONObject setDocumentData = new JSONObject(
+////										documentdata.getJSONObject(name).toString());
+////								setDocumentData.put(files.get(i).getOriginalFilename(), path);
+////								json.put(name, setDocumentData);
+////							} else {
+////								JSONObject getjson = new JSONObject();
+////								getjson.put(files.get(i).getOriginalFilename(), path);
+////								json.put(name, getjson);
+////							}
+////							jsonbody.put(column.get(0).toString(), json);
+////						}
+//					} else {
+//						throw new Exception("Exception In Adding Document");
+//					}
 					}
 				}
 			}
