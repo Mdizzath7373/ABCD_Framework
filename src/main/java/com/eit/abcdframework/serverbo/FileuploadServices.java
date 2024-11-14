@@ -147,15 +147,20 @@ public class FileuploadServices {
 						String path = s3url + filePath;
 
 						String columnName = column.get(0).toString();
-						JSONObject json = jsonbody.optJSONObject(columnName);
+						Object docData = jsonbody.opt(columnName);
 
-						if (json == null || json.equals(JSONObject.NULL)) {
-						    json = new JSONObject();
-						}
+						JSONObject json = null;
+
+						if (docData instanceof JSONObject)
+							json = jsonbody.optJSONObject(columnName);
+						else if (docData instanceof String)
+							json = new JSONObject(docData.toString());
+						else if (json == null || json.equals(JSONObject.NULL))
+							json = new JSONObject();
 
 						JSONObject documentDataJson = new JSONObject();
 						if (!documentdata.isEmpty()) {
-						    documentDataJson = new JSONObject(documentdata.optJSONObject(name).toString());
+							documentDataJson = new JSONObject(documentdata.optJSONObject(name).toString());
 						}
 
 						// Add the file path to the document data
@@ -544,8 +549,9 @@ public class FileuploadServices {
 			File convFile = new File(paramImagePath);
 			try {
 				Files.copy(file.toPath(), convFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-
-				S3Object s3Object = amazonS3.getObject("goldenelement", "download22.png");
+				
+				S3Object s3Object = amazonS3.getObject("goldenelement",
+						"onboard/TESTING QA009-11-2024 06:18:07.png");
 				BufferedImage localImage = null;
 				File S3file = null;
 				try (InputStream inputStream = s3Object.getObjectContent();) {

@@ -280,5 +280,56 @@ public class Httpclientcaller {
 			return googleCredentials.getAccessToken().getTokenValue();
 		
 	}
+	
+	
+	public String transmitDataspgrestbulkInsert(String toUrl, String data, boolean addheader,String schema) {
+		int statusCode = 0;
+		String returndata = "";
+		PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
+		connectionManager.setMaxTotal(250); // Maximum total connections
+		connectionManager.setDefaultMaxPerRoute(20);
+		try (CloseableHttpClient httpClient = HttpClients.custom().setMaxConnPerRoute(10000)
+				.setConnectionManager(connectionManager) // Max connections per //
+				.setMaxConnTotal(10000).build()) {
+
+			HttpPost http = new HttpPost(toUrl);
+			http.addHeader("Content-Type", "application/json;charset=utf-8");
+			http.addHeader("Content-Profile",schema);
+			http.addHeader("Prefer","missing=default");
+			if (addheader)
+				http.addHeader("Prefer", "return=representation");
+			StringEntity requestEntity = new StringEntity(data, StandardCharsets.UTF_8);
+			http.setEntity(requestEntity);
+			try (CloseableHttpResponse response = httpClient.execute(http)) {
+				statusCode = response.getStatusLine().getStatusCode();
+				String status = String.valueOf(statusCode);
+				LOGGER.error("Response Code:  {}", status);
+				HttpEntity responseEntity = response.getEntity();
+				if (responseEntity != null) {
+					String responseBody = EntityUtils.toString(responseEntity);
+					LOGGER.error("Response Body: {}", responseBody);
+					if (!responseBody.equalsIgnoreCase("[]") && !responseBody.equalsIgnoreCase("")
+							&& responseBody.startsWith("{")) {
+						return returndata = new JSONObject(responseBody.toString()).toString();
+					}
+					if (!responseBody.equalsIgnoreCase("[]") && !responseBody.equalsIgnoreCase("")) {
+						
+						if (new JSONObject(new JSONArray(responseBody).get(0).toString()).has("reflex"))
+							returndata = new JSONObject(new JSONArray(responseBody).get(0).toString())
+									.getString("reflex");
+						else
+							returndata = new JSONObject(new JSONArray(responseBody).get(0).toString()).toString();
+					} else {
+						returndata = String.valueOf(statusCode);
+					}
+				}
+
+			}
+
+		} catch (IOException e) {
+			LOGGER.error("Excepton at : ", e);
+		}
+		return returndata;
+	}
 
 }
