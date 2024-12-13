@@ -7,17 +7,21 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpDelete;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpPut;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
-import org.apache.http.util.EntityUtils;
+import org.apache.hc.client5.http.classic.methods.HttpDelete;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.classic.methods.HttpPut;
+import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
+import org.apache.hc.core5.http.ClassicHttpResponse;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.apache.hc.core5.http.io.entity.StringEntity;
+import org.apache.hc.core5.util.Timeout;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -27,309 +31,288 @@ import org.springframework.stereotype.Component;
 import com.eit.abcdframework.config.ConfigurationFile;
 import com.google.auth.oauth2.GoogleCredentials;
 
+import org.apache.hc.client5.http.config.RequestConfig;
+
 @Component("Httpclientcaller")
 public class Httpclientcaller {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(Httpclientcaller.class);
 
-	public JSONArray transmitDataspgrest(String toUrl,String schema) throws IOException {
-		PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
-		connectionManager.setMaxTotal(250); // Maximum total connections
-		connectionManager.setDefaultMaxPerRoute(20);
-		try (CloseableHttpClient httpClient = HttpClients.custom().setMaxConnPerRoute(10000)
-				.setConnectionManager(connectionManager) // Max connections per //
-				.setMaxConnTotal(10000).build()) {
-			if (toUrl.contains("{"))
-				toUrl = toUrl.replace("{", "%7B").replace("}", "%7D");
+	private final CloseableHttpClient httpClient;
 
-			if (toUrl.contains(">") || toUrl.contains("<")) {
-				toUrl = toUrl.contains(">") ? toUrl.replace(">", "%3E") : toUrl;
-				toUrl = toUrl.contains("<") ? toUrl.replace("<", "%3C") : toUrl;
-			}
+	public Httpclientcaller() {
+		PoolingHttpClientConnectionManager poolingManager = new PoolingHttpClientConnectionManager();
+		poolingManager.setMaxTotal(250);
+		poolingManager.setDefaultMaxPerRoute(20);
 
-			HttpGet httpGet = new HttpGet(toUrl);
-			httpGet.setHeader("Connection", "close");
-			httpGet.setHeader("Accept-Profile",schema);
-			try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
-				String responseBody = "";
-				int statusCode = response.getStatusLine().getStatusCode();
-				HttpEntity responseEntity = response.getEntity();
-				if (responseEntity != null) {
-					responseBody = EntityUtils.toString(responseEntity);
-					if (responseBody.equalsIgnoreCase("") || responseBody.equalsIgnoreCase("{}")) {
-						return new JSONArray();
-					}
-					if (responseBody.startsWith("{")) {
-						return new JSONArray().put(new JSONObject(responseBody));
-					}
-				}
-				String status = String.valueOf(statusCode);
-				LOGGER.error("Status Code: {}", status);
-
-				return new JSONArray(responseBody);
-			}
-		}
+		this.httpClient = HttpClients.custom().setConnectionManager(poolingManager)
+				.setDefaultRequestConfig(RequestConfig.custom().setConnectionRequestTimeout(Timeout.ofSeconds(10))
+						.setResponseTimeout(Timeout.ofSeconds(30)).build())
+				.build();
 	}
 
-	public String transmitDataspgrestpost(String toUrl, String data, boolean addheader,String schema) {
-		int statusCode = 0;
-		String returndata = "";
-		PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
-		connectionManager.setMaxTotal(250); // Maximum total connections
-		connectionManager.setDefaultMaxPerRoute(20);
-		try (CloseableHttpClient httpClient = HttpClients.custom().setMaxConnPerRoute(10000)
-				.setConnectionManager(connectionManager) // Max connections per //
-				.setMaxConnTotal(10000).build()) {
+	public JSONArray executeRequest(HttpUriRequestBase request) throws IOException {
+		return httpClient.execute(request, response -> {
+			return parseResponseBody(response);
 
-			HttpPost http = new HttpPost(toUrl);
-			http.addHeader("Content-Type", "application/json;charset=utf-8");
-			http.addHeader("Content-Profile",schema);
-			if (addheader)
-				http.addHeader("Prefer", "return=representation");
-			StringEntity requestEntity = new StringEntity(data, StandardCharsets.UTF_8);
-			http.setEntity(requestEntity);
-			try (CloseableHttpResponse response = httpClient.execute(http)) {
-				statusCode = response.getStatusLine().getStatusCode();
-				String status = String.valueOf(statusCode);
-				LOGGER.error("Response Code:  {}", status);
-				HttpEntity responseEntity = response.getEntity();
-				if (responseEntity != null) {
-					String responseBody = EntityUtils.toString(responseEntity);
-					LOGGER.error("Response Body: {}", responseBody);
-					if (!responseBody.equalsIgnoreCase("[]") && !responseBody.equalsIgnoreCase("")
-							&& responseBody.startsWith("{")) {
-						return returndata = new JSONObject(responseBody.toString()).toString();
-					}
-					if (!responseBody.equalsIgnoreCase("[]") && !responseBody.equalsIgnoreCase("")) {
-						
-						if (new JSONObject(new JSONArray(responseBody).get(0).toString()).has("reflex"))
-							returndata = new JSONObject(new JSONArray(responseBody).get(0).toString())
-									.getString("reflex");
-						else
-							returndata = new JSONObject(new JSONArray(responseBody).get(0).toString()).toString();
-					} else {
-						returndata = String.valueOf(statusCode);
-					}
+		});
+
+	}
+
+	private JSONArray parseResponseBody(ClassicHttpResponse response) {
+		JSONArray responseArray = new JSONArray();
+		try {
+			int statusCode = response.getCode();
+			LOGGER.info("Status Code is ::{}", statusCode);
+
+			HttpEntity responseEntity = response.getEntity();
+			if (responseEntity == null) {
+				return responseArray;
+			}
+
+			String responseBody = EntityUtils.toString(responseEntity);
+
+			if (responseBody.isBlank() || responseBody.equals("{}") || responseBody.equals("[]")) {
+				return responseArray;
+			}
+
+			if (responseBody.trim().startsWith("{")) {
+				JSONObject jsonObject = new JSONObject(responseBody);
+				if (jsonObject.has("reflex")) {
+					return new JSONArray().put(jsonObject.getString("reflex"));
+				}
+				return responseArray.put(jsonObject);
+			}
+
+			if (responseBody.trim().startsWith("[")) {
+				responseArray = new JSONArray(responseBody);
+				if (responseArray.isEmpty()) {
+					return responseArray;
 				}
 
-			}
-
-		} catch (IOException e) {
-			LOGGER.error("Excepton at : ", e);
-		}
-		return returndata;
-	}
-
-	public String transmitDataspgrestput(String toUrl, String data, boolean addheader,String schema) {
-		int statusCode = 0;
-		String returndata = "";
-		PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
-		connectionManager.setMaxTotal(250); // Maximum total connections
-		connectionManager.setDefaultMaxPerRoute(20);
-		try (CloseableHttpClient httpClient = HttpClients.custom().setMaxConnPerRoute(10000)
-				.setConnectionManager(connectionManager) // Max connections per //
-				.setMaxConnTotal(10000).build()) {
-
-			HttpPut http = new HttpPut(toUrl);
-			http.addHeader("Content-Type", "application/json");
-			http.addHeader("Content-Profile",schema);
-			if (addheader)
-				http.addHeader("Prefer", "return=representation");
-			StringEntity requestEntity = new StringEntity(data, StandardCharsets.UTF_8);
-			http.setEntity(requestEntity);
-			try (CloseableHttpResponse response = httpClient.execute(http)) {
-				statusCode = response.getStatusLine().getStatusCode();
-				String status = String.valueOf(statusCode);
-				LOGGER.error("Response Code: {}", status);
-				HttpEntity responseEntity = response.getEntity();
-				if (responseEntity != null) {
-					String responseBody = EntityUtils.toString(responseEntity);
-					LOGGER.error("Response Body: {}", responseBody);
-
+				if (responseArray.getJSONObject(0).has("reflex")) {
+					return responseArray.put(responseArray.getJSONObject(0).getString("reflex"));
 				}
-				returndata = String.valueOf(statusCode);
+			} else {
+				responseArray.put(statusCode);
 			}
-
-		} catch (IOException e) {
-			LOGGER.error("Excepton at :", e);
+		} catch (Exception e) {
+			LOGGER.error("Error in {}: {}", Thread.currentThread().getStackTrace()[0].getMethodName(), e.getMessage());
 		}
-		return returndata;
-	}
-	public String transmitDatasNafath(String toUrl, String data, boolean addheader) {
-		int statusCode = 0;
-		String returndata = "";
-		PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
-		connectionManager.setMaxTotal(250); // Maximum total connections
-		connectionManager.setDefaultMaxPerRoute(20);
-		try (CloseableHttpClient httpClient = HttpClients.custom().setMaxConnPerRoute(10000)
-				.setConnectionManager(connectionManager) // Max connections per //
-				.setMaxConnTotal(10000).build()) {
-
-			HttpPost http = new HttpPost(toUrl);
-			http.addHeader("Content-Type", "application/json");
-			http.addHeader("APP-ID","35edb476");
-			http.addHeader("APP-KEY"," a102491f396c752ad80eb681223482c2");
-			if (addheader)
-				http.addHeader("Prefer", "return=representation");
-			StringEntity requestEntity = new StringEntity(data, StandardCharsets.UTF_8);
-			http.setEntity(requestEntity);
-			try (CloseableHttpResponse response = httpClient.execute(http)) {
-				statusCode = response.getStatusLine().getStatusCode();
-				String status = String.valueOf(statusCode);
-				LOGGER.error("Response Code: {}", status);
-				HttpEntity responseEntity = response.getEntity();
-				if (responseEntity != null) {
-					String responseBody = EntityUtils.toString(responseEntity);
-					LOGGER.error("Response Body: {}", responseBody);
-					if (!responseBody.equalsIgnoreCase("[]") && !responseBody.equalsIgnoreCase("")
-							&& responseBody.startsWith("{")) {
-						return returndata = new JSONObject(responseBody.toString()).toString();
-					}
-					if (!responseBody.equalsIgnoreCase("[]") && !responseBody.equalsIgnoreCase("")) {
-						if (new JSONObject(new JSONArray(responseBody).get(0).toString()).has("reflex"))
-							returndata = new JSONObject(new JSONArray(responseBody).get(0).toString())
-									.getString("reflex");
-						else
-							returndata = new JSONObject(new JSONArray(responseBody).get(0).toString()).toString();
-					} else {
-						returndata = String.valueOf(statusCode);
-					}
-				}
-				returndata = String.valueOf(statusCode);
-			}
-
-		} catch (IOException e) {
-			LOGGER.error("Excepton at :", e);
-		}
-		return returndata;
+		return responseArray;
 	}
 
-	public int transmitDataspgrestDel(String toUrl,String schema) throws IOException {
-		int statusCode = 0;
-		PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
-		connectionManager.setMaxTotal(250); // Maximum total connections
-		connectionManager.setDefaultMaxPerRoute(20);
-		try (CloseableHttpClient httpClient = HttpClients.custom().setMaxConnPerRoute(10000)
-				.setConnectionManager(connectionManager) // Max connections per //
-				.setMaxConnTotal(10000).build()) {
+	public JSONArray transmitDataspgrest(String toUrl, String schema) throws IOException {
+		HttpGet httpGet = new HttpGet(toUrl);
+		httpGet.setHeader("Connection", "close");
+		httpGet.setHeader("Accept-Profile", schema);
 
-			HttpDelete httpDel = new HttpDelete(toUrl);
-			httpDel.addHeader("Content-Profile",schema);
-			try (CloseableHttpResponse response = httpClient.execute(httpDel)) {
-				statusCode = response.getStatusLine().getStatusCode();
-				String status = String.valueOf(statusCode);
-				LOGGER.error("Response Code: {}", status);
-			}
-
-		} catch (IOException e) {
-			LOGGER.error("Excepton at :", e);
-		}
-		return statusCode;
+		return executeRequest(httpGet);
 
 	}
 
-	public JSONObject transmitDataPushNotification(String toUrl, String data) {
-		int statusCode = 0;
-		JSONObject returndata = null;
-		PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
-		connectionManager.setMaxTotal(250); // Maximum total connections
-		connectionManager.setDefaultMaxPerRoute(20);
-		try (CloseableHttpClient httpClient = HttpClients.custom().setMaxConnPerRoute(10000)
-				.setConnectionManager(connectionManager) // Max connections per //
-				.setMaxConnTotal(10000).build()) {
+	public String transmitDataspgrestpost(String toUrl, String data, boolean addheader, String schema)
+			throws IOException {
+		HttpPost httpPost = new HttpPost(toUrl);
+		httpPost.addHeader("Content-Type", "application/json;charset=utf-8");
+		httpPost.addHeader("Content-Profile", schema);
+		if (addheader)
+			httpPost.addHeader("Prefer", "return=representation");
+		httpPost.setEntity(new StringEntity(data, StandardCharsets.UTF_8));
 
-			HttpPost http = new HttpPost(toUrl);
-			http.addHeader("Content-Type", "application/json;charset=utf-8");
-			http.addHeader("Authorization", "Bearer " + getAccessToken());
-			//onboard
-//			http.addHeader("Authorization","key=AAAAyvLtD4s:APA91bHfGpeSqPM9CDALqbLPJH1C8_2mIShEzzTb9EOvKYxh52I4-CevU5iIj3doZ2FWp6ESpGGcanhg_0H2M6NIdkR61bMbdoEwpaXURuXDtDMb2Soy479vKnetWvp3fvQqFIBcotKj");
-			StringEntity requestEntity = new StringEntity(data, StandardCharsets.UTF_8);
-			http.setEntity(requestEntity);
-			try (CloseableHttpResponse response = httpClient.execute(http)) {
-				statusCode = response.getStatusLine().getStatusCode();
-				String status = String.valueOf(statusCode);
-				LOGGER.error("Response Code:  {}", status);
-				HttpEntity responseEntity = response.getEntity();
-				if (responseEntity != null) {
-					String responseBody = EntityUtils.toString(responseEntity);
-					LOGGER.warn("Response Body: {}", responseBody);
-					LOGGER.warn("statusCode: {}", statusCode);
-					returndata = new JSONObject(responseBody);
-					System.err.println(returndata);
-				}
-			}
+		return executeRequest(httpPost).toString();
 
-		} catch (IOException e) {
-			LOGGER.error("Excepton at : ", e);
-		}
-		return returndata;
 	}
+
+	public String transmitDataspgrestput(String toUrl, String data, boolean addheader, String schema)
+			throws IOException {
+		HttpPut httpPut = new HttpPut(toUrl);
+		httpPut.addHeader("Content-Type", "application/json;charset=utf-8");
+		httpPut.addHeader("Content-Profile", schema);
+		if (addheader)
+			httpPut.addHeader("Prefer", "return=representation");
+		httpPut.setEntity(new StringEntity(data, ContentType.APPLICATION_JSON.withCharset(StandardCharsets.UTF_8)));
+
+		return executeRequest(httpPut).toString();
+
+	}
+
+	public int transmitDataspgrestDel(String toUrl, String schema) throws IOException {
+		HttpDelete httpDel = new HttpDelete(toUrl);
+		httpDel.setHeader("Connection", "close");
+		httpDel.setHeader("Accept-Profile", schema);
+
+		return Integer.parseInt(executeRequest(httpDel).toString());
+
+	}
+
+	public String transmitDataPushNotification(String firebaseurl, String data) throws IOException {
+
+		HttpPost httpPush = new HttpPost(firebaseurl);
+		httpPush.addHeader("Content-Type", "application/json;charset=utf-8");
+		httpPush.addHeader("Authorization", "Bearer " + getAccessToken());
+		httpPush.setEntity(new StringEntity(data, StandardCharsets.UTF_8));
+		return executeRequest(httpPush).toString();
+
+	}
+
+//	public JSONObject transmitDataPushNotification(String toUrl, String data) {
+//		HttpPost http = new HttpPost(toUrl);
+//		http.addHeader("Content-Type", "application/json;charset=utf-8");
+//		http.addHeader("Authorization", "Bearer " + getAccessToken());
+//		http.setEntity(new StringEntity(data, StandardCharsets.UTF_8));
+//
+//		return executeRequest(http);
+//
+//	}
+
+//	public String transmitDatasNafath(String toUrl, String data, boolean addheader) {
+//		int statusCode = 0;
+//		String returndata = "";
+//		PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
+//		connectionManager.setMaxTotal(250); // Maximum total connections
+//		connectionManager.setDefaultMaxPerRoute(20);
+//		try (CloseableHttpClient httpClient = HttpClients.custom().setMaxConnPerRoute(10000)
+//				.setConnectionManager(connectionManager) // Max connections per //
+//				.setMaxConnTotal(10000).build()) {
+//
+//			HttpPost http = new HttpPost(toUrl);
+//			http.addHeader("Content-Type", "application/json");
+//			http.addHeader("APP-ID", "35edb476");
+//			http.addHeader("APP-KEY", " a102491f396c752ad80eb681223482c2");
+//			if (addheader)
+//				http.addHeader("Prefer", "return=representation");
+//			StringEntity requestEntity = new StringEntity(data, StandardCharsets.UTF_8);
+//			http.setEntity(requestEntity);
+//			try (CloseableHttpResponse response = httpClient.execute(http)) {
+//				statusCode = response.getStatusLine().getStatusCode();
+//				String status = String.valueOf(statusCode);
+//				LOGGER.error("Response Code: {}", status);
+//				HttpEntity responseEntity = response.getEntity();
+//				if (responseEntity != null) {
+//					String responseBody = EntityUtils.toString(responseEntity);
+//					LOGGER.error("Response Body: {}", responseBody);
+//					if (!responseBody.equalsIgnoreCase("[]") && !responseBody.equalsIgnoreCase("")
+//							&& responseBody.startsWith("{")) {
+//						return returndata = new JSONObject(responseBody.toString()).toString();
+//					}
+//					if (!responseBody.equalsIgnoreCase("[]") && !responseBody.equalsIgnoreCase("")) {
+//						if (new JSONObject(new JSONArray(responseBody).get(0).toString()).has("reflex"))
+//							returndata = new JSONObject(new JSONArray(responseBody).get(0).toString())
+//									.getString("reflex");
+//						else
+//							returndata = new JSONObject(new JSONArray(responseBody).get(0).toString()).toString();
+//					} else {
+//						returndata = String.valueOf(statusCode);
+//					}
+//				}
+//				returndata = String.valueOf(statusCode);
+//			}
+//
+//		} catch (IOException e) {
+//			LOGGER.error("Excepton at :", e);
+//		}
+//		return returndata;
+//	}
+
+//	public JSONObject transmitDataPushNotification(String toUrl, String data) {
+//		int statusCode = 0;
+//		JSONObject returndata = null;
+//		PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
+//		connectionManager.setMaxTotal(250); // Maximum total connections
+//		connectionManager.setDefaultMaxPerRoute(20);
+//		try (CloseableHttpClient httpClient = HttpClients.custom().setMaxConnPerRoute(10000)
+//				.setConnectionManager(connectionManager) // Max connections per //
+//				.setMaxConnTotal(10000).build()) {
+//
+//			HttpPost http = new HttpPost(toUrl);
+//			http.addHeader("Content-Type", "application/json;charset=utf-8");
+//			http.addHeader("Authorization", "Bearer " + getAccessToken());
+//			// onboard
+////			http.addHeader("Authorization","key=AAAAyvLtD4s:APA91bHfGpeSqPM9CDALqbLPJH1C8_2mIShEzzTb9EOvKYxh52I4-CevU5iIj3doZ2FWp6ESpGGcanhg_0H2M6NIdkR61bMbdoEwpaXURuXDtDMb2Soy479vKnetWvp3fvQqFIBcotKj");
+//			StringEntity requestEntity = new StringEntity(data, StandardCharsets.UTF_8);
+//			http.setEntity(requestEntity);
+//			try (CloseableHttpResponse response = httpClient.execute(http)) {
+//				statusCode = response.getStatusLine().getStatusCode();
+//				String status = String.valueOf(statusCode);
+//				LOGGER.error("Response Code:  {}", status);
+//				HttpEntity responseEntity = response.getEntity();
+//				if (responseEntity != null) {
+//					String responseBody = EntityUtils.toString(responseEntity);
+//					LOGGER.warn("Response Body: {}", responseBody);
+//					LOGGER.warn("statusCode: {}", statusCode);
+//					returndata = new JSONObject(responseBody);
+//					System.err.println(returndata);
+//				}
+//			}
+//
+//		} catch (IOException e) {
+//			LOGGER.error("Excepton at : ", e);
+//		}
+//		return returndata;
+//	}
 
 	private static List<String> SCOPES = Arrays.asList("https://www.googleapis.com/auth/cloud-platform");
 
 	private String getAccessToken() throws IOException {
-//		ClassPathResource classpathresource = new ClassPathResource("googleAuth.json");
-//		GoogleCredentials googleCredentials = GoogleCredentials.fromStream(new 0000000(writeJsonToFile(ConfigurationFile.getPushNotificationAuthJson(),)))
-//				.createScoped(SCOPES);
 		GoogleCredentials googleCredentials;
 		try (InputStream serviceAccountStream = new ByteArrayInputStream(
 				ConfigurationFile.getPushNotificationAuthJson().getBytes())) {
 			googleCredentials = GoogleCredentials.fromStream(serviceAccountStream).createScoped(SCOPES);
 		}
-			googleCredentials.refresh();
-			return googleCredentials.getAccessToken().getTokenValue();
-		
+		googleCredentials.refresh();
+		return googleCredentials.getAccessToken().getTokenValue();
+
 	}
-	
-	
-	public String transmitDataspgrestbulkInsert(String toUrl, String data, boolean addheader,String schema) {
-		int statusCode = 0;
-		String returndata = "";
-		PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
-		connectionManager.setMaxTotal(250); // Maximum total connections
-		connectionManager.setDefaultMaxPerRoute(20);
-		try (CloseableHttpClient httpClient = HttpClients.custom().setMaxConnPerRoute(10000)
-				.setConnectionManager(connectionManager) // Max connections per //
-				.setMaxConnTotal(10000).build()) {
 
-			HttpPost http = new HttpPost(toUrl);
-			http.addHeader("Content-Type", "application/json;charset=utf-8");
-			http.addHeader("Content-Profile",schema);
-			http.addHeader("Prefer","missing=default");
-			if (addheader)
-				http.addHeader("Prefer", "return=representation");
-			StringEntity requestEntity = new StringEntity(data, StandardCharsets.UTF_8);
-			http.setEntity(requestEntity);
-			try (CloseableHttpResponse response = httpClient.execute(http)) {
-				statusCode = response.getStatusLine().getStatusCode();
-				String status = String.valueOf(statusCode);
-				LOGGER.error("Response Code:  {}", status);
-				HttpEntity responseEntity = response.getEntity();
-				if (responseEntity != null) {
-					String responseBody = EntityUtils.toString(responseEntity);
-					LOGGER.error("Response Body: {}", responseBody);
-					if (!responseBody.equalsIgnoreCase("[]") && !responseBody.equalsIgnoreCase("")
-							&& responseBody.startsWith("{")) {
-						return returndata = new JSONObject(responseBody.toString()).toString();
-					}
-					if (!responseBody.equalsIgnoreCase("[]") && !responseBody.equalsIgnoreCase("")) {
-						
-						if (new JSONObject(new JSONArray(responseBody).get(0).toString()).has("reflex"))
-							returndata = new JSONObject(new JSONArray(responseBody).get(0).toString())
-									.getString("reflex");
-						else
-							returndata = new JSONObject(new JSONArray(responseBody).get(0).toString()).toString();
-					} else {
-						returndata = String.valueOf(statusCode);
-					}
-				}
-
-			}
-
-		} catch (IOException e) {
-			LOGGER.error("Excepton at : ", e);
-		}
-		return returndata;
-	}
+//	public String transmitDataspgrestbulkInsert(String toUrl, String data, boolean addheader, String schema) {
+//		int statusCode = 0;
+//		String returndata = "";
+//		PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
+//		connectionManager.setMaxTotal(250); // Maximum total connections
+//		connectionManager.setDefaultMaxPerRoute(20);
+//		try (CloseableHttpClient httpClient = HttpClients.custom().setMaxConnPerRoute(10000)
+//				.setConnectionManager(connectionManager) // Max connections per //
+//				.setMaxConnTotal(10000).build()) {
+//
+//			HttpPost http = new HttpPost(toUrl);
+//			http.addHeader("Content-Type", "application/json;charset=utf-8");
+//			http.addHeader("Content-Profile", schema);
+//			http.addHeader("Prefer", "missing=default");
+//			if (addheader)
+//				http.addHeader("Prefer", "return=representation");
+//			StringEntity requestEntity = new StringEntity(data, StandardCharsets.UTF_8);
+//			http.setEntity(requestEntity);
+//			try (CloseableHttpResponse response = httpClient.execute(http)) {
+//				statusCode = response.getStatusLine().getStatusCode();
+//				String status = String.valueOf(statusCode);
+//				LOGGER.error("Response Code:  {}", status);
+//				HttpEntity responseEntity = response.getEntity();
+//				if (responseEntity != null) {
+//					String responseBody = EntityUtils.toString(responseEntity);
+//					LOGGER.error("Response Body: {}", responseBody);
+//					if (!responseBody.equalsIgnoreCase("[]") && !responseBody.equalsIgnoreCase("")
+//							&& responseBody.startsWith("{")) {
+//						return returndata = new JSONObject(responseBody.toString()).toString();
+//					}
+//					if (!responseBody.equalsIgnoreCase("[]") && !responseBody.equalsIgnoreCase("")) {
+//
+//						if (new JSONObject(new JSONArray(responseBody).get(0).toString()).has("reflex"))
+//							returndata = new JSONObject(new JSONArray(responseBody).get(0).toString())
+//									.getString("reflex");
+//						else
+//							returndata = new JSONObject(new JSONArray(responseBody).get(0).toString()).toString();
+//					} else {
+//						returndata = String.valueOf(statusCode);
+//					}
+//				}
+//
+//			}
+//
+//		} catch (IOException e) {
+//			LOGGER.error("Excepton at : ", e);
+//		}
+//		return returndata;
+//	}
 
 }

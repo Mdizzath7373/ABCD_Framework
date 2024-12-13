@@ -20,15 +20,7 @@ public class GlobalAttributeHandler {
 	private static final String FAILURE = "Failure";
 	private static final String DATAVALUE = "datavalue";
 
-	// Define characters allowed in the verification code
-	private static final String ALLOWED_CHARACTERS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
-	// Define the maximum length of the verification code
-	private static final int MAX_CODE_LENGTH = 6;
-
-	private static final String ALGORITHM = "AES/CBC/PKCS5Padding"; // AES with CBC and PKCS5 padding
-	private static final String SECRET_KEY = "ABCDFRAM09876543"; // 16-byte key for AES
-	private static final String IV = "ABCDFRAMIV098765"; // 16-byte IV for AES
 	private static String schemas;
 	private static String pgrestURL;
 
@@ -66,30 +58,6 @@ public class GlobalAttributeHandler {
 		return pgrestURL;
 	}
 
-	@ModelAttribute("ALLOWED_CHARACTERS")
-	public static String getAllowedCharacters() {
-		return ALLOWED_CHARACTERS;
-	}
-
-	@ModelAttribute("MAX_CODE_LENGTH")
-	public static int getMaxCodeLength() {
-		return MAX_CODE_LENGTH;
-	}
-
-	@ModelAttribute("ALGORITHM")
-	public static String getAlgorithm() {
-		return ALGORITHM;
-	}
-
-	@ModelAttribute("SECRET_KEY")
-	public static String getSecretKey() {
-		return SECRET_KEY;
-	}
-
-	@ModelAttribute("IV")
-	public static String getIv() {
-		return IV;
-	}
 
 	@ModelAttribute("KEY")
 	public static String getKey() {

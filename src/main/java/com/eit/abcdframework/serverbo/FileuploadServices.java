@@ -13,6 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Comparator;
 import java.util.Date;
@@ -54,8 +55,6 @@ import com.eit.abcdframework.globalhandler.GlobalAttributeHandler;
 import com.eit.abcdframework.http.caller.Httpclientcaller;
 import com.eit.abcdframework.s3bucket.S3Upload;
 import com.eit.abcdframework.websocket.WebSocketService;
-
-import jakarta.mail.Multipart;
 
 @Service
 public class FileuploadServices {
@@ -100,10 +99,7 @@ public class FileuploadServices {
 
 	public JSONObject fileupload(JSONObject gettabledata, List<MultipartFile> files, JSONObject jsonbody,
 			JSONObject documentdata) {
-//		JSONObject oldFile = new JSONObject();
-		File convFile = null;
 		try {
-//			List<String> prefilename = new ArrayList<>();
 			// filepathname was define which column value was set on file path
 			JSONArray jarr = new JSONArray(gettabledata.getJSONArray("filepathname").toString());
 
@@ -116,31 +112,26 @@ public class FileuploadServices {
 			}
 
 			for (int i = 0; i < files.size(); i++) {
-				if (files.get(i).getOriginalFilename().split("\\.")[1] != null && new JSONArray(execeptFileTypes)
-						.toList().contains(files.get(i).getOriginalFilename().split("\\.")[1])) {
+
+				List<String> data = new ArrayList<>(Arrays.asList(files.get(i).getOriginalFilename().split("\\.")));
+
+				if (new JSONArray(execeptFileTypes).toList().contains(data.get(data.size() - 1))) {
 					return new JSONObject().put("error", "Please upload a vaild file format!");
 				}
-
-//				String[] getfilename = files.get(i).getOriginalFilename().split("\\.");
-				StringBuilder getfilename = new StringBuilder(files.get(i).getOriginalFilename().split("\\.")[0]);
+				data.remove(data.size() - 1);
+				String name = String.join(".", data);
 
 				if (!files.get(i).getOriginalFilename().equalsIgnoreCase("File name")) {
 					// Get File Name.
 					// Split into Name only Remove Annoying Data.
-					String name = "";
-					if (getfilename.toString().contains("$$")) {
-						name = getfilename.toString().split("\\$\\$")[0];
-					} else {
-						name = getfilename.deleteCharAt(getfilename.length() - 1).toString();
-					}
-//					String name = getfilename[0];
-//					if (name.contains("$$"))
-//						name = getfilename.toString().split("\\$\\$")[0];
 
-					// Then Set FilePath Name.
-					String[] extensen = files.get(i).getOriginalFilename().split("\\.");
+					if (name.contains("$$")) {
+						name = name.split("\\$\\$")[0];
+					} else {
+						name = name.substring(0, name.length() - 1);
+					}
 					String filePath = path + filename + i + dateFormat.format(new Date()) + "."
-							+ extensen[extensen.length - 1];
+							+ data.get(data.size() - 1);
 
 					// Start to Upload File in S3Bucket.
 					if (uploadFile(files.get(i), filePath)) {
@@ -172,58 +163,6 @@ public class FileuploadServices {
 						// Update the jsonbody with the new or modified json
 						jsonbody.put(columnName, json);
 
-						// Maintain references for file paths
-//						if (!documentdata.isEmpty()) {
-//						    prefilename.add(name);
-//						    oldFile.put(files.get(i).getOriginalFilename(), path);
-//						}
-
-						// Set the Url to Table column.
-////						if (jsonbody.has(column.get(0).toString())) {
-//////								&& !jsonbody.get(column.get(0).toString()).equals(null)) {
-////							JSONObject json = null;
-////							if (jsonbody.get(column.get(0).toString()).equals(null)
-////									|| jsonbody.get(column.get(0).toString()).equals("null"))
-////								json = new JSONObject();
-////							else
-////								json = new JSONObject(jsonbody.get(column.get(0).toString()).toString());
-////
-////							if (!documentdata.isEmpty()) {
-////								JSONObject setDocumentData = new JSONObject(
-////										documentdata.getJSONObject(name).toString());
-////								setDocumentData.put(files.get(i).getOriginalFilename(), path);
-////								json.put(name, setDocumentData);
-////								prefilename.add(name);
-////								oldFile.put(files.get(i).getOriginalFilename(), path);
-////							} else {
-////								if (json.has(name)) {
-////									JSONObject getjson = json.getJSONObject(name);
-////									getjson.put(files.get(i).getOriginalFilename(), path);
-////									json.put(name, getjson);
-////								} else {
-////									JSONObject getjson = new JSONObject();
-////									getjson.put(files.get(i).getOriginalFilename(), path);
-////									json.put(name, getjson);
-////								}
-////							}
-////							jsonbody.put(column.get(0).toString(), json);
-////						} else {
-////							JSONObject json = new JSONObject();
-////							if (!documentdata.isEmpty()) {
-////								JSONObject setDocumentData = new JSONObject(
-////										documentdata.getJSONObject(name).toString());
-////								setDocumentData.put(files.get(i).getOriginalFilename(), path);
-////								json.put(name, setDocumentData);
-////							} else {
-////								JSONObject getjson = new JSONObject();
-////								getjson.put(files.get(i).getOriginalFilename(), path);
-////								json.put(name, getjson);
-////							}
-////							jsonbody.put(column.get(0).toString(), json);
-////						}
-//					} else {
-//						throw new Exception("Exception In Adding Document");
-//					}
 					}
 				}
 			}
@@ -549,9 +488,8 @@ public class FileuploadServices {
 			File convFile = new File(paramImagePath);
 			try {
 				Files.copy(file.toPath(), convFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-				
-				S3Object s3Object = amazonS3.getObject("goldenelement",
-						"onboard/TESTING QA009-11-2024 06:18:07.png");
+
+				S3Object s3Object = amazonS3.getObject("goldenelement", "onboard/TESTING QA009-11-2024 06:18:07.png");
 				BufferedImage localImage = null;
 				File S3file = null;
 				try (InputStream inputStream = s3Object.getObjectContent();) {

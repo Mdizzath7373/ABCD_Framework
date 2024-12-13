@@ -67,14 +67,14 @@ public class CommonServices {
 	private static final Logger LOGGER = LoggerFactory.getLogger("CommonServices");
 
 //	// Define characters allowed in the verification code
-//	private static final String ALLOWED_CHARACTERS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+	private static final String ALLOWED_CHARACTERS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 //
 //	// Define the maximum length of the verification code
-//	private static final int MAX_CODE_LENGTH = 6;
+	private static final int MAX_CODE_LENGTH = 6;
 //
-//	private static final String ALGORITHM = "AES/CBC/PKCS5Padding"; // AES with CBC and PKCS5 padding
-//	private static final String SECRET_KEY = "ABCDFRAM09876543"; // 16-byte key for AES
-//	private static final String IV = "ABCDFRAMIV098765"; // 16-byte IV for AES
+	private static final String ALGORITHM = "AES/CBC/PKCS5Padding"; // AES with CBC and PKCS5 padding
+	private static final String SECRET_KEY = "ABCDFRAM09876543"; // 16-byte key for AES
+	private static final String IV = "ABCDFRAMIV098765"; // 16-byte IV for AES
 
 	@Value("${schema}")
 	private String schema;
@@ -161,8 +161,8 @@ public class CommonServices {
 
 		// Generate random characters for the code
 		for (int i = 0; i < maxLength; i++) {
-			int randomIndex = random.nextInt(GlobalAttributeHandler.getAllowedCharacters().length());
-			char randomChar = GlobalAttributeHandler.getAllowedCharacters().charAt(randomIndex);
+			int randomIndex = random.nextInt(ALLOWED_CHARACTERS.length());
+			char randomChar = ALLOWED_CHARACTERS.charAt(randomIndex);
 			codeBuilder.append(randomChar);
 		}
 
@@ -260,7 +260,7 @@ public class CommonServices {
 			if (mode.equalsIgnoreCase("link")) {
 
 			} else if (mode.equalsIgnoreCase("otp")) {
-				code = CommonServices.generateVerificationCode(GlobalAttributeHandler.getMaxCodeLength());
+				code = CommonServices.generateVerificationCode(MAX_CODE_LENGTH);
 				body = new JSONObject(
 						(new JSONObject(DisplaySingleton.memoryEmailCofig.get("otpverification").toString())
 								.get("contenttype")).toString())
@@ -280,10 +280,10 @@ public class CommonServices {
 	}
 
 	public static String decrypt(String encryptedData) throws Exception {
-		SecretKeySpec keySpec = new SecretKeySpec(GlobalAttributeHandler.getSecretKey().getBytes(), "AES");
-		IvParameterSpec ivSpec = new IvParameterSpec(GlobalAttributeHandler.getIv().getBytes());
+		SecretKeySpec keySpec = new SecretKeySpec(SECRET_KEY.getBytes(), "AES");
+		IvParameterSpec ivSpec = new IvParameterSpec(IV.getBytes());
 
-		Cipher cipher = Cipher.getInstance(GlobalAttributeHandler.getAlgorithm());
+		Cipher cipher = Cipher.getInstance(ALGORITHM);
 		cipher.init(Cipher.DECRYPT_MODE, keySpec, ivSpec);
 
 		byte[] decodedBytes = Base64.getDecoder().decode(encryptedData);

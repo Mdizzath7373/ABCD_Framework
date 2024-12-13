@@ -163,7 +163,7 @@ public class FormdataServiceImpl implements FormdataService {
 			if (jsonbody.has(gettabledata.getString("passwordcolumn"))
 					&& !jsonbody.getString(gettabledata.getString("passwordcolumn")).equals("")) {
 				jsonbody.put(gettabledata.getString("passwordcolumn"),
-						encoder.encode(jsonbody.getString("user_password")));
+						encoder.encode(jsonbody.getString(gettabledata.getString("passwordcolumn"))));
 			}
 		}
 

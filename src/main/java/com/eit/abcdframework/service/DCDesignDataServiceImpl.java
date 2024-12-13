@@ -128,7 +128,6 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 
 			boolean isprogress = false;
 
-			
 			List<File> filedata = new ArrayList<>();
 
 			if (transmitMethod.equalsIgnoreCase("Upload")) {
@@ -142,7 +141,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 						LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
 					}
 				}
-				
+
 			} else if (transmitMethod.equalsIgnoreCase("UploadWithProgress")) {
 				for (MultipartFile mfile : files) {
 					try {
@@ -467,7 +466,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 
 	@Override
 	public String SplitterPDFChanges(JSONObject jsonObject1) {
-		JSONObject res = new JSONObject();
+		JSONObject res = new JSONObject().put(GlobalAttributeHandler.getReflex(), GlobalAttributeHandler.getSuccess());
 		try {
 			JSONObject setValues = new JSONObject();
 
@@ -481,20 +480,22 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 			JSONObject gettabledata = new JSONObject(displayConfig.get("datas").toString());
 
 			docObj.keys().forEachRemaining(key -> {
-				String url = GlobalAttributeHandler.getPgrestURL() + "rpc/update_base64";
-				JSONObject jsondata = new JSONObject();
-				jsondata.put("key", key);
-				jsondata.put("datavalue", docObj.getString(key));
-				jsondata.put("primary", jsonObject.get("id"));
+				try {
+					String url = GlobalAttributeHandler.getPgrestURL() + "rpc/update_base64";
+					JSONObject jsondata = new JSONObject();
+					jsondata.put("key", key);
+					jsondata.put("datavalue", docObj.getString(key));
+					jsondata.put("primary", jsonObject.get("id"));
 
-				setValues.put("datas", jsondata);
+					setValues.put("datas", jsondata);
 
-				dataTransmit.transmitDataspgrestpost(url, setValues.toString(), false,
-						gettabledata.getString("schema"));
-
+					dataTransmit.transmitDataspgrestpost(url, setValues.toString(), false,
+							gettabledata.getString("schema"));
+				} catch (Exception e) {
+					LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+					res.put(GlobalAttributeHandler.getError(), "Failed Please Retry");
+				}
 			});
-			res.put(GlobalAttributeHandler.getReflex(), GlobalAttributeHandler.getSuccess());
-
 		} catch (Exception e) {
 			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
 			return new JSONObject().put(GlobalAttributeHandler.getError(), "Failed Please Retry").toString();
