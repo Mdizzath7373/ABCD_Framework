@@ -671,8 +671,13 @@ public class FileuploadServices {
 
 	public boolean uploadfile(MultipartFile multipartFile, int count, JSONObject S3urls, JSONObject jsonbody) {
 		try {
-			String filePath = path + multipartFile.getOriginalFilename().split("\\.")[0] + count
-					+ dateFormat.format(new Date()) + "." + multipartFile.getContentType().split("/")[1];
+			List<String> data = new ArrayList<>(Arrays.asList(multipartFile.getOriginalFilename().split("\\.")));
+
+			String contentType = data.get(data.size() - 1);
+			data.remove(data.size() - 1);
+			String name = String.join(".", data);
+
+			String filePath = path + name + count + dateFormat.format(new Date()) + "." + contentType;
 			synchronized (multipartFile) {
 				progress.put(
 						jsonbody.get("ids") + "-"
