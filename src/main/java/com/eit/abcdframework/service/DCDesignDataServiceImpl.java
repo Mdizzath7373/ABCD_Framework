@@ -340,6 +340,8 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 				JSONObject extraDatas = new JSONObject(displayConfig.get("datas").toString());
 				JSONObject jsononbj = new JSONObject(displayData.getJSONObject("jqxdetails").toString());
 				JSONArray jsonArray = new JSONArray(jsononbj.getJSONArray(extraDatas.getString("name")).toString());
+				
+				
 
 				returnJson.put("jqxdetails", jsononbj.toString());
 				if (function && extraDatas.has("preDefined") && extraDatas.getBoolean("preDefined")) {

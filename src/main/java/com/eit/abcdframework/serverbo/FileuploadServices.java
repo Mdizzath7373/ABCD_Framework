@@ -118,6 +118,7 @@ public class FileuploadServices {
 				if (new JSONArray(execeptFileTypes).toList().contains(data.get(data.size() - 1))) {
 					return new JSONObject().put("error", "Please upload a vaild file format!");
 				}
+				String contentType = data.get(data.size() - 1);
 				data.remove(data.size() - 1);
 				String name = String.join(".", data);
 
@@ -131,7 +132,7 @@ public class FileuploadServices {
 						name = name.substring(0, name.length() - 1);
 					}
 					String filePath = path + filename + i + dateFormat.format(new Date()) + "."
-							+ data.get(data.size() - 1);
+							+contentType;
 
 					// Start to Upload File in S3Bucket.
 					if (uploadFile(files.get(i), filePath)) {
@@ -176,17 +177,6 @@ public class FileuploadServices {
 
 	}
 
-	public boolean uploadFile(File mFile, String path) throws Exception {
-//		File file = convertMultiPartFileToFile(mFile);
-//		S3Upload s3Upload = new S3Upload();
-		if (s3Upload.NewuploadFile(ConfigurationFile.getStringConfig("s3bucket.bucketName").toString(), path, mFile,
-				true)) {
-			mFile.delete();
-			return true;
-		} else {
-			return false;
-		}
-	}
 
 	public boolean uploadFile(MultipartFile mFile, String path) throws Exception {
 		File file = convertMultiPartFileToFile(mFile);
@@ -201,7 +191,7 @@ public class FileuploadServices {
 	}
 
 	private File convertMultiPartFileToFile(MultipartFile mFile) {
-		File convFile = new File(mFile.getOriginalFilename());
+		File convFile = new File(mFile.getOriginalFilename().contains("**")?mFile.getOriginalFilename().split("\\*\\*")[1]:mFile.getOriginalFilename());
 		try {
 			convFile.createNewFile();
 			FileOutputStream fos = new FileOutputStream(convFile);
@@ -404,11 +394,11 @@ public class FileuploadServices {
 			LOGGER.warn("Enter into save");
 			String url = GlobalAttributeHandler.getPgrestURL() + "pdf_splitter";
 			res = daHttpclientcaller.transmitDataspgrestpost(url, savePDF.toString(), false, schema);
-			if (Integer.parseInt(res) >= 200 && Integer.parseInt(res) <= 226) {
+//			if (Integer.parseInt(res) >= 200 && Integer.parseInt(res) <= 226) {
 //				progressCount.set(85);
 //				progress.put(id + "-" + primarykey, progressCount);
 //				socketService.pushSocketData(new JSONObject(), jsonbody, "progress");
-			}
+//			}
 			LOGGER.warn(daHttpclientcaller.transmitDataspgrestpost(url, savePDF.toString(), false, schema));
 
 		} catch (Exception e) {

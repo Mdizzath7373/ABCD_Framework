@@ -54,7 +54,8 @@ public class WorkFlowEngine {
 		JSONObject displayConfig;
 
 		JSONObject returnMessage = new JSONObject();
-		String result = "";
+		JSONArray result = null;
+		;
 		try {
 			JSONObject jsonBody = new JSONObject(body);
 			JSONObject headerdata = new JSONObject(header);
@@ -213,23 +214,27 @@ public class WorkFlowEngine {
 					if (NextStep.equalsIgnoreCase("save") || NextStep.equalsIgnoreCase("update")) {
 						if (NextStep.equalsIgnoreCase("save")) {
 							String url = GlobalAttributeHandler.getPgrestURL() + tablename;
-							result = dataTransmit.transmitDataspgrestpost(url, jsonBody.toString(),
+							result = new JSONArray(dataTransmit.transmitDataspgrestpost(url, jsonBody.toString(),
 									currentFlow.has("returnSaveData") ? currentFlow.getBoolean("returnSaveData")
 											: false,
-									GlobalAttributeHandler.getSchemas());
+									GlobalAttributeHandler.getSchemas()));
 						}
 						if (NextStep.equalsIgnoreCase("update")) {
 							String url = GlobalAttributeHandler.getPgrestURL() + tablename + "?" + primarykey + "=eq."
 									+ primaryValue;
-							result = dataTransmit.transmitDataspgrestput(url, jsonBody.toString(),
+							result = new JSONArray(dataTransmit.transmitDataspgrestput(url, jsonBody.toString(),
 									currentFlow.has("returnSaveData") ? currentFlow.getBoolean("returnSaveData")
 											: false,
-									GlobalAttributeHandler.getSchemas());
+									GlobalAttributeHandler.getSchemas()));
 						}
 
 						// handle the response
-						if (result.startsWith("{")) {
-							oldJsonObje = new JSONObject(result);
+
+						if (new JSONObject(result.get(0).toString()).has("reflex")) {
+							oldJsonObje = jsonBody;
+							returnMessage.put("reflex", "Successfully Registered").toString();
+						} else if (!result.isEmpty()) {
+							oldJsonObje = new JSONObject(result.get(0).toString());
 							if (oldJsonObje.has("code")) {
 								return returnMessage.put("error", oldJsonObje.getString("message")).toString();
 							}
@@ -238,9 +243,7 @@ public class WorkFlowEngine {
 											: requestFor.equalsIgnoreCase("rejected") ? "Rejected Successfully"
 													: "Approved Successfully")
 									.toString();
-						} else if ((Integer.parseInt(result) >= 200 && Integer.parseInt(result) <= 226)) {
-							oldJsonObje = jsonBody;
-							returnMessage.put("reflex", "Successfully Registered").toString();
+//						} else if ((Integer.parseInt(result) >= 200 && Integer.parseInt(result) <= 226)) {
 						} else {
 							return new JSONObject().put("error", "Failed to Registered,Please check and retry")
 									.toString();

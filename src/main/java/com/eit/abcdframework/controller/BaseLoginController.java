@@ -163,7 +163,8 @@ public class BaseLoginController {
 				url = (pgresturl + "/" + forgotJson.getString("tablename") + "?" + forgotJson.getString("primarycolumn")
 						+ "=eq." + jsonbody.get(forgotJson.getString("primarycolumn"))).replace(" ", "%20");
 				response = dataTransmits.transmitDataspgrestput(url, jsonbody.toString(), false,schema);
-				if (Integer.parseInt(response) >= 200 && Integer.parseInt(response) <= 226) {
+//				if (Integer.parseInt(response) >= 200 && Integer.parseInt(response) <= 226) {
+				if(new JSONObject((new JSONArray(response).get(0).toString())).has("reflex")) {
 					returnMessage.put("reflex", "Change Successfully");
 				} else {
 					res = HttpStatus.getStatusText(Integer.parseInt(response));

@@ -134,7 +134,8 @@ public class BaseLoginServiceImpl implements BaseLoginService {
 			else
 				response = datatrans.transmitDataspgrestput(url, json.toString(), false,schema);
 
-			if (Integer.parseInt(response) <= 200 || Integer.parseInt(response) >= 226) {
+//			if (Integer.parseInt(response) <= 200 || Integer.parseInt(response) >= 226) {
+			if(new JSONObject((new JSONArray(response).get(0).toString())).has("reflex")) {
 				String res = HttpStatus.getStatusText(Integer.parseInt(response));
 				returndata.put("error", res);
 			} else {

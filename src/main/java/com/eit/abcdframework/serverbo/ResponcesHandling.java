@@ -24,7 +24,6 @@ import com.eit.abcdframework.websocket.WebSocketService;
 @Service
 public class ResponcesHandling {
 
-
 	static WebSocketService socketService;
 
 	static AmazonSMTPMail amazonSMTPMail;
@@ -49,31 +48,33 @@ public class ResponcesHandling {
 	private static final Logger LOGGER = LoggerFactory.getLogger("ResponcesHandling");
 
 	private static JSONObject email = null;
-	
 
 	@Async
-	public CompletableFuture<String> curdMethodResponceHandle(String response, JSONObject jsonbody, JSONObject jsonheader,
-			JSONObject gettabledata, String method, List<File> files) {
+	public CompletableFuture<String> curdMethodResponceHandle(String response, JSONObject jsonbody,
+			JSONObject jsonheader, JSONObject gettabledata, String method, List<File> files) {
 		try {
 
 			if (response.startsWith("{")) {
 				jsonbody.put(gettabledata.getJSONObject(GlobalAttributeHandler.getKey()).getString("columnname"),
-						new JSONObject(response.toString())
-								.get(gettabledata.getJSONObject(GlobalAttributeHandler.getKey()).getString("columnname")));
+						new JSONObject(response.toString()).get(
+								gettabledata.getJSONObject(GlobalAttributeHandler.getKey()).getString("columnname")));
 				handlerMethod(jsonheader, jsonbody, gettabledata, method, files);
 
 			} else if (response.equalsIgnoreCase("success")) {
 				handlerMethod(jsonheader, jsonbody, gettabledata, method, files);
-			} else if (Integer.parseInt(response) >= 200 && Integer.parseInt(response) <= 226) {
+//			} else if (Integer.parseInt(response) >= 200 && Integer.parseInt(response) <= 226) {
+			} else if (new JSONObject((new JSONArray(response).get(0).toString())).has("reflex")) {
 				handlerMethod(jsonheader, jsonbody, gettabledata, method, files);
 			} else {
 				String res = HttpStatus.getStatusText(Integer.parseInt(response));
-				 return CompletableFuture.completedFuture(new JSONObject().put(GlobalAttributeHandler.getError(), res).toString());
+				return CompletableFuture
+						.completedFuture(new JSONObject().put(GlobalAttributeHandler.getError(), res).toString());
 			}
 		} catch (Exception e) {
 			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
 		}
-		 return CompletableFuture.completedFuture(new JSONObject().put(GlobalAttributeHandler.getReflex(), GlobalAttributeHandler.getSuccess()).toString());
+		return CompletableFuture.completedFuture(new JSONObject()
+				.put(GlobalAttributeHandler.getReflex(), GlobalAttributeHandler.getSuccess()).toString());
 
 	}
 
@@ -87,7 +88,7 @@ public class ResponcesHandling {
 			boolean notification = jsonheader.has("notification") ? jsonheader.getBoolean("notification") : false;
 
 			String socketRes = socketService.pushSocketData(jsonheader, jsonbody, "");
-			if (socketRes!=null &&  !socketRes.equalsIgnoreCase("Success")) {
+			if (socketRes != null && !socketRes.equalsIgnoreCase("Success")) {
 				LOGGER.error("Push Socket responce::{}", socketRes);
 			}
 			if (gettabledata.has("email")) {
@@ -108,10 +109,11 @@ public class ResponcesHandling {
 				LOGGER.warn("SMS -->{}", sms);
 			}
 
-			if (!GlobalAttributeHandler.getNotificationConfig().isEmpty() && GlobalAttributeHandler.getNotificationConfig().getJSONArray("tablename")
-					.toList().contains(gettabledata.getString("api"))) {
-				sendPushNotification(jsonbody, gettabledata.getString("api"), rolename, GlobalAttributeHandler.getNotificationConfig(),
-						gettabledata.getString("schema"));
+			if (!GlobalAttributeHandler.getNotificationConfig().isEmpty()
+					&& GlobalAttributeHandler.getNotificationConfig().getJSONArray("tablename").toList()
+							.contains(gettabledata.getString("api"))) {
+				sendPushNotification(jsonbody, gettabledata.getString("api"), rolename,
+						GlobalAttributeHandler.getNotificationConfig(), gettabledata.getString("schema"));
 			}
 
 			if (gettabledata.has("activityLogs")) {
@@ -127,7 +129,7 @@ public class ResponcesHandling {
 					LOGGER.error("ActivityLogs Failure!,Check it api -->:: {}", e.getMessage());
 				}
 			}
-			
+
 		} catch (Exception e) {
 			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
 		}
@@ -151,9 +153,11 @@ public class ResponcesHandling {
 			}
 			String url = GlobalAttributeHandler.getPgrestURL() + "activitylog";
 			String response = dataTransmit.transmitDataspgrestpost(url, setvalue.toString(), false, schema);
-			if (Integer.parseInt(response) >= 200 && Integer.parseInt(response) <= 226) {
+//			if (Integer.parseInt(response) >= 200 && Integer.parseInt(response) <= 226) {
+			if (new JSONObject((new JSONArray(response).get(0).toString())).has("reflex")) {
 				if (notification) {
-					sendPushNotification(setvalue, "activitylog", rolename, GlobalAttributeHandler.getNotificationConfig(), schema);
+					sendPushNotification(setvalue, "activitylog", rolename,
+							GlobalAttributeHandler.getNotificationConfig(), schema);
 				}
 				JSONObject header = new JSONObject();
 				header.put("name", "activitylogs");
@@ -162,7 +166,9 @@ public class ResponcesHandling {
 				returndata = "Success";
 			}
 
-		} catch (Exception e) {
+		} catch (
+
+		Exception e) {
 			returndata = e.getMessage();
 			LOGGER.error("Exception in addactivitylog : ", e);
 		}
@@ -178,7 +184,8 @@ public class ResponcesHandling {
 				smsObject.getJSONObject("fetchby").getString("tablename");
 				smsObject.getJSONObject("fetchby").getJSONArray("param");
 				smsObject.getJSONObject("fetchby").getJSONArray("value");
-				String url = GlobalAttributeHandler.getPgrestURL() + smsObject.getJSONObject("fetchby").getString("tablename") + "?"
+				String url = GlobalAttributeHandler.getPgrestURL()
+						+ smsObject.getJSONObject("fetchby").getString("tablename") + "?"
 						+ smsObject.getJSONObject("fetchby").getJSONArray("param").get(0) + "=eq."
 						+ jsonbody.get(smsObject.getJSONObject("fetchby").getJSONArray("value").get(0).toString());
 				datavalue = new JSONObject(
@@ -267,7 +274,8 @@ public class ResponcesHandling {
 			String schema) {
 		try {
 
-			String url = GlobalAttributeHandler.getPgrestURL() + getJsonObject.getString("getToken") + "?status=eq.login";
+			String url = GlobalAttributeHandler.getPgrestURL() + getJsonObject.getString("getToken")
+					+ "?status=eq.login";
 			JSONArray jsonArray = dataTransmit.transmitDataspgrest(url, schema);
 			if (jsonArray.isEmpty()) {
 				return "No token Found";
@@ -356,18 +364,18 @@ public class ResponcesHandling {
 		return "success";
 
 	}
-	
+
 	@Async
-    public CompletableFuture<String> asyncProcess(String response) {
-        // Here you can process the response asynchronously
-        try {
-            // Simulate some processing logic
-            Thread.sleep(2000);
-            System.out.println("Processing response asynchronously: " + response);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-        return CompletableFuture.completedFuture("Processing completed");
-    }
+	public CompletableFuture<String> asyncProcess(String response) {
+		// Here you can process the response asynchronously
+		try {
+			// Simulate some processing logic
+			Thread.sleep(2000);
+			System.out.println("Processing response asynchronously: " + response);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+		}
+		return CompletableFuture.completedFuture("Processing completed");
+	}
 
 }

@@ -107,7 +107,8 @@ public class CommonServices {
 			else
 				response = dataTransmit.transmitDataspgrestput(url, json.toString(), false, schema);
 
-			if (Integer.parseInt(response) <= 200 || Integer.parseInt(response) >= 226) {
+//			if (Integer.parseInt(response) <= 200 || Integer.parseInt(response) >= 226) {
+			if(new JSONObject((new JSONArray(response).get(0).toString())).has("reflex")) {
 				String res = HttpStatus.getStatusText(Integer.parseInt(response));
 				returndata.put("error", res);
 			} else {
@@ -137,7 +138,8 @@ public class CommonServices {
 							+ getconfigofactivation.getString("primarykey") + "=eq."
 							+ datas.get(getconfigofactivation.getString("primarykey"));
 					String result = dataTransmit.transmitDataspgrestput(url, datas.toString(), false, schema);
-					if (Integer.parseInt(result) >= 200 && Integer.parseInt(result) <= 226) {
+//					if (Integer.parseInt(result) >= 200 && Integer.parseInt(result) <= 226) {
+					if(new JSONObject((new JSONArray(result).get(0).toString())).has("reflex")) {
 						returnMessage.put("reflex", "Successfully Verified");
 					}
 				} else {

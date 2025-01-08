@@ -298,8 +298,8 @@ public class FormdataServiceImpl implements FormdataService {
 					json = new JSONObject();
 				}
 				url = url.replaceAll(" ", "%20");
-				getdata = new JSONObject(dataTransmit.transmitDataspgrestpost(url, json.toString(), false,
-						gettabledata.getString("schema")));
+				getdata = new JSONObject( new JSONArray(dataTransmit.transmitDataspgrestpost(url, json.toString(), false,
+						gettabledata.getString("schema"))).get(0).toString() );
 				returndata.put(GlobalAttributeHandler.getDatavalue(), temparay.put(getdata));
 			} else {
 				url = url.replaceAll(" ", "%20");

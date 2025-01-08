@@ -51,15 +51,15 @@ public class Httpclientcaller {
 				.build();
 	}
 
-	public JSONArray executeRequest(HttpUriRequestBase request) throws IOException {
+	public JSONArray executeRequest(HttpUriRequestBase request, String method) throws IOException {
 		return httpClient.execute(request, response -> {
-			return parseResponseBody(response);
+			return parseResponseBody(response, method);
 
 		});
 
 	}
 
-	private JSONArray parseResponseBody(ClassicHttpResponse response) {
+	private JSONArray parseResponseBody(ClassicHttpResponse response, String method) {
 		JSONArray responseArray = new JSONArray();
 		try {
 			int statusCode = response.getCode();
@@ -67,13 +67,21 @@ public class Httpclientcaller {
 
 			HttpEntity responseEntity = response.getEntity();
 			if (responseEntity == null) {
-				return responseArray;
+				if (method.equalsIgnoreCase("get"))
+					return responseArray;
+				else {
+					if (statusCode >= 200 && statusCode <= 226) {
+						return responseArray.put(new JSONObject().put("reflex", "Successfully Verified"));
+					} else {
+						return responseArray.put(new JSONObject().put("error", "Failed"));
+					}
+				}
 			}
 
 			String responseBody = EntityUtils.toString(responseEntity);
 
 			if (responseBody.isBlank() || responseBody.equals("{}") || responseBody.equals("[]")) {
-				return responseArray;
+
 			}
 
 			if (responseBody.trim().startsWith("{")) {
@@ -107,7 +115,7 @@ public class Httpclientcaller {
 		httpGet.setHeader("Connection", "close");
 		httpGet.setHeader("Accept-Profile", schema);
 
-		return executeRequest(httpGet);
+		return executeRequest(httpGet, "GET");
 
 	}
 
@@ -120,7 +128,7 @@ public class Httpclientcaller {
 			httpPost.addHeader("Prefer", "return=representation");
 		httpPost.setEntity(new StringEntity(data, StandardCharsets.UTF_8));
 
-		return executeRequest(httpPost).toString();
+		return executeRequest(httpPost, "POST").toString();
 
 	}
 
@@ -133,7 +141,7 @@ public class Httpclientcaller {
 			httpPut.addHeader("Prefer", "return=representation");
 		httpPut.setEntity(new StringEntity(data, ContentType.APPLICATION_JSON.withCharset(StandardCharsets.UTF_8)));
 
-		return executeRequest(httpPut).toString();
+		return executeRequest(httpPut, "PUT").toString();
 
 	}
 
@@ -142,7 +150,7 @@ public class Httpclientcaller {
 		httpDel.setHeader("Connection", "close");
 		httpDel.setHeader("Accept-Profile", schema);
 
-		return Integer.parseInt(executeRequest(httpDel).toString());
+		return Integer.parseInt(executeRequest(httpDel, "DELETE").toString());
 
 	}
 
@@ -152,19 +160,9 @@ public class Httpclientcaller {
 		httpPush.addHeader("Content-Type", "application/json;charset=utf-8");
 		httpPush.addHeader("Authorization", "Bearer " + getAccessToken());
 		httpPush.setEntity(new StringEntity(data, StandardCharsets.UTF_8));
-		return executeRequest(httpPush).toString();
+		return executeRequest(httpPush, "POST").toString();
 
 	}
-
-//	public JSONObject transmitDataPushNotification(String toUrl, String data) {
-//		HttpPost http = new HttpPost(toUrl);
-//		http.addHeader("Content-Type", "application/json;charset=utf-8");
-//		http.addHeader("Authorization", "Bearer " + getAccessToken());
-//		http.setEntity(new StringEntity(data, StandardCharsets.UTF_8));
-//
-//		return executeRequest(http);
-//
-//	}
 
 //	public String transmitDatasNafath(String toUrl, String data, boolean addheader) {
 //		int statusCode = 0;
@@ -211,43 +209,6 @@ public class Httpclientcaller {
 //
 //		} catch (IOException e) {
 //			LOGGER.error("Excepton at :", e);
-//		}
-//		return returndata;
-//	}
-
-//	public JSONObject transmitDataPushNotification(String toUrl, String data) {
-//		int statusCode = 0;
-//		JSONObject returndata = null;
-//		PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
-//		connectionManager.setMaxTotal(250); // Maximum total connections
-//		connectionManager.setDefaultMaxPerRoute(20);
-//		try (CloseableHttpClient httpClient = HttpClients.custom().setMaxConnPerRoute(10000)
-//				.setConnectionManager(connectionManager) // Max connections per //
-//				.setMaxConnTotal(10000).build()) {
-//
-//			HttpPost http = new HttpPost(toUrl);
-//			http.addHeader("Content-Type", "application/json;charset=utf-8");
-//			http.addHeader("Authorization", "Bearer " + getAccessToken());
-//			// onboard
-////			http.addHeader("Authorization","key=AAAAyvLtD4s:APA91bHfGpeSqPM9CDALqbLPJH1C8_2mIShEzzTb9EOvKYxh52I4-CevU5iIj3doZ2FWp6ESpGGcanhg_0H2M6NIdkR61bMbdoEwpaXURuXDtDMb2Soy479vKnetWvp3fvQqFIBcotKj");
-//			StringEntity requestEntity = new StringEntity(data, StandardCharsets.UTF_8);
-//			http.setEntity(requestEntity);
-//			try (CloseableHttpResponse response = httpClient.execute(http)) {
-//				statusCode = response.getStatusLine().getStatusCode();
-//				String status = String.valueOf(statusCode);
-//				LOGGER.error("Response Code:  {}", status);
-//				HttpEntity responseEntity = response.getEntity();
-//				if (responseEntity != null) {
-//					String responseBody = EntityUtils.toString(responseEntity);
-//					LOGGER.warn("Response Body: {}", responseBody);
-//					LOGGER.warn("statusCode: {}", statusCode);
-//					returndata = new JSONObject(responseBody);
-//					System.err.println(returndata);
-//				}
-//			}
-//
-//		} catch (IOException e) {
-//			LOGGER.error("Excepton at : ", e);
 //		}
 //		return returndata;
 //	}
