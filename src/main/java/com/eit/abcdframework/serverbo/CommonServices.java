@@ -108,6 +108,7 @@ public class CommonServices {
 				response = dataTransmit.transmitDataspgrestput(url, json.toString(), false, schema);
 
 //			if (Integer.parseInt(response) <= 200 || Integer.parseInt(response) >= 226) {
+			
 			if(new JSONObject((new JSONArray(response).get(0).toString())).has("reflex")) {
 				String res = HttpStatus.getStatusText(Integer.parseInt(response));
 				returndata.put("error", res);

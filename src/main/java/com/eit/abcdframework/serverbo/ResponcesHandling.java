@@ -53,6 +53,7 @@ public class ResponcesHandling {
 	public CompletableFuture<String> curdMethodResponceHandle(String response, JSONObject jsonbody,
 			JSONObject jsonheader, JSONObject gettabledata, String method, List<File> files) {
 		try {
+			LOGGER.info("Response ::::{}",response);
 
 			if (response.startsWith("{")) {
 				jsonbody.put(gettabledata.getJSONObject(GlobalAttributeHandler.getKey()).getString("columnname"),
@@ -66,7 +67,7 @@ public class ResponcesHandling {
 			} else if (new JSONObject((new JSONArray(response).get(0).toString())).has("reflex")) {
 				handlerMethod(jsonheader, jsonbody, gettabledata, method, files);
 			} else {
-				String res = HttpStatus.getStatusText(Integer.parseInt(response));
+				String res = HttpStatus.getStatusText(new JSONObject((new JSONArray(response).get(0).toString())).getInt("error"));
 				return CompletableFuture
 						.completedFuture(new JSONObject().put(GlobalAttributeHandler.getError(), res).toString());
 			}

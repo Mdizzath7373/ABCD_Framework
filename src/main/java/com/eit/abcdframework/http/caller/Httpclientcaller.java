@@ -80,8 +80,12 @@ public class Httpclientcaller {
 
 			String responseBody = EntityUtils.toString(responseEntity);
 
-			if (responseBody.isBlank() || responseBody.equals("{}") || responseBody.equals("[]")) {
-
+			if (responseBody.isBlank() || responseBody.equals("{}") || responseBody.equals("[]") ||  responseBody.equals("")) {
+				if (statusCode >= 200 && statusCode <= 226) {
+					return responseArray.put(new JSONObject().put("reflex", "Successfully Verified"));
+				} else {
+					return responseArray.put(new JSONObject().put("error", "Failed"));
+				}
 			}
 
 			if (responseBody.trim().startsWith("{")) {
