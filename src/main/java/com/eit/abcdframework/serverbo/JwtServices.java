@@ -83,7 +83,7 @@ public class JwtServices implements UserDetailsService {
 				}
 			}
 			try {
-				JSONArray datavalue = httpclientcaller.transmitDataspgrest(pgrest.replace(" ", "%20"), schema);
+				JSONArray datavalue = httpclientcaller.transmitDataspgrest(pgrest, schema);
 				name = new JSONObject(datavalue.get(0).toString())
 						.getString(ConfigurationFile.getStringConfig("jwt.FindUser" + getValueOf + ".name"));
 				pass = new JSONObject(datavalue.get(0).toString())

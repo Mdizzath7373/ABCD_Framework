@@ -36,12 +36,11 @@ public class FormdataServiceImpl implements FormdataService {
 
 	@Autowired
 	PasswordEncoder encoder;
-	
+
 	@Autowired
 	ResponcesHandling responcesHandling;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger("DCDesignDataServiceImpl");
-
 
 	@Override
 	public String transmittingToMethod(String method, String data, String which) {
@@ -275,8 +274,7 @@ public class FormdataServiceImpl implements FormdataService {
 				url = GlobalAttributeHandler.getPgrestURL() + gettabledata.getString(method.toUpperCase()) + "?"
 						+ columnprimarykey + "=eq." + primary;
 			} else if (primary != null && primary.equalsIgnoreCase("") && !where.equalsIgnoreCase("")) {
-				url = GlobalAttributeHandler.getPgrestURL() + gettabledata.getString(method.toUpperCase())
-						+ URLEncode(where);
+				url = GlobalAttributeHandler.getPgrestURL() + gettabledata.getString(method.toUpperCase()) + where;
 			} else {
 				url = GlobalAttributeHandler.getPgrestURL() + gettabledata.getString("GET");
 			}
@@ -297,12 +295,10 @@ public class FormdataServiceImpl implements FormdataService {
 				} else {
 					json = new JSONObject();
 				}
-				url = url.replaceAll(" ", "%20");
-				getdata = new JSONObject( new JSONArray(dataTransmit.transmitDataspgrestpost(url, json.toString(), false,
-						gettabledata.getString("schema"))).get(0).toString() );
+				getdata = new JSONObject(new JSONArray(dataTransmit.transmitDataspgrestpost(url, json.toString(), false,
+						gettabledata.getString("schema"))).get(0).toString());
 				returndata.put(GlobalAttributeHandler.getDatavalue(), temparay.put(getdata));
 			} else {
-				url = url.replaceAll(" ", "%20");
 				temparay = dataTransmit.transmitDataspgrest(url, gettabledata.getString("schema"));
 				returndata.put(GlobalAttributeHandler.getDatavalue(), temparay);
 			}
@@ -324,10 +320,10 @@ public class FormdataServiceImpl implements FormdataService {
 			String url = "";
 			if (primary != null && !primary.equalsIgnoreCase("")) {
 				url = (GlobalAttributeHandler.getPgrestURL() + gettabledata.getString(method.toUpperCase()) + "?"
-						+ columnprimarykey + "=eq." + primary).replaceAll(" ", "%20");
+						+ columnprimarykey + "=eq." + primary);
 			} else if (primary != null && primary.equalsIgnoreCase("") && !where.equalsIgnoreCase("")) {
 				url = (GlobalAttributeHandler.getPgrestURL() + gettabledata.getString(method.toUpperCase()) + where)
-						.replaceAll(" ", "%20");
+						;
 				;
 
 			} else if (isdeleteall) {
@@ -352,33 +348,33 @@ public class FormdataServiceImpl implements FormdataService {
 		return new JSONObject().put(GlobalAttributeHandler.getReflex(), GlobalAttributeHandler.getSuccess()).toString();
 	}
 
-	private StringBuilder URLEncode(String value) {
-		StringBuilder result = new StringBuilder();
-		try {
-			String regex = DisplaySingleton.memoryApplicationSetting.getString("UrlEncodeExcept");
-			for (int i = 0; i < value.length(); i++) {
-				char c = value.charAt(i);
-//				System.err.println(c);
-				if (!isArabic(c)) {
-					if (String.valueOf(c).matches(regex)) {
-						// URL encode the special character
-						String encodedChar = URLEncoder.encode(String.valueOf(c), StandardCharsets.UTF_8.toString());
-						result.append(encodedChar);
-					} else {
-						result.append(c);
-					}
-				} else {
-					result.append(c);
-				}
-			}
-		} catch (Exception e) {
-			LOGGER.error("Exception at {}", Thread.currentThread().getStackTrace()[1].getMethodName(), e);
-		}
-		return result;
-	}
-
-	private static boolean isArabic(char c) {
-		return (c >= '\u0600' && c <= '\u06FF');
-	}
+//	private StringBuilder URLEncode(String value) {
+//		StringBuilder result = new StringBuilder();
+//		try {
+//			String regex = DisplaySingleton.memoryApplicationSetting.getString("UrlEncodeExcept");
+//			for (int i = 0; i < value.length(); i++) {
+//				char c = value.charAt(i);
+////				System.err.println(c);
+//				if (!isArabic(c)) {
+//					if (String.valueOf(c).matches(regex)) {
+//						// URL encode the special character
+//						String encodedChar = URLEncoder.encode(String.valueOf(c), StandardCharsets.UTF_8.toString());
+//						result.append(encodedChar);
+//					} else {
+//						result.append(c);
+//					}
+//				} else {
+//					result.append(c);
+//				}
+//			}
+//		} catch (Exception e) {
+//			LOGGER.error("Exception at {}", Thread.currentThread().getStackTrace()[1].getMethodName(), e);
+//		}
+//		return result;
+//	}
+//
+//	private static boolean isArabic(char c) {
+//		return (c >= '\u0600' && c <= '\u06FF');
+//	}
 
 }

@@ -384,14 +384,14 @@ public class WorkFlowEngine {
 						&& !getdata.getJSONObject("where").getString("defaultWhere").equalsIgnoreCase("")) {
 					if (!whereClass.equalsIgnoreCase("")) {
 						url = (GlobalAttributeHandler.getPgrestURL() + getdata.getString("tablename") + whereClass + "&"
-								+ getdata.getJSONObject("where").getString("defaultWhere")).replaceAll(" ", "%20");
+								+ getdata.getJSONObject("where").getString("defaultWhere"));
 					} else {
 						url = (GlobalAttributeHandler.getPgrestURL() + getdata.getString("tablename") + "?"
-								+ getdata.getJSONObject("where").getString("defaultWhere")).replaceAll(" ", "%20");
+								+ getdata.getJSONObject("where").getString("defaultWhere"));
 					}
 				} else {
 					url = (GlobalAttributeHandler.getPgrestURL() + getdata.getString("tablename") + whereClass)
-							.replaceAll(" ", "%20");
+							;
 
 				}
 			}

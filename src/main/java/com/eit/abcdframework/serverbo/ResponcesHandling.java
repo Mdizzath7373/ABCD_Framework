@@ -234,7 +234,7 @@ public class ResponcesHandling {
 					String where = emailObject.getJSONObject("FindToggle").getJSONObject("where").getString("condition")
 							+ jsonbody.get(
 									emailObject.getJSONObject("FindToggle").getJSONObject("where").getString("value"));
-					String url = (GlobalAttributeHandler.getPgrestURL() + api + "?" + where).replaceAll(" ", "%20");
+					String url = (GlobalAttributeHandler.getPgrestURL() + api + "?" + where);
 
 					String toogleData = new JSONObject(dataTransmit.transmitDataspgrest(url, schema).get(0).toString())
 							.getString(emailObject.getJSONObject("FindToggle").getString("columnkey"));

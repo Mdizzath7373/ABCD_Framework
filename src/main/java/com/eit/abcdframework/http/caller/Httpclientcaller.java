@@ -3,6 +3,7 @@ package com.eit.abcdframework.http.caller;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
@@ -26,15 +27,19 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.eit.abcdframework.config.ConfigurationFile;
+import com.eit.abcdframework.serverbo.CommonServices;
+import com.eit.abcdframework.serverbo.DisplaySingleton;
 import com.google.auth.oauth2.GoogleCredentials;
 
 import org.apache.hc.client5.http.config.RequestConfig;
 
 @Component("Httpclientcaller")
 public class Httpclientcaller {
+	
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(Httpclientcaller.class);
 
@@ -50,8 +55,10 @@ public class Httpclientcaller {
 						.setResponseTimeout(Timeout.ofSeconds(30)).build())
 				.build();
 	}
+	
 
 	public JSONArray executeRequest(HttpUriRequestBase request, String method) throws IOException {
+		
 		return httpClient.execute(request, response -> {
 			return parseResponseBody(response, method);
 
@@ -113,9 +120,12 @@ public class Httpclientcaller {
 		}
 		return responseArray;
 	}
+	
+	
 
 	public JSONArray transmitDataspgrest(String toUrl, String schema) throws IOException {
-		HttpGet httpGet = new HttpGet(toUrl);
+		
+		HttpGet httpGet = new HttpGet(URLEncode(toUrl).toString());
 		httpGet.setHeader("Connection", "close");
 		httpGet.setHeader("Accept-Profile", schema);
 
@@ -150,7 +160,7 @@ public class Httpclientcaller {
 	}
 
 	public int transmitDataspgrestDel(String toUrl, String schema) throws IOException {
-		HttpDelete httpDel = new HttpDelete(toUrl);
+		HttpDelete httpDel = new HttpDelete(URLEncode(toUrl).toString());
 		httpDel.setHeader("Connection", "close");
 		httpDel.setHeader("Accept-Profile", schema);
 
@@ -166,6 +176,35 @@ public class Httpclientcaller {
 		httpPush.setEntity(new StringEntity(data, StandardCharsets.UTF_8));
 		return executeRequest(httpPush, "POST").toString();
 
+	}
+	public StringBuilder URLEncode(String value) {
+		StringBuilder result = new StringBuilder();
+		try {
+//			 String regex =DisplaySingleton.memoryApplicationSetting.getString("UrlEncodeExcept");
+			String regex ="[^a-zA-Z0-9=&?_.:/\\-'()!]";
+			for (int i = 0; i < value.length(); i++) {
+				char c = value.charAt(i);
+				if (!isArabic(c)) {
+					if (String.valueOf(c).matches(regex)) {
+						// URL encode the special character
+						String encodedChar = URLEncoder.encode(String.valueOf(c), StandardCharsets.UTF_8.toString());
+						result.append(encodedChar);
+					} else {
+						result.append(c);
+					}
+				} else {
+					result.append(c);
+				}
+			}
+		} catch (Exception e) {
+			LOGGER.error("Exception at {}", Thread.currentThread().getStackTrace()[1].getMethodName(), e);
+		}
+		return result;
+	}
+	
+
+	private static boolean isArabic(char c) {
+		return (c >= '\u0600' && c <= '\u06FF');
 	}
 
 //	public String transmitDatasNafath(String toUrl, String data, boolean addheader) {

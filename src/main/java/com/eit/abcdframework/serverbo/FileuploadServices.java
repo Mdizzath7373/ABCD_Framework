@@ -131,8 +131,7 @@ public class FileuploadServices {
 					} else {
 						name = name.substring(0, name.length() - 1);
 					}
-					String filePath = path + filename + i + dateFormat.format(new Date()) + "."
-							+contentType;
+					String filePath = path + filename + i + dateFormat.format(new Date()) + "." + contentType;
 
 					// Start to Upload File in S3Bucket.
 					if (uploadFile(files.get(i), filePath)) {
@@ -177,7 +176,6 @@ public class FileuploadServices {
 
 	}
 
-
 	public boolean uploadFile(MultipartFile mFile, String path) throws Exception {
 		File file = convertMultiPartFileToFile(mFile);
 //		S3Upload s3Upload = new S3Upload();
@@ -191,7 +189,9 @@ public class FileuploadServices {
 	}
 
 	private File convertMultiPartFileToFile(MultipartFile mFile) {
-		File convFile = new File(mFile.getOriginalFilename().contains("**")?mFile.getOriginalFilename().split("\\*\\*")[1]:mFile.getOriginalFilename());
+		File convFile = new File(
+				mFile.getOriginalFilename().contains("**") ? mFile.getOriginalFilename().split("\\*\\*")[1]
+						: mFile.getOriginalFilename());
 		try {
 			convFile.createNewFile();
 			FileOutputStream fos = new FileOutputStream(convFile);
@@ -660,11 +660,15 @@ public class FileuploadServices {
 	}
 
 	public boolean uploadfile(MultipartFile multipartFile, int count, JSONObject S3urls, JSONObject jsonbody) {
+		String contentType = "";
 		try {
 			List<String> data = new ArrayList<>(Arrays.asList(multipartFile.getOriginalFilename().split("\\.")));
-
-			String contentType = data.get(data.size() - 1);
-			data.remove(data.size() - 1);
+			if (data.size() == 1)
+				contentType = multipartFile.getContentType().split("/")[1];
+			else {
+				contentType = data.get(data.size() - 1);
+				data.remove(data.size() - 1);
+			}
 			String name = String.join(".", data);
 
 			String filePath = path + name + count + dateFormat.format(new Date()) + "." + contentType;

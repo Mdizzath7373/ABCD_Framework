@@ -311,7 +311,7 @@ public class DisplayHandler {
 				} else {
 					url = GlobalAttributeHandler.getPgrestURL() + api;
 				}
-				url = url.replaceAll(" ", "%20");
+
 				if (extraDatas.has("preDefined") && extraDatas.getBoolean("preDefined")) {
 					res = new JSONObject(new JSONArray(
 							dataTransmits.transmitDataspgrest(url, extraDatas.getString("schema")).get(0).toString()))
@@ -442,7 +442,6 @@ public class DisplayHandler {
 				} else {
 					url = GlobalAttributeHandler.getPgrestURL() + api;
 				}
-				url = url.replace(" ", "%20");
 
 				if (extraDatas.has("preDefined") && extraDatas.getBoolean("preDefined")) {
 					res = new JSONObject(new JSONArray(

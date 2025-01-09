@@ -169,7 +169,7 @@ public class AmazonSMTPMail {
 					DisplaySingleton.memoryApplicationSetting.get("smptAmazonMail").toString());
 			for (int c = 0; c < mail.length(); c++) {
 				String url = GlobalAttributeHandler.getPgrestURL() + "emailconfig?name=eq." + mail.get(c);
-				mailContent = dataTransmit.transmitDataspgrest(url.replaceAll(" ", "%20"), schema);
+				mailContent = dataTransmit.transmitDataspgrest(url, schema);
 
 				for (int i = 0; i < mailContent.length(); i++) {
 					JSONObject jsondata = new JSONObject(mailContent.get(i).toString());
@@ -444,7 +444,6 @@ public class AmazonSMTPMail {
 			if (!email.getBoolean("mailid")) {
 				String geturl = GlobalAttributeHandler.getPgrestURL() + email.getString("api") + "?datas="
 						+ jsonbody.getString(email.getString("column")) + "&name=" + email.getString("table");
-				geturl = geturl.replace(" ", "%20");
 				mailid = new JSONObject(dataTransmit.transmitDataspgrest(geturl, schema).get(0).toString())
 						.getString("mailid");
 			} else {

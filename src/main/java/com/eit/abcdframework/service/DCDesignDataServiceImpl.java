@@ -375,7 +375,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 				} else if (where != "") {
 					url += where;
 				}
-				url = url.replace(" ", "%20");
+			
 				if (extraDatas.has("preDefined") && extraDatas.getBoolean("preDefined")) {
 					JSONObject quryJson = extraDatas.getJSONObject("Query");
 					if (quryJson.has("where")) {

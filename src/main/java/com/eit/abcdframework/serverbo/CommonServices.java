@@ -1,6 +1,8 @@
 package com.eit.abcdframework.serverbo;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -510,5 +512,8 @@ public class CommonServices {
 		return url;
 
 	}
+	
+	
+
 
 }

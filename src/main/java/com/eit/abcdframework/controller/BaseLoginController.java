@@ -154,14 +154,14 @@ public class BaseLoginController {
 				JSONObject forgotJson = new JSONObject(
 						DisplaySingleton.memoryApplicationSetting.get("forgotpassConfig").toString());
 				String url = (pgresturl + "/" + forgotJson.getString("tablename") + "?"
-						+ forgotJson.getString("Findcolumn") + "=eq." + id).replace(" ", "%20");
+						+ forgotJson.getString("Findcolumn") + "=eq." + id);
 				JSONObject jsonbody = new JSONObject(dataTransmits.transmitDataspgrest(url,schema).get(0).toString());
 				byte[] decodedBytes = Base64.getDecoder().decode(pass);
 				String decodedString = new String(decodedBytes);
 				jsonbody.put(forgotJson.getString("columnname"),
 						forgotJson.getBoolean("encode") ? encoder.encode(decodedString) : decodedString);
 				url = (pgresturl + "/" + forgotJson.getString("tablename") + "?" + forgotJson.getString("primarycolumn")
-						+ "=eq." + jsonbody.get(forgotJson.getString("primarycolumn"))).replace(" ", "%20");
+						+ "=eq." + jsonbody.get(forgotJson.getString("primarycolumn")));
 				response = dataTransmits.transmitDataspgrestput(url, jsonbody.toString(), false,schema);
 //				if (Integer.parseInt(response) >= 200 && Integer.parseInt(response) <= 226) {
 				if(new JSONObject((new JSONArray(response).get(0).toString())).has("reflex")) {
