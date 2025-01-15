@@ -87,11 +87,16 @@ public class Httpclientcaller {
 
 			String responseBody = EntityUtils.toString(responseEntity);
 
-			if (responseBody.isBlank() || responseBody.equals("{}") || responseBody.equals("[]") ||  responseBody.equals("")) {
-				if (statusCode >= 200 && statusCode <= 226) {
-					return responseArray.put(new JSONObject().put("reflex", "Successfully Verified"));
-				} else {
-					return responseArray.put(new JSONObject().put("error", "Failed"));
+			if (responseBody.isBlank() || responseBody.equals("{}") || responseBody.equals("[]")
+					|| responseBody.equals("")) {
+				if (method.equalsIgnoreCase("get"))
+					return responseArray;
+				else {
+					if (statusCode >= 200 && statusCode <= 226) {
+						return responseArray.put(new JSONObject().put("reflex", "Successfully Verified"));
+					} else {
+						return responseArray.put(new JSONObject().put("error", "Failed"));
+					}
 				}
 			}
 
@@ -177,11 +182,12 @@ public class Httpclientcaller {
 		return executeRequest(httpPush, "POST").toString();
 
 	}
+
 	public StringBuilder URLEncode(String value) {
 		StringBuilder result = new StringBuilder();
 		try {
 //			 String regex =DisplaySingleton.memoryApplicationSetting.getString("UrlEncodeExcept");
-			String regex ="[^a-zA-Z0-9=&?_.:/\\-'()!]";
+			String regex = "[^a-zA-Z0-9=&?_.:/\\-'()!%]";
 			for (int i = 0; i < value.length(); i++) {
 				char c = value.charAt(i);
 				if (!isArabic(c)) {
@@ -201,7 +207,6 @@ public class Httpclientcaller {
 		}
 		return result;
 	}
-	
 
 	private static boolean isArabic(char c) {
 		return (c >= '\u0600' && c <= '\u06FF');
