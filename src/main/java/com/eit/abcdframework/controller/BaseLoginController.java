@@ -31,7 +31,6 @@ import com.eit.abcdframework.serverbo.CommonServices;
 import com.eit.abcdframework.serverbo.DisplaySingleton;
 import com.eit.abcdframework.serverbo.JwtServices;
 import com.eit.abcdframework.service.BaseLoginService;
-import com.eit.abcdframework.util.AmazonSMTPMail;
 import com.eit.abcdframework.util.Location;
 import com.eit.abcdframework.util.MessageServices;
 
@@ -58,8 +57,6 @@ public class BaseLoginController {
 	@Value("${applicationurl}")
 	private String pgresturl;
 
-	@Autowired
-	AmazonSMTPMail amazonSMTPMail;
 
 	@Autowired
 	MessageServices messageServices;
