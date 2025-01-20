@@ -2,7 +2,6 @@ package com.eit.abcdframework.controller;
 
 import java.util.Base64;
 
-import org.apache.commons.httpclient.HttpStatus;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -18,12 +17,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.HttpMethod;
-import org.apache.commons.httpclient.NameValuePair;
-import org.apache.commons.httpclient.methods.GetMethod;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import com.eit.abcdframework.dto.JwtRequest;
 import com.eit.abcdframework.http.caller.Httpclientcaller;
@@ -42,6 +35,7 @@ public class BaseLoginController {
 
 	@Autowired
 	DisplaySingleton displaySingleton;
+	
 	@Autowired
 	Httpclientcaller dataTransmits;
 
@@ -164,8 +158,8 @@ public class BaseLoginController {
 				if(new JSONObject((new JSONArray(response).get(0).toString())).has("reflex")) {
 					returnMessage.put("reflex", "Change Successfully");
 				} else {
-					res = HttpStatus.getStatusText(Integer.parseInt(response));
-					returnMessage.put("error", res);
+//					res = HttpStatus.getStatusText(Integer.parseInt(response));
+					returnMessage.put("error", response);
 				}
 			} else {
 				returnMessage.put("error", responseOfVerification);
@@ -289,40 +283,40 @@ public class BaseLoginController {
 		return location.filteredLocationswithradius(centerLat, centerLon, centerLon);
 
 	}
-	@GetMapping(value="/geocoding", produces = { "application/json" })
-    public String getLocation(@RequestParam String lat,@RequestParam String lon) {
-		JSONObject returnMessage=new JSONObject();
-        String key = DisplaySingleton.memoryApplicationSetting.get("locationApikey").toString();
-        String locationUrl = DisplaySingleton.memoryApplicationSetting.get("locationUrl").toString();
-
-            HttpClient client = new HttpClient();
-            HttpMethod method = new GetMethod(locationUrl);
-
-            // Setting the query parameters
-            NameValuePair nvp1 = new NameValuePair("key", key);
-            NameValuePair nvp2 = new NameValuePair("lat", String.valueOf(lat));
-            NameValuePair nvp3 = new NameValuePair("lon", String.valueOf(lon));
-            NameValuePair nvp4 = new NameValuePair("format", "json");
-            NameValuePair nvp5 = new NameValuePair("normalizeaddress", "1");
-
-            method.setQueryString(new NameValuePair[]{nvp1, nvp2, nvp3, nvp4, nvp5});
-
-            try {
-                client.executeMethod(method);
-                String response = method.getResponseBodyAsString();
-
-                // Parse JSON response
-                ObjectMapper mapper = new ObjectMapper();
-                JsonNode rootNode = mapper.readTree(response);
-                String address = rootNode.path("display_name").asText();
-                returnMessage.put("datavalues", address);
-            } catch (Exception e) {
-                e.printStackTrace();
-                return null;
-            } finally {
-                method.releaseConnection();
-            }
-            return returnMessage.toString();
-    }
+//	@GetMapping(value="/geocoding", produces = { "application/json" })
+//    public String getLocation(@RequestParam String lat,@RequestParam String lon) {
+//		JSONObject returnMessage=new JSONObject();
+//        String key = DisplaySingleton.memoryApplicationSetting.get("locationApikey").toString();
+//        String locationUrl = DisplaySingleton.memoryApplicationSetting.get("locationUrl").toString();
+//
+//            HttpClient client = new HttpClient();
+//            HttpMethod method = new GetMethod(locationUrl);
+//
+//            // Setting the query parameters
+//            NameValuePair nvp1 = new NameValuePair("key", key);
+//            NameValuePair nvp2 = new NameValuePair("lat", String.valueOf(lat));
+//            NameValuePair nvp3 = new NameValuePair("lon", String.valueOf(lon));
+//            NameValuePair nvp4 = new NameValuePair("format", "json");
+//            NameValuePair nvp5 = new NameValuePair("normalizeaddress", "1");
+//
+//            method.setQueryString(new NameValuePair[]{nvp1, nvp2, nvp3, nvp4, nvp5});
+//
+//            try {
+//                client.executeMethod(method);
+//                String response = method.getResponseBodyAsString();
+//
+//                // Parse JSON response
+//                ObjectMapper mapper = new ObjectMapper();
+//                JsonNode rootNode = mapper.readTree(response);
+//                String address = rootNode.path("display_name").asText();
+//                returnMessage.put("datavalues", address);
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//                return null;
+//            } finally {
+//                method.releaseConnection();
+//            }
+//            return returnMessage.toString();
+//    }
 
 }

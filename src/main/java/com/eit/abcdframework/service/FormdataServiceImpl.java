@@ -242,7 +242,7 @@ public class FormdataServiceImpl implements FormdataService {
 			if (method.equalsIgnoreCase("GET")) {
 				res = transmittingDatapgrestget(columnprimarykey, method, gettabledata, primary, where);
 			} else {
-				transmittingDatapgrestDel(columnprimarykey, method, gettabledata, primary, where, isdeleteall);
+				res=transmittingDatapgrestDel(columnprimarykey, method, gettabledata, primary, where, isdeleteall);
 			}
 
 		} catch (Exception e) {
@@ -314,8 +314,7 @@ public class FormdataServiceImpl implements FormdataService {
 	private String transmittingDatapgrestDel(String columnprimarykey, String method, JSONObject gettabledata,
 			String primary, String where, boolean isdeleteall) {
 		JSONObject returndata = new JSONObject();
-		int response = 0;
-		String res = "";
+		String response = "";
 		try {
 			String url = "";
 			if (primary != null && !primary.equalsIgnoreCase("")) {
@@ -334,18 +333,18 @@ public class FormdataServiceImpl implements FormdataService {
 
 			response = dataTransmit.transmitDataspgrestDel(url, gettabledata.getString("schema"));
 
-			if (response >= 200 && response <= 226) {
-				returndata.put(GlobalAttributeHandler.getReflex(), GlobalAttributeHandler.getSuccess());
-			} else {
-				res = HttpStatus.getStatusText(response);
-				returndata.put(GlobalAttributeHandler.getError(), res);
-			}
+//			if (response >= 200 && response <= 226) {
+//				returndata.put(GlobalAttributeHandler.getReflex(), GlobalAttributeHandler.getSuccess());
+//			} else {
+//				res = HttpStatus.getStatusText(response);
+//				returndata.put(GlobalAttributeHandler.getError(), res);
+//			}
 
 		} catch (Exception e) {
 			returndata.put(GlobalAttributeHandler.getError(), GlobalAttributeHandler.getFailure());
 			LOGGER.error("Exception at {}", Thread.currentThread().getStackTrace()[1].getMethodName(), e);
 		}
-		return new JSONObject().put(GlobalAttributeHandler.getReflex(), GlobalAttributeHandler.getSuccess()).toString();
+		return response;
 	}
 
 //	private StringBuilder URLEncode(String value) {

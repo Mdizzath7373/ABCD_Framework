@@ -13,8 +13,8 @@ import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.classic.methods.HttpPut;
 import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase;
+import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
 import org.apache.hc.core5.http.ClassicHttpResponse;
@@ -27,15 +27,10 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.eit.abcdframework.config.ConfigurationFile;
-import com.eit.abcdframework.serverbo.CommonServices;
-import com.eit.abcdframework.serverbo.DisplaySingleton;
 import com.google.auth.oauth2.GoogleCredentials;
-
-import org.apache.hc.client5.http.config.RequestConfig;
 
 @Component("Httpclientcaller")
 public class Httpclientcaller {
@@ -164,12 +159,12 @@ public class Httpclientcaller {
 
 	}
 
-	public int transmitDataspgrestDel(String toUrl, String schema) throws IOException {
+	public String transmitDataspgrestDel(String toUrl, String schema) throws IOException {
 		HttpDelete httpDel = new HttpDelete(URLEncode(toUrl).toString());
 		httpDel.setHeader("Connection", "close");
 		httpDel.setHeader("Accept-Profile", schema);
 
-		return Integer.parseInt(executeRequest(httpDel, "DELETE").toString());
+		return executeRequest(httpDel, "DELETE").toString();
 
 	}
 
