@@ -1,6 +1,5 @@
 package com.eit.abcdframework.serverbo;
 
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -242,7 +241,7 @@ public class DisplayHandler {
 			JSONObject aliesobj = new JSONObject(alias);
 			JSONArray dataBody = aliesobj.getJSONArray("Data");
 			JSONObject whereCondition = (JSONObject) dataBody.get(0);
-			
+
 			where = whereCondition.getString("Where");
 			String displayAlias = whereCondition.getString("Name");
 
@@ -363,179 +362,254 @@ public class DisplayHandler {
 		return commonUtilDtoValue;
 	}
 
-	public String toExecutePgRest(String alias, boolean function, String role, String chartType) {
-		String response = "null";
-		JSONObject jsonObject4 = new JSONObject();
-		JSONArray jsonArray = new JSONArray();
-		JSONArray colour = new JSONArray();
-		JSONArray lang = new JSONArray();
-		JSONArray displayName = new JSONArray();
-		JSONArray datavalues = new JSONArray();
-		String where = null;
-		JSONArray res = new JSONArray();
-		JSONObject displayConfig;
-		String url;
-		try {
-			JSONObject aliesobj = new JSONObject(alias);
-			JSONArray dataBody = aliesobj.getJSONArray("Data");
-			JSONObject whereCondition = (JSONObject) dataBody.get(0);
-
-			where = whereCondition.getString("Where");
-			String displayAlias = whereCondition.getString("Name");
-
-			LOGGER.info("display alias = {}", displayAlias);
-			displayConfig = DisplaySingleton.memoryDispObjs2.getJSONObject(displayAlias);
-
-			LOGGER.info("display object = {}", displayConfig);
-			if (displayConfig != null) {
-				JSONObject displayColumns = new JSONObject(displayConfig.get("discfg").toString())
-						.getJSONObject("jqxdetails");
-				JSONObject extraDatas = new JSONObject(displayConfig.get("datas").toString());
-
-//				JSONObject object = displayColumns.getJSONObject("jqxdetails");
-				String chart = chartType;
-
-				if (displayColumns.has(chart)) {
-					response = new JSONObject(GlobalAttributeHandler.getError(), "Chart Type Dose not exits!")
-							.toString();
-				}
-
-				JSONArray chartConfig = displayColumns.getJSONArray(chart);
-
-				String api = function ? extraDatas.getString("Function") : extraDatas.getString("api");
-
-				String regex = DisplaySingleton.memoryApplicationSetting.getString("UrlEncodeExcept");
-				StringBuilder result = new StringBuilder();
-				for (int i = 0; i < where.length(); i++) {
-					char c = where.charAt(i);
-					if (String.valueOf(c).matches(regex)) {
-						// URL encode the special character
-						String encodedChar = URLEncoder.encode(String.valueOf(c), "UTF-8");
-						result.append(encodedChar);
-					} else {
-						result.append(c);
-					}
-				}
-
-				if (function && extraDatas.has("preDefined") && extraDatas.getBoolean("preDefined")) {
-					JSONObject quryJson = extraDatas.getJSONObject("Query");
-					if (quryJson.has("where")) {
-						String whereCon = quryJson.getString("where")
-								+ (where.equalsIgnoreCase("") ? "" : " and " + where.replace("?datas=", ""));
-						quryJson.put("where", whereCon);
-					}
-					url = GlobalAttributeHandler.getPgrestURL() + extraDatas.getString("Function") + "?basequery="
-							+ extraDatas.getJSONObject("Query");
-				} else if (function && !where.isEmpty()) {
-					if (extraDatas.has("name"))
-						url = GlobalAttributeHandler.getPgrestURL() + api + where + "&" + "name="
-								+ extraDatas.getString("name");
-					else
-						url = GlobalAttributeHandler.getPgrestURL() + api + where;
-				} else if (function) {
-					if (extraDatas.has("name"))
-						url = GlobalAttributeHandler.getPgrestURL() + api + "?name=" + extraDatas.getString("name");
-					else
-						url = GlobalAttributeHandler.getPgrestURL() + api + "?datas=";
-				} else if (!where.isEmpty()) {
-					url = GlobalAttributeHandler.getPgrestURL() + api + "?" + where;
-				} else {
-					url = GlobalAttributeHandler.getPgrestURL() + api;
-				}
-
-				if (extraDatas.has("preDefined") && extraDatas.getBoolean("preDefined")) {
-					res = new JSONObject(new JSONArray(
-							dataTransmits.transmitDataspgrest(url, extraDatas.getString("schema")).get(0).toString()))
-							.getJSONArray("datavalues");
-				} else {
-					res = dataTransmits.transmitDataspgrest(url, extraDatas.getString("schema"));
-				}
-
-				List<Object> showgirddata = new JSONObject(displayColumns.get("showchartbyrole").toString())
-						.getJSONArray(role).toList();
-
-				for (int i = 0; i < res.length(); i++) {
-					JSONObject jsonObject = res.getJSONObject(i);
-					if (showgirddata.contains(jsonObject.get("types"))) {
-						if (chartType.equalsIgnoreCase("barchart")) {
-							JSONObject tempDataObj = new JSONObject();
-							tempDataObj.put("x", jsonObject.get("types"));
-							tempDataObj.put("y",jsonObject.get("counts"));
-							datavalues.put(tempDataObj);
-						} else if (chart.equalsIgnoreCase("piechart") || chart.equalsIgnoreCase("linechart")) {
-							if (jsonObject.get("types")
-									.equals(new JSONObject(chartConfig.get(i).toString()).get("Type"))) {
-
-								JSONObject tempDataObj = new JSONObject();
-								tempDataObj.put("Colour", new JSONArray()
-										.put(new JSONObject(chartConfig.get(i).toString()).get("color")));
-								tempDataObj.put("Lang",
-										new JSONArray().put(new JSONObject(chartConfig.get(i).toString()).get("lang")));
-								tempDataObj.put("Type",
-										new JSONArray().put(new JSONObject(chartConfig.get(i).toString()).get("Type")));
-								tempDataObj.put("Count", new JSONArray().put(jsonObject.get("counts")));
-								datavalues.put(tempDataObj);
-							}
-						}
-					}
-				}
-				response = datavalues.toString();
-
-//				if (chartType.equalsIgnoreCase("barchart")) {
-////					List<Object> showgirddata = new JSONObject(object.get("showchartbyrole").toString())
-////							.getJSONArray(role).toList();
+//	public String toExecutePgRest(String alias, boolean function, String role, String chartType) {
+//		String response = "null";
+//		JSONObject jsonObject4 = new JSONObject();
+//		JSONArray jsonArray = new JSONArray();
+//		JSONArray colour = new JSONArray();
+//		JSONArray lang = new JSONArray();
+//		JSONArray displayName = new JSONArray();
+//		JSONArray datavalues = new JSONArray();
+//		String where = null;
+//		JSONArray res = new JSONArray();
+//		JSONObject displayConfig;
+//		String url;
+//		try {
+//			JSONObject aliesobj = new JSONObject(alias);
+//			JSONArray dataBody = aliesobj.getJSONArray("Data");
+//			JSONObject whereCondition = (JSONObject) dataBody.get(0);
 //
-//					for (int i = 0; i < res.length(); i++) {
-//						JSONObject jsonObject = res.getJSONObject(i);
-//						if (showgirddata.contains(jsonObject.get("types"))) {
-//							JSONObject object5 = new JSONObject();
-//							JSONArray jsonArray3 = new JSONArray();
-//							jsonArray3.put(0);
-//							jsonArray3.put(jsonObject.get("counts"));
-//							object5.put("x", jsonObject.get("types"));
-//							object5.put("y", jsonArray3);
-//							jsonArray.put(object5);
-//						}
+//			where = whereCondition.getString("Where");
+//			String displayAlias = whereCondition.getString("Name");
+//
+//			LOGGER.info("display alias = {}", displayAlias);
+//			displayConfig = DisplaySingleton.memoryDispObjs2.getJSONObject(displayAlias);
+//
+//			LOGGER.info("display object = {}", displayConfig);
+//			if (displayConfig != null) {
+//				JSONObject displayColumns = new JSONObject(displayConfig.get("discfg").toString())
+//						.getJSONObject("jqxdetails");
+//				JSONObject extraDatas = new JSONObject(displayConfig.get("datas").toString());
+//
+////				JSONObject object = displayColumns.getJSONObject("jqxdetails");
+//				String chart = chartType;
+//
+//				if (displayColumns.has(chart)) {
+//					response = new JSONObject(GlobalAttributeHandler.getError(), "Chart Type Dose not exits!")
+//							.toString();
+//				}
+//
+//				JSONArray chartConfig = displayColumns.getJSONArray(chart);
+//
+//				String api = function ? extraDatas.getString("Function") : extraDatas.getString("api");
+//
+//				String regex = DisplaySingleton.memoryApplicationSetting.getString("UrlEncodeExcept");
+//				StringBuilder result = new StringBuilder();
+//				for (int i = 0; i < where.length(); i++) {
+//					char c = where.charAt(i);
+//					if (String.valueOf(c).matches(regex)) {
+//						// URL encode the special character
+//						String encodedChar = URLEncoder.encode(String.valueOf(c), "UTF-8");
+//						result.append(encodedChar);
+//					} else {
+//						result.append(c);
 //					}
-//					response = jsonArray.toString();
-//				} else if (chart.equalsIgnoreCase("piechart") || chart.equalsIgnoreCase("linechart")) {
-//					if (role != null && !role.equalsIgnoreCase("")) {
-////						List<Object> showgirddata = new JSONObject(object.get("showchartbyrole").toString())
-////								.getJSONArray(role).toList();
-//						for (int i = 0; i < res.length(); i++) {
-//							JSONObject jsonObject = res.getJSONObject(i);
-//							if (showgirddata.contains(jsonObject.get("types"))) {
-//								for (int j = 0; j < jsonArray2.length(); j++) {
-//									JSONObject object2 = new JSONObject(jsonArray2.get(j).toString());
-//									if (jsonObject.get("types").equals(object2.get("Type"))
-//											&& chart.equalsIgnoreCase("piechart")) {
-//										colour.put(object2.get("color"));
-//										lang.put(object2.get("lang"));
-//										break;
-//									}
-//								}
-//								datavalues.put(jsonObject.get("counts"));
-//								displayName.put(jsonObject.get("types"));
+//				}
+//
+//				if (function && extraDatas.has("preDefined") && extraDatas.getBoolean("preDefined")) {
+//					JSONObject quryJson = extraDatas.getJSONObject("Query");
+//					if (quryJson.has("where")) {
+//						String whereCon = quryJson.getString("where")
+//								+ (where.equalsIgnoreCase("") ? "" : " and " + where.replace("?datas=", ""));
+//						quryJson.put("where", whereCon);
+//					}
+//					url = GlobalAttributeHandler.getPgrestURL() + extraDatas.getString("Function") + "?basequery="
+//							+ extraDatas.getJSONObject("Query");
+//				} else if (function && !where.isEmpty()) {
+//					if (extraDatas.has("name"))
+//						url = GlobalAttributeHandler.getPgrestURL() + api + where + "&" + "name="
+//								+ extraDatas.getString("name");
+//					else
+//						url = GlobalAttributeHandler.getPgrestURL() + api + where;
+//				} else if (function) {
+//					if (extraDatas.has("name"))
+//						url = GlobalAttributeHandler.getPgrestURL() + api + "?name=" + extraDatas.getString("name");
+//					else
+//						url = GlobalAttributeHandler.getPgrestURL() + api + "?datas=";
+//				} else if (!where.isEmpty()) {
+//					url = GlobalAttributeHandler.getPgrestURL() + api + "?" + where;
+//				} else {
+//					url = GlobalAttributeHandler.getPgrestURL() + api;
+//				}
+//
+//				if (extraDatas.has("preDefined") && extraDatas.getBoolean("preDefined")) {
+//					res = new JSONObject(new JSONArray(
+//							dataTransmits.transmitDataspgrest(url, extraDatas.getString("schema")).get(0).toString()))
+//							.getJSONArray("datavalues");
+//				} else {
+//					res = dataTransmits.transmitDataspgrest(url, extraDatas.getString("schema"));
+//				}
+//
+//				List<Object> showgirddata = new JSONObject(displayColumns.get("showchartbyrole").toString())
+//						.getJSONArray(role).toList();
+//
+//				for (int i = 0; i < res.length(); i++) {
+//					JSONObject jsonObject = res.getJSONObject(i);
+//					if (showgirddata.contains(jsonObject.get("types"))) {
+//						if (chartType.equalsIgnoreCase("barchart")) {
+//							JSONObject tempDataObj = new JSONObject();
+//							tempDataObj.put("x", jsonObject.get("types"));
+//							tempDataObj.put("y",jsonObject.get("counts"));
+//							datavalues.put(tempDataObj);
+//						} else if (chart.equalsIgnoreCase("piechart") || chart.equalsIgnoreCase("linechart")) {
+//							if (jsonObject.get("types")
+//									.equals(new JSONObject(chartConfig.get(i).toString()).get("Type"))) {
+//
+//								JSONObject tempDataObj = new JSONObject();
+//								tempDataObj.put("Colour", new JSONArray()
+//										.put(new JSONObject(chartConfig.get(i).toString()).get("color")));
+//								tempDataObj.put("Lang",
+//										new JSONArray().put(new JSONObject(chartConfig.get(i).toString()).get("lang")));
+//								tempDataObj.put("Type",
+//										new JSONArray().put(new JSONObject(chartConfig.get(i).toString()).get("Type")));
+//								tempDataObj.put("Count", new JSONArray().put(jsonObject.get("counts")));
+//								datavalues.put(tempDataObj);
 //							}
 //						}
-//						if (chart.equalsIgnoreCase("piechart"))
-//							jsonObject4.put("Lang", lang);
-//						jsonObject4.put("Colour", colour);
-//						jsonObject4.put("Type", displayName);
-//						jsonObject4.put("Count", datavalues);
 //					}
-//					response = jsonObject4.toString();
 //				}
-			} else {
-				response = new JSONObject()
-						.put(GlobalAttributeHandler.getError(), "Config has not found, Please Check the Config name!")
-						.toString();
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return response;
+//				response = datavalues.toString();
+//
+////				if (chartType.equalsIgnoreCase("barchart")) {
+//////					List<Object> showgirddata = new JSONObject(object.get("showchartbyrole").toString())
+//////							.getJSONArray(role).toList();
+////
+////					for (int i = 0; i < res.length(); i++) {
+////						JSONObject jsonObject = res.getJSONObject(i);
+////						if (showgirddata.contains(jsonObject.get("types"))) {
+////							JSONObject object5 = new JSONObject();
+////							JSONArray jsonArray3 = new JSONArray();
+////							jsonArray3.put(0);
+////							jsonArray3.put(jsonObject.get("counts"));
+////							object5.put("x", jsonObject.get("types"));
+////							object5.put("y", jsonArray3);
+////							jsonArray.put(object5);
+////						}
+////					}
+////					response = jsonArray.toString();
+////				} else if (chart.equalsIgnoreCase("piechart") || chart.equalsIgnoreCase("linechart")) {
+////					if (role != null && !role.equalsIgnoreCase("")) {
+//////						List<Object> showgirddata = new JSONObject(object.get("showchartbyrole").toString())
+//////								.getJSONArray(role).toList();
+////						for (int i = 0; i < res.length(); i++) {
+////							JSONObject jsonObject = res.getJSONObject(i);
+////							if (showgirddata.contains(jsonObject.get("types"))) {
+////								for (int j = 0; j < jsonArray2.length(); j++) {
+////									JSONObject object2 = new JSONObject(jsonArray2.get(j).toString());
+////									if (jsonObject.get("types").equals(object2.get("Type"))
+////											&& chart.equalsIgnoreCase("piechart")) {
+////										colour.put(object2.get("color"));
+////										lang.put(object2.get("lang"));
+////										break;
+////									}
+////								}
+////								datavalues.put(jsonObject.get("counts"));
+////								displayName.put(jsonObject.get("types"));
+////							}
+////						}
+////						if (chart.equalsIgnoreCase("piechart"))
+////							jsonObject4.put("Lang", lang);
+////						jsonObject4.put("Colour", colour);
+////						jsonObject4.put("Type", displayName);
+////						jsonObject4.put("Count", datavalues);
+////					}
+////					response = jsonObject4.toString();
+////				}
+//			} else {
+//				response = new JSONObject()
+//						.put(GlobalAttributeHandler.getError(), "Config has not found, Please Check the Config name!")
+//						.toString();
+//			}
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
+//		return response;
+//
+//	}
 
+	public String toExecutePgRest(String alias, boolean function, String role, String chartType) {
+		JSONObject result = new JSONObject(); // final result
+		String query = "";
+		try {
+			JSONArray series = new JSONArray();
+			JSONObject datasJson = new JSONObject(alias); // converting datas into json object
+			JSONArray res = new JSONArray(); // it will hold res from db operation
+
+			String aliasName = new JSONObject(datasJson.getJSONArray("Data").get(0).toString()).getString("Name");
+			String where = new JSONObject(datasJson.getJSONArray("Data").get(0).toString()).getString("Where");
+			JSONObject oneRow = DisplaySingleton.memoryDispObjs2.getJSONObject(aliasName); // it will have particular
+																							// row from configs table
+			JSONObject discfg = new JSONObject(oneRow.get("discfg").toString());
+			JSONObject datasFromConfigs = new JSONObject(oneRow.get("datas").toString());
+
+			String url = GlobalAttributeHandler.getPgrestURL();
+
+			if (datasFromConfigs.getBoolean("preDefineFunction")
+					&& !datasFromConfigs.getString("query").equalsIgnoreCase("")) {
+				url += "rpc/get_chart_function";
+				if (!where.equalsIgnoreCase("")) {
+					query = datasFromConfigs.getString("query").replace("wherecondition", where);
+				} else {
+					if (datasFromConfigs.getString("query").contains("wherecondition"))
+						query = datasFromConfigs.getString("query").replace("wherecondition", "");
+				}
+				url += "?query_text=" + query;
+				res = dataTransmits.transmitDataspgrest(url, datasFromConfigs.getString("schema"));
+				
+				series.put(new JSONObject(res.get(0).toString()).getJSONArray("y").get(0));
+			}
+			System.err.println(res);
+
+			JSONArray xAxis = null;
+			if (datasFromConfigs.has("x") && datasFromConfigs.getBoolean("x")) {
+				xAxis = res.getJSONObject(0).getJSONArray("x"); // if datasJson have "x" key and it is true,we are
+																// storing value of "x" key from res in xAxis
+			} else {
+				xAxis = discfg.getJSONArray("xAxis"); // else storing value of "x" key from discfg(configs table)
+			}
+			if (xAxis != null) {
+				result.put("xAxis", xAxis);
+			} else {
+				System.out.println("xAxis is null...");
+			}
+
+			result.put("chartType", chartType);
+			result.put("colors", discfg.getJSONArray("colors"));
+
+			
+
+//			for (Object obj : res.getJSONObject(0).getJSONArray("y")) {
+//				JSONObject jsonObj = new JSONObject(obj);
+//
+//				JSONObject jsonOfSeries = new JSONObject();
+//				jsonOfSeries.put("name", jsonObj.optString("name", "")); // putting name of the contractor
+//
+//				JSONArray data = new JSONArray();
+//				for (Object o : xAxis) {
+//					String eachXAxis = o.toString();
+//					Integer i = jsonObj.optInt(eachXAxis, 0);
+//					data.put(i);
+//				} // by this loop, we are creating a json array which holds the value of "data"
+//					// key for each contractor
+//				jsonOfSeries.put("datas", data);
+//				series.put(jsonOfSeries); // putting jsonOfSeries(single json obeject of each contractor)
+//			}
+
+			result.put("series", series); // putting "series" in the result
+		} catch (Exception e) {
+			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(),e);
+		}
+		return result.toString();
 	}
 
 }

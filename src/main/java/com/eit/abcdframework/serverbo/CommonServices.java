@@ -82,7 +82,6 @@ public class CommonServices {
 	private String schema;
 
 	public String userstatusupdate(String updationform, JSONObject user, String id) {
-		JSONObject returndata = new JSONObject();
 		String url = "";
 		String response = "";
 		String tablename = "";
@@ -111,17 +110,17 @@ public class CommonServices {
 
 //			if (Integer.parseInt(response) <= 200 || Integer.parseInt(response) >= 226) {
 			
-			if(new JSONObject((new JSONArray(response).get(0).toString())).has("reflex")) {
-				String res = HttpStatus.getStatusText(Integer.parseInt(response));
-				returndata.put("error", res);
-			} else {
-				returndata.put("reflex", "Success");
-			}
+//			if(!new JSONObject((new JSONArray(response).get(0).toString())).has("reflex")) {
+//				String res = HttpStatus.getStatusText(Integer.parseInt(response));
+//				returndata.put("error", res);
+//			} else {
+//				returndata.put("reflex", "Success");
+//			}
 
 		} catch (Exception e) {
 			LOGGER.error("Exception at User Status Update ::", e);
 		}
-		return returndata.toString();
+		return response;
 	}
 
 	public String userActivation(String key) {
