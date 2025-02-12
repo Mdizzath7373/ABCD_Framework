@@ -318,6 +318,10 @@ public class DisplayHandler {
 				} else {
 					res = dataTransmits.transmitDataspgrest(url, extraDatas.getString("schema"));
 				}
+				String key = extraDatas.has("gridDisplayKey")
+						&& !extraDatas.getString("gridDisplayKey").equalsIgnoreCase("")
+								? extraDatas.getString("gridDisplayKey")
+								: "displayfield";
 				JSONObject jsonObject2;
 				JSONArray jsonArray = new JSONArray();
 				for (int i = 0; i < res.length(); i++) {
@@ -330,7 +334,6 @@ public class DisplayHandler {
 								getresjson.get(dataJsonObject.getString("columnname")));
 						columnnames1.put(dataJsonObject.getString("displayfield"),
 								dataJsonObject.getString("columnname"));
-
 					}
 					jsonArray.put(jsonObject2);
 				}
@@ -340,10 +343,18 @@ public class DisplayHandler {
 							.getJSONArray(role).toList();
 					for (int i = 0; i < datas.length(); i++) {
 						if (showgirddata.contains(new JSONObject(datas.get(i).toString()).getString("columnname"))) {
-							checkjson.add(new JSONObject(datas.get(i).toString()));
+							JSONObject updateObj =new JSONObject(datas.get(i).toString());
+							if (!key.equalsIgnoreCase("displayfield")) {
+								String value = updateObj.getString("displayfield");
+								updateObj.remove("displayfield");
+								updateObj.put(key, value);
+							
+							}
+							checkjson.add(updateObj);
 						}
 
 					}
+					
 					jsononbj.put("columns", checkjson);
 
 				}
@@ -565,7 +576,7 @@ public class DisplayHandler {
 				}
 				url += "?query_text=" + query;
 				res = dataTransmits.transmitDataspgrest(url, datasFromConfigs.getString("schema"));
-				
+
 				series.put(new JSONObject(res.get(0).toString()).getJSONArray("y").get(0));
 			}
 			System.err.println(res);
@@ -586,8 +597,6 @@ public class DisplayHandler {
 			result.put("chartType", chartType);
 			result.put("colors", discfg.getJSONArray("colors"));
 
-			
-
 //			for (Object obj : res.getJSONObject(0).getJSONArray("y")) {
 //				JSONObject jsonObj = new JSONObject(obj);
 //
@@ -607,7 +616,7 @@ public class DisplayHandler {
 
 			result.put("series", series); // putting "series" in the result
 		} catch (Exception e) {
-			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(),e);
+			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
 		}
 		return result.toString();
 	}
