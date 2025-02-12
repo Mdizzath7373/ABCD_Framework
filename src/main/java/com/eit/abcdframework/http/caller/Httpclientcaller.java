@@ -3,6 +3,7 @@ package com.eit.abcdframework.http.caller;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.System.Logger;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -25,19 +26,19 @@ import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.util.Timeout;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import com.eit.abcdframework.config.ConfigurationFile;
+import com.eit.abcdframework.serverbo.DisplayHandler;
 import com.google.auth.oauth2.GoogleCredentials;
 
 @Component("Httpclientcaller")
 public class Httpclientcaller {
 	
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(Httpclientcaller.class);
-
+	public static final org.slf4j.Logger LOGGER= LoggerFactory.getLogger(DisplayHandler.class);
+	
 	private final CloseableHttpClient httpClient;
 
 	public Httpclientcaller() {
@@ -65,7 +66,7 @@ public class Httpclientcaller {
 		JSONArray responseArray = new JSONArray();
 		try {
 			int statusCode = response.getCode();
-			LOGGER.info("Status Code is ::{}", statusCode);
+//			LOGGER.info("Status Code is ::{}", statusCode);
 
 			HttpEntity responseEntity = response.getEntity();
 			if (responseEntity == null) {
