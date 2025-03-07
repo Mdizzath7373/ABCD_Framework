@@ -438,7 +438,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 				obj = new JSONObject(data);
 
 			values = obj.getJSONObject("value");
-			chartType = obj.getString("chartType");
+			chartType = obj.optString("chartType");
 			value = values.toString();
 			function = obj.getBoolean("function");
 			role = obj.has("role") ? obj.getString("role") : "default";

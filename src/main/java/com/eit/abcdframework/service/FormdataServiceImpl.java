@@ -255,21 +255,33 @@ public class FormdataServiceImpl implements FormdataService {
 
 	private String transmittingDatapgrestget(String columnprimarykey, String method, JSONObject gettabledata,
 			String primary, String where) {
+		System.out.println("Where : "+where);
+		System.out.println("columnprimarykey : "+columnprimarykey);
+		System.out.println("method : "+method);
+		System.out.println("primary : "+primary);
+		System.out.println("table data : "+gettabledata.toString());
+		
+		
+		
 		JSONObject returndata = new JSONObject();
 		JSONArray temparay;
 		try {
 			String url = "";
 			String which = gettabledata.has("method") ? gettabledata.getString("method") : "GET";
-
-			if (method.startsWith("rpc") && gettabledata.getBoolean("preDefined")) {
+			LOGGER.info("method:" + method);
+			if (gettabledata.getString(method).startsWith("rpc") && gettabledata.getBoolean("preDefined")) {
 				JSONObject quryJson = gettabledata.getJSONObject("Query");
+				LOGGER.info("quryjson: " + quryJson);
 				if (quryJson.has("where")) {
 					String whereCon = quryJson.getString("where")
 							+ (where.equalsIgnoreCase("") ? "" : " and " + where.replace("?datas=", ""));
 					quryJson.put("where", whereCon);
-				}
+				} else if (!where.equalsIgnoreCase(""))
+					quryJson.put("where", " where "+where.replace("?datas=", ""));
+
 				url = GlobalAttributeHandler.getPgrestURL() + gettabledata.getString("Function") + "?basequery="
 						+ gettabledata.getJSONObject("Query");
+				System.err.println(url);
 			} else if (primary != null && !primary.equalsIgnoreCase("")) {
 				url = GlobalAttributeHandler.getPgrestURL() + gettabledata.getString(method.toUpperCase()) + "?"
 						+ columnprimarykey + "=eq." + primary;
@@ -295,10 +307,12 @@ public class FormdataServiceImpl implements FormdataService {
 				} else {
 					json = new JSONObject();
 				}
+				LOGGER.info(" if url: " + url);
 				getdata = new JSONObject(new JSONArray(dataTransmit.transmitDataspgrestpost(url, json.toString(), false,
 						gettabledata.getString("schema"))).get(0).toString());
 				returndata.put(GlobalAttributeHandler.getDatavalue(), temparay.put(getdata));
 			} else {
+				LOGGER.info(" else url: " + url);
 				temparay = dataTransmit.transmitDataspgrest(url, gettabledata.getString("schema"));
 				returndata.put(GlobalAttributeHandler.getDatavalue(), temparay);
 			}

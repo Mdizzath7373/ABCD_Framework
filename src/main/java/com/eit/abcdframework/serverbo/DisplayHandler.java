@@ -286,14 +286,17 @@ public class DisplayHandler {
 				commonUtilDtoValue.setEntity(api);
 
 				if (function && extraDatas.has("preDefined") && extraDatas.getBoolean("preDefined")) {
-					JSONObject quryJson = extraDatas.getJSONObject("QueryData");
+					JSONObject quryJson = extraDatas.getJSONObject("Query");
 					if (quryJson.has("where")) {
 						String whereCon = quryJson.getString("where")
 								+ (where.equalsIgnoreCase("") ? "" : " and " + where);
 						quryJson.put("where", whereCon);
+					}else if(!where.equalsIgnoreCase("")) {
+						quryJson.put("where", where.replace("?datas=", ""));
+
 					}
 					url = GlobalAttributeHandler.getPgrestURL() + "rpc/predefine_function" + "?basequery="
-							+ extraDatas.getJSONObject("QueryData");
+							+ quryJson;
 				} else if (function && !where.isEmpty()) {
 					if (extraDatas.has("name"))
 						url = GlobalAttributeHandler.getPgrestURL() + api + where + "&" + "name="
@@ -312,8 +315,8 @@ public class DisplayHandler {
 				}
 
 				if (extraDatas.has("preDefined") && extraDatas.getBoolean("preDefined")) {
-					res = new JSONObject(new JSONArray(
-							dataTransmits.transmitDataspgrest(url, extraDatas.getString("schema")).get(0).toString()))
+					res = new JSONObject(
+							dataTransmits.transmitDataspgrest(url, extraDatas.getString("schema")).get(0).toString())
 							.getJSONArray("datavalues");
 				} else {
 					res = dataTransmits.transmitDataspgrest(url, extraDatas.getString("schema"));
@@ -580,23 +583,32 @@ public class DisplayHandler {
 				series.put(new JSONObject(res.get(0).toString()).getJSONArray("y").get(0));
 			}
 			System.err.println(res);
-
+			
+			
 			JSONArray xAxis = null;
 			if (datasFromConfigs.has("x") && datasFromConfigs.getBoolean("x")) {
-				xAxis = res.getJSONObject(0).getJSONArray("x"); // if datasJson have "x" key and it is true,we are
+				xAxis = new JSONArray(res.getJSONObject(0).getJSONArray("x").get(0).toString()); // if datasJson have "x" key and it is true,we are
 																// storing value of "x" key from res in xAxis
 			} else {
 				xAxis = discfg.getJSONArray("xAxis"); // else storing value of "x" key from discfg(configs table)
 			}
+			if(chartType.equalsIgnoreCase("pieChart")) {
+				result.put("labels", xAxis);
+				result.put("series", series.getJSONObject(0).getJSONArray("datas"));
+				result.put("chartType", chartType);
+				result.put("colors", discfg.getJSONArray("colors"));
+			}
+			else {
 			if (xAxis != null) {
 				result.put("xAxis", xAxis);
 			} else {
 				System.out.println("xAxis is null...");
 			}
-
+			result.put("series", series);
 			result.put("chartType", chartType);
 			result.put("colors", discfg.getJSONArray("colors"));
-
+			}
+			
 //			for (Object obj : res.getJSONObject(0).getJSONArray("y")) {
 //				JSONObject jsonObj = new JSONObject(obj);
 //
@@ -614,7 +626,7 @@ public class DisplayHandler {
 //				series.put(jsonOfSeries); // putting jsonOfSeries(single json obeject of each contractor)
 //			}
 
-			result.put("series", series); // putting "series" in the result
+			 
 		} catch (Exception e) {
 			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
 		}
