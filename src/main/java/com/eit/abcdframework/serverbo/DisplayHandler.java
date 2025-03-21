@@ -291,12 +291,11 @@ public class DisplayHandler {
 						String whereCon = quryJson.getString("where")
 								+ (where.equalsIgnoreCase("") ? "" : " and " + where);
 						quryJson.put("where", whereCon);
-					}else if(!where.equalsIgnoreCase("")) {
+					} else if (!where.equalsIgnoreCase("")) {
 						quryJson.put("where", where.replace("?datas=", ""));
 
 					}
-					url = GlobalAttributeHandler.getPgrestURL() + "rpc/predefine_function" + "?basequery="
-							+ quryJson;
+					url = GlobalAttributeHandler.getPgrestURL() + "rpc/predefine_function" + "?basequery=" + quryJson;
 				} else if (function && !where.isEmpty()) {
 					if (extraDatas.has("name"))
 						url = GlobalAttributeHandler.getPgrestURL() + api + where + "&" + "name="
@@ -314,13 +313,8 @@ public class DisplayHandler {
 					url = GlobalAttributeHandler.getPgrestURL() + api;
 				}
 
-				if (extraDatas.has("preDefined") && extraDatas.getBoolean("preDefined")) {
-					res = new JSONObject(
-							dataTransmits.transmitDataspgrest(url, extraDatas.getString("schema")).get(0).toString())
-							.getJSONArray("datavalues");
-				} else {
-					res = dataTransmits.transmitDataspgrest(url, extraDatas.getString("schema"));
-				}
+				res = dataTransmits.transmitDataspgrest(url, extraDatas.getString("schema"));
+
 				String key = extraDatas.has("gridDisplayKey")
 						&& !extraDatas.getString("gridDisplayKey").equalsIgnoreCase("")
 								? extraDatas.getString("gridDisplayKey")
@@ -346,18 +340,18 @@ public class DisplayHandler {
 							.getJSONArray(role).toList();
 					for (int i = 0; i < datas.length(); i++) {
 						if (showgirddata.contains(new JSONObject(datas.get(i).toString()).getString("columnname"))) {
-							JSONObject updateObj =new JSONObject(datas.get(i).toString());
+							JSONObject updateObj = new JSONObject(datas.get(i).toString());
 							if (!key.equalsIgnoreCase("displayfield")) {
 								String value = updateObj.getString("displayfield");
 								updateObj.remove("displayfield");
 								updateObj.put(key, value);
-							
+
 							}
 							checkjson.add(updateObj);
 						}
 
 					}
-					
+
 					jsononbj.put("columns", checkjson);
 
 				}
@@ -592,7 +586,7 @@ public class DisplayHandler {
 			} else {
 				xAxis = discfg.getJSONArray("xAxis"); // else storing value of "x" key from discfg(configs table)
 			}
-			if(chartType.equalsIgnoreCase("pieChart")) {
+			if(chartType.equalsIgnoreCase("donut")) {
 				result.put("labels", xAxis);
 				result.put("series", series.getJSONObject(0).getJSONArray("datas"));
 				result.put("chartType", chartType);
@@ -609,23 +603,6 @@ public class DisplayHandler {
 			result.put("colors", discfg.getJSONArray("colors"));
 			}
 			
-//			for (Object obj : res.getJSONObject(0).getJSONArray("y")) {
-//				JSONObject jsonObj = new JSONObject(obj);
-//
-//				JSONObject jsonOfSeries = new JSONObject();
-//				jsonOfSeries.put("name", jsonObj.optString("name", "")); // putting name of the contractor
-//
-//				JSONArray data = new JSONArray();
-//				for (Object o : xAxis) {
-//					String eachXAxis = o.toString();
-//					Integer i = jsonObj.optInt(eachXAxis, 0);
-//					data.put(i);
-//				} // by this loop, we are creating a json array which holds the value of "data"
-//					// key for each contractor
-//				jsonOfSeries.put("datas", data);
-//				series.put(jsonOfSeries); // putting jsonOfSeries(single json obeject of each contractor)
-//			}
-
 			 
 		} catch (Exception e) {
 			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);

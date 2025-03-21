@@ -255,13 +255,6 @@ public class FormdataServiceImpl implements FormdataService {
 
 	private String transmittingDatapgrestget(String columnprimarykey, String method, JSONObject gettabledata,
 			String primary, String where) {
-		System.out.println("Where : "+where);
-		System.out.println("columnprimarykey : "+columnprimarykey);
-		System.out.println("method : "+method);
-		System.out.println("primary : "+primary);
-		System.out.println("table data : "+gettabledata.toString());
-		
-		
 		
 		JSONObject returndata = new JSONObject();
 		JSONArray temparay;

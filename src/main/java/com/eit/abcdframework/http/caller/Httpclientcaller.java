@@ -35,10 +35,9 @@ import com.google.auth.oauth2.GoogleCredentials;
 
 @Component("Httpclientcaller")
 public class Httpclientcaller {
-	
 
-	public static final org.slf4j.Logger LOGGER= LoggerFactory.getLogger(DisplayHandler.class);
-	
+	public static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(DisplayHandler.class);
+
 	private final CloseableHttpClient httpClient;
 
 	public Httpclientcaller() {
@@ -51,10 +50,9 @@ public class Httpclientcaller {
 						.setResponseTimeout(Timeout.ofSeconds(30)).build())
 				.build();
 	}
-	
 
 	public JSONArray executeRequest(HttpUriRequestBase request, String method) throws IOException {
-		
+
 		return httpClient.execute(request, response -> {
 			return parseResponseBody(response, method);
 
@@ -113,6 +111,13 @@ public class Httpclientcaller {
 				if (responseArray.getJSONObject(0).has("reflex")) {
 					return responseArray.put(responseArray.getJSONObject(0).getString("reflex"));
 				}
+				if (responseArray.getJSONObject(0).has("datavalues")
+						&& responseArray.getJSONObject(0).get("datavalues").equals(null)) {
+					return new JSONArray();
+				} else {
+					return new JSONObject(responseArray.get(0).toString()).getJSONArray("datavalues");
+				}
+
 			} else {
 				responseArray.put(statusCode);
 			}
@@ -121,11 +126,9 @@ public class Httpclientcaller {
 		}
 		return responseArray;
 	}
-	
-	
 
 	public JSONArray transmitDataspgrest(String toUrl, String schema) throws IOException {
-		
+
 		HttpGet httpGet = new HttpGet(URLEncode(toUrl).toString());
 		httpGet.setHeader("Connection", "close");
 		httpGet.setHeader("Accept-Profile", schema);
