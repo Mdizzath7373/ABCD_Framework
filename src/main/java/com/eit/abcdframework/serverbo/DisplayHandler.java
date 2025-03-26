@@ -581,10 +581,9 @@ public class DisplayHandler {
 			
 			JSONArray xAxis = null;
 			if (datasFromConfigs.has("x") && datasFromConfigs.getBoolean("x")) {
-				xAxis = new JSONArray(res.getJSONObject(0).getJSONArray("x").get(0).toString()); // if datasJson have "x" key and it is true,we are
-																// storing value of "x" key from res in xAxis
+				xAxis = new JSONArray(res.getJSONObject(0).getJSONArray("x").get(0).toString());
 			} else {
-				xAxis = discfg.getJSONArray("xAxis"); // else storing value of "x" key from discfg(configs table)
+				xAxis = discfg.getJSONArray("xAxis"); 
 			}
 			if(chartType.equalsIgnoreCase("donut")) {
 				result.put("labels", xAxis);
