@@ -1,11 +1,10 @@
 package com.eit.abcdframework.serverbo;
 
 import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,7 +20,6 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.apache.commons.httpclient.HttpStatus;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -511,6 +509,103 @@ public class CommonServices {
 		return url;
 
 	}
+	
+	
+	public void addAdditionalFields(JSONObject datas,JSONArray res,JSONObject jqxdetails,boolean isConvert,JSONObject additionalInformation) {
+		try {
+		if(additionalInformation == null && !isConvert) return;
+		 
+		JSONArray inputColumns = jqxdetails.getJSONArray("columns");
+		JSONArray defaults = jqxdetails.getJSONObject("showgridbyrole").getJSONArray("default");
+		JSONObject discfgOfAF = null;
+		JSONObject datasOfAF = null;
+		List<Object> fieldsToAdd =new ArrayList<Object>();
+		HashMap<String,JSONObject> additionalResMap = new HashMap<String,JSONObject>();;
+		HashMap<String,JSONObject> additionalJqxColumns = new HashMap<String,JSONObject>();
+		 
+		 
+		 
+		if(additionalInformation != null && !additionalInformation.toString().equals("{}")) {
+		 
+		JSONObject configs = DisplaySingleton.memoryDispObjs2.getJSONObject("additionalInformation");
+		discfgOfAF = new JSONObject(configs.get("discfg").toString());
+		datasOfAF = new JSONObject(configs.get("datas").toString());
+		 
+		String url = GlobalAttributeHandler.getPgrestURL();
+		url += additionalInformation.getBoolean("additionalFunction") ? datasOfAF.getString("Function"):datasOfAF.getString("GET");
+		url += "?basequery=";
+		JSONObject param = new JSONObject();
+		param.put("query",datasOfAF.getJSONObject("Query").getString("query"));
+		param.put("where","where "+additionalInformation.optString("additionalWhere"));
+		url += param;
+		LOGGER.info("URL for additional : "+url);
+		 
+		JSONArray additionalRes = new JSONObject(
+		dataTransmit.transmitDataspgrest(url, datasOfAF.getString("schema")).get(0).toString())
+		.getJSONArray("datavalues");
+		 
+		 
+		fieldsToAdd = additionalInformation.optJSONArray("additionalFields").toList(); //Fields to be added in the final res
+		 
+		for(int i=0;i<additionalRes.length();i++) { // converting additioanlres into map for performance
+		additionalResMap.put(additionalRes.getJSONObject(i).getString(datas.getString("uniqueColumn")), additionalRes.getJSONObject(i));
+		}
+		 
+		JSONArray additionalColumns = discfgOfAF.getJSONObject("jqxdetails").getJSONArray("columns"); // getting columns from discfg
+		for(int i=0;i<additionalColumns.length();i++) { // converting into map for peformace
+		additionalJqxColumns.put(additionalColumns.getJSONObject(i).getString("columnname"), additionalColumns.getJSONObject(i));
+		}
+		 
+		for(String key:additionalJqxColumns.keySet()) { // adding column jsons for additional columns
+		if(fieldsToAdd.contains(key)) {
+		inputColumns.put(additionalJqxColumns.get(key));
+		defaults.put(key);
+		}
+		}
+		 
+		}
+		 
+		JSONArray timeFields = datas.optJSONArray("TIMEFIELDS"); //time fields to change format
+		 
+		 
+		 
+		for(int i=0;i<res.length();i++) { //Iterating each JSON in res
+		JSONObject row = res.getJSONObject(i);
+		if(additionalInformation != null && !additionalInformation.toString().equals("{}")) {
+		 
+		JSONObject add = additionalResMap.get(row.getString(datas.getString("uniqueColumn")));
+		if(add == null) {
+		for(Object o : fieldsToAdd) {
+		String s = o.toString();
+		row.put(s,"");
+		}
+		}
+		else {
+		for(String key : add.keySet()) {
+		if(fieldsToAdd.contains(key)) {
+		row.put(key,add.get(key));
+		}
+		}
+		}
+		}
+		if(isConvert && timeFields != null) {
+		for(Object o : timeFields) {
+		String s = o.toString();
+		row.put(s,convertTo12HrFormat(row.getString(s)));
+		}
+		}
+		}
+		 
+		}
+		catch(Exception e) {
+		LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+		}
+		}
+		 
+		private Collection<?> convertTo12HrFormat(String string) {
+		// TODO Auto-generated method stub
+		return null;
+		}
 	
 	
 
