@@ -3,6 +3,8 @@ package com.eit.abcdframework.util;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -158,6 +160,70 @@ public class AmazonSMTPMail {
         return "Failed";
     }
 }
+	
+	public String sendEmailWithFilewithcc(String from, String to,String cc, String subject, String body, String smtpUser,
+			String smtpPass, String host, String port, List<File> files) throws MessagingException {
+    LOGGER.error("AmazonSMTPMail:: Entered:: for {}", to);
+    try {
+    	Properties props = System.getProperties();
+		props.put(MAILTRANSPORTPROTOCOL, "smtps");
+		props.put(MAILSMTPPORT, port);
+		props.put(MAILSMTPAUTH, "true");
+		props.put(MAILSMTPSTARTTLSENABLE, "true");
+		props.put(MAILSMTPSTARTTLSREQUIRED, "true");
+		props.put(MAILSMTPSSLENABLE, "true");
+        Session session = Session.getDefaultInstance(props);
+        MimeMessage msg = new MimeMessage(session);
+
+        msg.setFrom(new InternetAddress(from,fromOfMail));
+        if (to != null && !to.isEmpty()) {
+            InternetAddress[] toAddresses = InternetAddress.parse(to);
+            msg.addRecipients(Message.RecipientType.TO, toAddresses);
+        }
+
+        // Handle multiple CC recipients
+        if (cc != null && !cc.isEmpty()) {
+            InternetAddress[] ccAddresses = InternetAddress.parse(cc);
+            msg.addRecipients(Message.RecipientType.CC, ccAddresses);
+        }
+        msg.setSubject(subject);
+
+        Multipart multipart = new MimeMultipart();
+
+        // Body part for the email text
+        BodyPart messageBodyPart = new MimeBodyPart();
+        messageBodyPart.setContent(body, "text/html;charset=utf-8");
+        multipart.addBodyPart(messageBodyPart);
+
+        // Attachments
+        if (files != null) {
+            for (File file : files) {
+                MimeBodyPart messageBodyPart2 = new MimeBodyPart();
+                DataSource source = new FileDataSource(file);
+                messageBodyPart2.setDataHandler(new DataHandler(source));
+                messageBodyPart2.setFileName(file.getName());
+                multipart.addBodyPart(messageBodyPart2);
+            }
+        }
+
+        msg.setContent(multipart);
+
+        // Send message
+        Transport transport = session.getTransport("smtps");
+        try {
+            transport.connect(host, smtpUser, smtpPass);
+            transport.sendMessage(msg, msg.getAllRecipients());
+        } finally {
+            transport.close();
+        }
+
+        return "Success";
+    } catch (Exception e) {
+        LOGGER.error("AmazonSMTPMail:: Error while sending email :: From = {}, Port = {}, Host = {}, SMTP User = {}, To = {}", 
+                     from, port, host, smtpUser, to, e);
+        return "Failed";
+    }
+}
 
 	public String mailSender2(JSONArray mail, String email, JSONObject getJson, JSONObject jsonBody,
 			List<File> files, String lang, String schema) {
@@ -245,6 +311,97 @@ public class AmazonSMTPMail {
 							}
 						} while (!resultOfMail.equalsIgnoreCase("success"));
 					}
+				}
+			}
+		} catch (
+
+		Exception e) {
+			resultOfMail = FAILED;
+			LOGGER.error("Exception at " + Thread.currentThread().getStackTrace()[1].getMethodName(), e);
+		}
+
+		return resultOfMail;
+
+	}
+	
+	public String mailSender2withcc(JSONArray mail, String email,String cc, JSONObject getJson, JSONObject jsonBody,
+			List<File> files, String lang, String schema) {
+		String resultOfMail = "";
+		String body = "";
+		JSONArray mailContent = null;
+		try {
+			JSONObject smtpMail = new JSONObject(
+					DisplaySingleton.memoryApplicationSetting.get("smptAmazonMail").toString());
+			for (int c = 0; c < mail.length(); c++) {
+				String url = GlobalAttributeHandler.getPgrestURL() + "emailconfig?name=eq." + mail.get(c);
+				mailContent = dataTransmit.transmitDataspgrest(url, schema);
+
+				for (int i = 0; i < mailContent.length(); i++) {
+					JSONObject jsondata = new JSONObject(mailContent.get(i).toString());
+					if (getJson != null && getJson.has("Key")) {
+						String key = generatekey();
+						jsonBody.put("key", key);
+						body = new JSONObject(jsondata.get("contenttype").toString()).getString(lang).replace("key",
+								key);
+					} else if (!jsondata.getBoolean("custommail")) {
+						if (getJson.has(mail.get(c) + "replacementContent")) {
+							if (new JSONObject(getJson.get(mail.get(c) + "replacementContent").toString())
+									.has("replace")) {
+								JSONArray replaceData = new JSONObject(
+										getJson.get(mail.get(c) + "replacementContent").toString())
+										.getJSONArray("replace");
+								JSONArray column = new JSONObject(
+										getJson.get(mail.get(c) + "replacementContent").toString())
+										.getJSONArray("column");
+								for (int r = 0; r < replaceData.length(); r++) {
+									if (r == 0) {
+// body = new JSONObject(jsondata.getString("contenttype").replace(replaceData.getString(r),
+// jsonBody.getString(column.getString(r)));
+										body = new JSONObject(jsondata.get("contenttype").toString()).getString(lang)
+												.replace(replaceData.getString(r),
+														jsonBody.getString(column.getString(r)));
+									} else
+										body = body.replace(replaceData.getString(r),
+												jsonBody.getString(column.getString(r)));
+
+								}
+							}
+						} else {
+							body = new JSONObject(jsondata.get("contenttype").toString()).getString(lang);
+						}
+
+					} else if (jsondata.getBoolean("custommail")) {
+						body = getJson.has("AddcontentPre")
+								? "<h2>Dear " + jsonBody.getString(getJson.getString("AddcontentPre")) + "</h2>"
+										+ new JSONObject(jsondata.get("contenttype").toString()).getString(lang) + "<p>"
+										+ DisplaySingleton.memoryApplicationSetting.getString("onboardurl") + "</p>"
+								: new JSONObject(jsondata.get("contenttype").toString()).getString(lang);
+
+					}
+					List<String> emails = null;
+					if (jsondata.getString("sentto").equalsIgnoreCase("Airport Admin")) {
+						emails = new ArrayList<String>();
+						emails.add("nadim@eitworks.com");
+					} else
+						emails = Arrays.stream(email.split(",")).distinct().collect(Collectors.toList());
+					
+							if (jsondata.getBoolean("withattachment") && !files.isEmpty()) {
+								resultOfMail = sendEmailWithFilewithcc(smtpMail.getString("amazonverifiedfromemail"),
+										email,cc,
+										new JSONObject(jsondata.get("subject").toString()).getString(lang), body,
+										smtpMail.getString("amazonsmtpusername"),
+										smtpMail.getString("amazonsmtppassword"),
+										smtpMail.getString("amazonhostaddress"), smtpMail.getString("amazonport"),
+										files);
+							} else {
+								resultOfMail = sendEmail(smtpMail.getString("amazonverifiedfromemail"), email,
+										new JSONObject(jsondata.get("subject").toString()).getString(lang), body,
+										smtpMail.getString("amazonsmtpusername"),
+										smtpMail.getString("amazonsmtppassword"),
+										smtpMail.getString("amazonhostaddress"), smtpMail.getString("amazonport"));
+							}
+						
+					
 				}
 			}
 		} catch (
@@ -453,37 +610,45 @@ public class AmazonSMTPMail {
 
 			if (email.has("s3file") && email.getBoolean("s3file")) {
 
-				JSONArray s3links = jsonbody.getJSONArray(email.getString("s3column"));
+			    JSONArray s3links = jsonbody.getJSONArray(email.getString("s3column"));
 
-				s3links.toList().stream().forEach(entry -> {
-					String fileName = entry.toString().split(path)[1];
+			    s3links.toList().forEach(entry -> {
+			        String s3FullPath = entry.toString();
+			        String fileName = s3FullPath.split(path)[1];
+			        String fileExtension = fileName.substring(fileName.lastIndexOf(".") + 1).toLowerCase();
 
-					S3Object s3Object = amazonS3.getObject("goldenelement", path + fileName);
+			        S3Object s3Object = amazonS3.getObject("goldenelement", path + fileName);
 
-					try (InputStream inputStream = s3Object.getObjectContent()) {
-						BufferedImage localImage = ImageIO.read(inputStream);
+			        try (InputStream inputStream = s3Object.getObjectContent()) {
 
-//						ByteArrayOutputStream baos = new ByteArrayOutputStream();
-//						ImageIO.write(localImage, "png", baos);
+			            if ("mp4".equals(fileExtension)) {
+			                // Handle as video
+			                File tempFile = File.createTempFile("s3file-", ".mp4");
+			                tempFile.deleteOnExit();
 
-//						files.add(new MockMultipartFile(fileName, fileName,
-//								s3Object.getObjectMetadata().getContentType(), baos.toByteArray()));
-						
-						File tempFile = File.createTempFile("s3file-", ".png");
-			            tempFile.deleteOnExit(); // Optionally delete the temp file on JVM exit
+			                Files.copy(inputStream, tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+			                files.add(tempFile);
 
-			            // Write the image to the file
-			            ImageIO.write(localImage, "png", tempFile);
-			            files.add(tempFile);
+			            } else {
+			                // Handle as image
+			                BufferedImage localImage = ImageIO.read(inputStream);
+			                if (localImage == null) {
+			                    throw new IllegalArgumentException("Unsupported or corrupt image file: " + fileName);
+			                }
 
-					} catch (Exception e) {
-						LOGGER.error("Exception at S3Files in method: {}",
-								Thread.currentThread().getStackTrace()[0].getMethodName(), e);
-					}
-				});
+			                File tempFile = File.createTempFile("s3file-", ".png");
+			                tempFile.deleteOnExit();
 
+			                ImageIO.write(localImage, "png", tempFile);
+			                files.add(tempFile);
+			            }
+
+			        } catch (Exception e) {
+			            LOGGER.error("Exception at S3Files in method: {}",
+			                    Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+			        }
+			    });
 			}
-
 			if (email.getString("getContentNameColumn").equalsIgnoreCase("Default")
 					&& email.getJSONArray("getContantType").toList().contains(method)) {
 				int index = email.getJSONArray("getContantType").toList().indexOf(method);
@@ -501,7 +666,21 @@ public class AmazonSMTPMail {
 			} else {
 				return returndata = "No Email Through";
 			}
-			returndata = mailSender2(mail, mailid, email, jsonbody, files, lang, schema);
+			if(email.has("mailwithcc") && email.getBoolean("mailwithcc")) {
+				String to;
+				String cc;
+				if (mailid.contains("-")) {
+					 to= mailid.split("-")[0];
+					 cc= mailid.split("-")[1];
+				}else {
+					to = mailid;
+					cc = "";
+				}
+				
+				returndata = mailSender2withcc(mail, to,cc, email, jsonbody, files, lang, schema);
+			}else {
+				returndata = mailSender2(mail, mailid, email, jsonbody, files, lang, schema);
+			}
 
 		} catch (Exception e) {
 			LOGGER.error("Exception at " + Thread.currentThread().getStackTrace()[0].getMethodName(), e);
