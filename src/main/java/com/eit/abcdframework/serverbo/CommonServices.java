@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Base64;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -107,7 +107,7 @@ public class CommonServices {
 				response = dataTransmit.transmitDataspgrestput(url, json.toString(), false, schema);
 
 //			if (Integer.parseInt(response) <= 200 || Integer.parseInt(response) >= 226) {
-			
+
 //			if(!new JSONObject((new JSONArray(response).get(0).toString())).has("reflex")) {
 //				String res = HttpStatus.getStatusText(Integer.parseInt(response));
 //				returndata.put("error", res);
@@ -139,7 +139,7 @@ public class CommonServices {
 							+ datas.get(getconfigofactivation.getString("primarykey"));
 					String result = dataTransmit.transmitDataspgrestput(url, datas.toString(), false, schema);
 //					if (Integer.parseInt(result) >= 200 && Integer.parseInt(result) <= 226) {
-					if(new JSONObject((new JSONArray(result).get(0).toString())).has("reflex")) {
+					if (new JSONObject((new JSONArray(result).get(0).toString())).has("reflex")) {
 						returnMessage.put("reflex", "Successfully Verified");
 					}
 				} else {
@@ -317,8 +317,9 @@ public class CommonServices {
 
 					executorService.submit(() -> {
 
-						String urls = GlobalAttributeHandler.getPgrestURL() + "rpc/get_pdf_splitdata?start_page=" + current_start_page
-								+ "&end_page=" + current_end_page + "&datas=primary_id_pdf='" + value + "'";
+						String urls = GlobalAttributeHandler.getPgrestURL() + "rpc/get_pdf_splitdata?start_page="
+								+ current_start_page + "&end_page=" + current_end_page + "&datas=primary_id_pdf='"
+								+ value + "'";
 
 						try {
 							JSONObject jsonObject = new JSONObject(
@@ -391,10 +392,10 @@ public class CommonServices {
 
 		return res;
 	}
-	
+
 	@Async
 	public CompletableFuture<String> mappedCurdOperationASYNC(JSONObject getdataObject, String data) {
-		String result="";
+		String result = "";
 		try {
 			Map<String, Boolean> formDataResponces = new HashMap<>();
 			JSONArray methods = getdataObject.getJSONObject("asyncCurdOperation").getJSONArray("Methods");
@@ -509,105 +510,155 @@ public class CommonServices {
 		return url;
 
 	}
-	
-	
-	public void addAdditionalFields(JSONObject datas,JSONArray res,JSONObject jqxdetails,boolean isConvert,JSONObject additionalInformation) {
-		try {
-		if(additionalInformation == null && !isConvert) return;
-		 
-		JSONArray inputColumns = jqxdetails.getJSONArray("columns");
-		JSONArray defaults = jqxdetails.getJSONObject("showgridbyrole").getJSONArray("default");
-		JSONObject discfgOfAF = null;
-		JSONObject datasOfAF = null;
-		List<Object> fieldsToAdd =new ArrayList<Object>();
-		HashMap<String,JSONObject> additionalResMap = new HashMap<String,JSONObject>();;
-		HashMap<String,JSONObject> additionalJqxColumns = new HashMap<String,JSONObject>();
-		 
-		 
-		 
-		if(additionalInformation != null && !additionalInformation.toString().equals("{}")) {
-		 
-		JSONObject configs = DisplaySingleton.memoryDispObjs2.getJSONObject("additionalInformation");
-		discfgOfAF = new JSONObject(configs.get("discfg").toString());
-		datasOfAF = new JSONObject(configs.get("datas").toString());
-		 
-		String url = GlobalAttributeHandler.getPgrestURL();
-		url += additionalInformation.getBoolean("additionalFunction") ? datasOfAF.getString("Function"):datasOfAF.getString("GET");
-		url += "?basequery=";
-		JSONObject param = new JSONObject();
-		param.put("query",datasOfAF.getJSONObject("Query").getString("query"));
-		param.put("where","where "+additionalInformation.optString("additionalWhere"));
-		url += param;
-		LOGGER.info("URL for additional : "+url);
-		 
-		JSONArray additionalRes = new JSONObject(
-		dataTransmit.transmitDataspgrest(url, datasOfAF.getString("schema")).get(0).toString())
-		.getJSONArray("datavalues");
-		 
-		 
-		fieldsToAdd = additionalInformation.optJSONArray("additionalFields").toList(); //Fields to be added in the final res
-		 
-		for(int i=0;i<additionalRes.length();i++) { // converting additioanlres into map for performance
-		additionalResMap.put(additionalRes.getJSONObject(i).getString(datas.getString("uniqueColumn")), additionalRes.getJSONObject(i));
-		}
-		 
-		JSONArray additionalColumns = discfgOfAF.getJSONObject("jqxdetails").getJSONArray("columns"); // getting columns from discfg
-		for(int i=0;i<additionalColumns.length();i++) { // converting into map for peformace
-		additionalJqxColumns.put(additionalColumns.getJSONObject(i).getString("columnname"), additionalColumns.getJSONObject(i));
-		}
-		 
-		for(String key:additionalJqxColumns.keySet()) { // adding column jsons for additional columns
-		if(fieldsToAdd.contains(key)) {
-		inputColumns.put(additionalJqxColumns.get(key));
-		defaults.put(key);
-		}
-		}
-		 
-		}
-		 
-		JSONArray timeFields = datas.optJSONArray("TIMEFIELDS"); //time fields to change format
-		 
-		 
-		 
-		for(int i=0;i<res.length();i++) { //Iterating each JSON in res
-		JSONObject row = res.getJSONObject(i);
-		if(additionalInformation != null && !additionalInformation.toString().equals("{}")) {
-		 
-		JSONObject add = additionalResMap.get(row.getString(datas.getString("uniqueColumn")));
-		if(add == null) {
-		for(Object o : fieldsToAdd) {
-		String s = o.toString();
-		row.put(s,"");
-		}
-		}
-		else {
-		for(String key : add.keySet()) {
-		if(fieldsToAdd.contains(key)) {
-		row.put(key,add.get(key));
-		}
-		}
-		}
-		}
-		if(isConvert && timeFields != null) {
-		for(Object o : timeFields) {
-		String s = o.toString();
-		row.put(s,convertTo12HrFormat(row.getString(s)));
-		}
-		}
-		}
-		 
-		}
-		catch(Exception e) {
-		LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
-		}
-		}
-		 
-		private Collection<?> convertTo12HrFormat(String string) {
-		// TODO Auto-generated method stub
-		return null;
-		}
-	
-	
 
+	public void addAdditionalFields(JSONObject datas, JSONArray res, JSONObject jqxdetails, boolean isConvert,
+			JSONObject additionalInformation) {
+		try {
+			if (additionalInformation == null && !isConvert)
+				return;
+
+			JSONArray inputColumns = jqxdetails.getJSONArray("columns");
+			JSONArray defaults = jqxdetails.getJSONObject("showgridbyrole").getJSONArray("default");
+			JSONObject discfgOfAF = null;
+			JSONObject datasOfAF = null;
+			List<Object> fieldsToAdd = new ArrayList<Object>();
+			HashMap<String, JSONObject> additionalResMap = new HashMap<String, JSONObject>();
+			;
+			HashMap<String, JSONObject> additionalJqxColumns = new HashMap<String, JSONObject>();
+
+			if (additionalInformation != null && !additionalInformation.toString().equals("{}")) {
+
+				JSONObject configs = DisplaySingleton.memoryDispObjs2.getJSONObject("additionalInformation");
+				discfgOfAF = new JSONObject(configs.get("discfg").toString());
+				datasOfAF = new JSONObject(configs.get("datas").toString());
+
+				String url = GlobalAttributeHandler.getPgrestURL();
+				url += additionalInformation.getBoolean("additionalFunction") ? datasOfAF.getString("Function")
+						: datasOfAF.getString("GET");
+				url += "?basequery=";
+				JSONObject param = new JSONObject();
+				param.put("query", datasOfAF.getJSONObject("Query").getString("query"));
+				param.put("where", "where " + additionalInformation.optString("additionalWhere"));
+				url += param;
+				LOGGER.info("URL for additional : " + url);
+
+				JSONArray additionalRes = new JSONObject(
+						dataTransmit.transmitDataspgrest(url, datasOfAF.getString("schema")).get(0).toString())
+						.getJSONArray("datavalues");
+
+				fieldsToAdd = additionalInformation.optJSONArray("additionalFields").toList(); // Fields to be added in
+																								// the final res
+
+				for (int i = 0; i < additionalRes.length(); i++) { // converting additioanlres into map for performance
+					additionalResMap.put(additionalRes.getJSONObject(i).getString(datas.getString("uniqueColumn")),
+							additionalRes.getJSONObject(i));
+				}
+
+				JSONArray additionalColumns = discfgOfAF.getJSONObject("jqxdetails").getJSONArray("columns"); // getting
+																												// columns
+																												// from
+																												// discfg
+				for (int i = 0; i < additionalColumns.length(); i++) { // converting into map for peformace
+					additionalJqxColumns.put(additionalColumns.getJSONObject(i).getString("columnname"),
+							additionalColumns.getJSONObject(i));
+				}
+
+				for (String key : additionalJqxColumns.keySet()) { // adding column jsons for additional columns
+					if (fieldsToAdd.contains(key)) {
+						inputColumns.put(additionalJqxColumns.get(key));
+						defaults.put(key);
+					}
+				}
+
+			}
+
+			JSONArray timeFields = datas.optJSONArray("TIMEFIELDS"); // time fields to change format
+
+			for (int i = 0; i < res.length(); i++) { // Iterating each JSON in res
+				JSONObject row = res.getJSONObject(i);
+				if (additionalInformation != null && !additionalInformation.toString().equals("{}")) {
+
+					JSONObject add = additionalResMap.get(row.getString(datas.getString("uniqueColumn")));
+					if (add == null) {
+						for (Object o : fieldsToAdd) {
+							String s = o.toString();
+							row.put(s, "");
+						}
+					} else {
+						for (String key : add.keySet()) {
+							if (fieldsToAdd.contains(key)) {
+								row.put(key, add.get(key));
+							}
+						}
+					}
+				}
+				if (isConvert && timeFields != null) {
+					for (Object o : timeFields) {
+						String s = o.toString();
+						row.put(s, convertTo12HrFormat(row.getString(s)));
+					}
+				}
+			}
+
+		} catch (Exception e) {
+			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+		}
+	}
+
+	public static String convertTo12HrFormat(String time24) {
+		try {
+			if (time24.contains(" ")) {
+				return TimeZoneServices.getDateTZ(time24).toString();
+			} else {
+				return TimeZoneServices.getDateDZ(time24).toString();
+			}
+		} catch (Exception e) {
+			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+			return time24;
+		}
+	}
+
+	public void changeGeoCodeToAddress(JSONArray res, JSONObject datas) {
+		try {
+
+			List<Object> latLongColumns = datas.optJSONArray("latLongColumns") != null
+					? datas.optJSONArray("latLongColumns").toList()
+					: new JSONArray().toList();
+			LOGGER.info("latlongColumsns : " + latLongColumns.toString());
+			IntStream.range(0, res.length()).mapToObj(res::getJSONObject).forEach(obj -> {
+				latLongColumns.stream().forEach(latLong -> {
+					String latlng = obj.getString(latLong.toString());
+					if (DisplaySingleton.addressCache.has(latlng)) {
+						obj.put(latLong.toString(), DisplaySingleton.addressCache.get(latlng));
+					} else {
+						String address = getAddressFromLatLng(latlng.split(",")[0], latlng.split(",")[1], "");
+						DisplaySingleton.addressCache.put(latlng, address);
+						obj.put(latLong.toString(), address);
+					}
+				});
+			});
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+	}
+
+	public String getAddressFromLatLng(String lat, String lon, String language) {
+
+		try {
+			String url = "https://nominatim.openstreetmap.org/reverse?format=json&lat=" + lat + "&lon=" + lon;
+			JSONObject header = new JSONObject();
+			header.put("Accept-Language", (language.equalsIgnoreCase("") ? "en" : language));
+
+			JSONObject jsonObject = new JSONObject(
+					new JSONArray(dataTransmit.transmitDatas(url, header, "GET")).get(0).toString());
+
+			String displayName = jsonObject.optString("display_name", lat + "," + lon);
+			return displayName;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return lat + "," + lon;
+		}
+	}
 
 }

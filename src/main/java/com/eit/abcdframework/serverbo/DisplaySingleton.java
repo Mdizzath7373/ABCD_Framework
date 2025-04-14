@@ -1,5 +1,7 @@
 package com.eit.abcdframework.serverbo;
 
+import java.util.HashMap;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -22,7 +24,7 @@ public class DisplaySingleton {
 
 	@Value("${applicationurl}")
 	private String applicationurl;
-	
+
 	@Value("${schema}")
 	private String schema;
 
@@ -36,6 +38,8 @@ public class DisplaySingleton {
 	public static final JSONObject memoryApplicationSetting = new JSONObject();
 	public static final JSONObject memoryApplicationForms = new JSONObject();
 	public static final JSONObject memoryEmailCofig = new JSONObject();
+
+	public static final JSONObject addressCache = new JSONObject();
 
 	private DisplaySingleton() {
 
@@ -58,7 +62,7 @@ public class DisplaySingleton {
 	public JSONObject configsObj() {
 		try {
 			String url = applicationurl + "configs";
-			JSONArray getArrayObj = dataTransmit.transmitDataspgrest(url,schema);
+			JSONArray getArrayObj = dataTransmit.transmitDataspgrest(url, schema);
 			for (int i = 0; i < getArrayObj.length(); i++) {
 				JSONObject json = new JSONObject(getArrayObj.get(i).toString());
 				memoryDispObjs2.put(json.get("alias").toString(), getArrayObj.get(i));
@@ -76,7 +80,7 @@ public class DisplaySingleton {
 	public JSONObject applictionsettingObj() {
 		try {
 			String url = applicationurl + "applicationsetting";
-			JSONArray getArrayObj = dataTransmit.transmitDataspgrest(url,schema);
+			JSONArray getArrayObj = dataTransmit.transmitDataspgrest(url, schema);
 			for (int i = 0; i < getArrayObj.length(); i++) {
 				JSONObject json = new JSONObject(getArrayObj.get(i).toString());
 				memoryApplicationSetting.put(json.getString("applicationkey"), json.getString("appvalue"));
@@ -109,11 +113,12 @@ public class DisplaySingleton {
 	public JSONObject emailConfigObj() {
 		try {
 			String url = applicationurl + "emailconfig";
-			JSONArray getArrayObj = dataTransmit.transmitDataspgrest(url,schema);
+			JSONArray getArrayObj = dataTransmit.transmitDataspgrest(url, schema);
 			for (int i = 0; i < getArrayObj.length(); i++) {
 				JSONObject json = new JSONObject(getArrayObj.get(i).toString());
-				memoryEmailCofig.put(json.getString("name")
-						+ (!json.get("sentto").equals(null) ? "," + json.getString("sentto").equals(null) : ""),
+				memoryEmailCofig.put(
+						json.getString("name")
+								+ (!json.get("sentto").equals(null) ? "," + json.getString("sentto").equals(null) : ""),
 						json);
 			}
 			String length = String.valueOf(memoryEmailCofig.length());

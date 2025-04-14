@@ -24,6 +24,9 @@ public class DisplayHandler {
 	@Autowired
 	DisplaySingleton displaySingleton;
 
+	@Autowired
+	CommonServices commonServices;
+
 	static Httpclientcaller dataTransmits;
 
 	@Autowired
@@ -319,8 +322,17 @@ public class DisplayHandler {
 						&& !extraDatas.getString("gridDisplayKey").equalsIgnoreCase("")
 								? extraDatas.getString("gridDisplayKey")
 								: "displayfield";
+
+				commonServices.addAdditionalFields(extraDatas, res, jsononbj, whereCondition.optBoolean("convertTime"),
+						whereCondition.optJSONObject("additionalInformation"));
+
+				if (whereCondition.optBoolean("convertToAddress"))
+					commonServices.changeGeoCodeToAddress(res, extraDatas);
+
+				
 				JSONObject jsonObject2;
 				JSONArray jsonArray = new JSONArray();
+
 				for (int i = 0; i < res.length(); i++) {
 					jsonObject2 = new JSONObject();
 					JSONObject getresjson = new JSONObject(res.get(i).toString());
@@ -577,32 +589,29 @@ public class DisplayHandler {
 				series.put(new JSONObject(res.get(0).toString()).getJSONArray("y").get(0));
 			}
 			System.err.println(res);
-			
-			
+
 			JSONArray xAxis = null;
 			if (datasFromConfigs.has("x") && datasFromConfigs.getBoolean("x")) {
 				xAxis = new JSONArray(res.getJSONObject(0).getJSONArray("x").get(0).toString());
 			} else {
-				xAxis = discfg.getJSONArray("xAxis"); 
+				xAxis = discfg.getJSONArray("xAxis");
 			}
-			if(chartType.equalsIgnoreCase("donut")) {
+			if (chartType.equalsIgnoreCase("donut")) {
 				result.put("labels", xAxis);
 				result.put("series", series.getJSONObject(0).getJSONArray("datas"));
 				result.put("chartType", chartType);
 				result.put("colors", discfg.getJSONArray("colors"));
-			}
-			else {
-			if (xAxis != null) {
-				result.put("xAxis", xAxis);
 			} else {
-				System.out.println("xAxis is null...");
+				if (xAxis != null) {
+					result.put("xAxis", xAxis);
+				} else {
+					System.out.println("xAxis is null...");
+				}
+				result.put("series", series);
+				result.put("chartType", chartType);
+				result.put("colors", discfg.getJSONArray("colors"));
 			}
-			result.put("series", series);
-			result.put("chartType", chartType);
-			result.put("colors", discfg.getJSONArray("colors"));
-			}
-			
-			 
+
 		} catch (Exception e) {
 			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
 		}

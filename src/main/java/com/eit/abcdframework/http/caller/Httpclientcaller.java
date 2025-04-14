@@ -3,10 +3,10 @@ package com.eit.abcdframework.http.caller;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.System.Logger;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
 import org.apache.hc.client5.http.classic.methods.HttpDelete;
@@ -125,6 +125,60 @@ public class Httpclientcaller {
 			LOGGER.error("Error in {}: {}", Thread.currentThread().getStackTrace()[0].getMethodName(), e.getMessage());
 		}
 		return responseArray;
+	}
+
+	public JSONArray transmitDatas(String url, JSONObject header, String method) {
+		try {
+			HttpUriRequestBase request;
+
+			// Create appropriate request based on method
+			switch (method.toUpperCase()) {
+			case "GET":
+				request = new HttpGet(URLEncode(url).toString());
+				break;
+			case "POST":
+				request = new HttpPost(url);
+				break;
+			case "PUT":
+				request = new HttpPut(url);
+				break;
+			case "DELETE":
+				request = new HttpDelete(url);
+				break;
+			default:
+				LOGGER.error("Unsupported HTTP method: {}", method);
+				JSONArray errorArray = new JSONArray();
+				errorArray.put(new JSONObject().put("error", "Unsupported HTTP method: " + method));
+				return errorArray;
+			}
+
+			// Set headers
+			if (header != null) {
+				Iterator<String> keys = header.keys();
+				while (keys.hasNext()) {
+					String key = keys.next();
+					String value = header.optString(key);
+					request.setHeader(key, value);
+				}
+			}
+
+			// Set default headers if not present
+			if (!request.containsHeader("Content-Type")) {
+				request.setHeader("Content-Type", "application/json");
+			}
+			if (!request.containsHeader("Accept")) {
+				request.setHeader("Accept", "application/json");
+			}
+
+			// Execute request using the existing method
+			return executeRequest(request, method);
+
+		} catch (Exception e) {
+			LOGGER.error("Error in transmitDatas: {}", e.getMessage());
+			JSONArray errorArray = new JSONArray();
+			errorArray.put(new JSONObject().put("error", e.getMessage()));
+			return errorArray;
+		}
 	}
 
 	public JSONArray transmitDataspgrest(String toUrl, String schema) throws IOException {
