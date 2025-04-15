@@ -220,7 +220,7 @@ public class Httpclientcaller {
 	public String transmitDataspgrestDel(String toUrl, String schema) throws IOException {
 		HttpDelete httpDel = new HttpDelete(URLEncode(toUrl).toString());
 		httpDel.setHeader("Connection", "close");
-		httpDel.setHeader("Accept-Profile", schema);
+		httpDel.setHeader("Content-Profile", schema);
 
 		return executeRequest(httpDel, "DELETE").toString();
 
