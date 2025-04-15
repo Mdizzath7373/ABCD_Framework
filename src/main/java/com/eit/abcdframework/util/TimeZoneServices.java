@@ -541,24 +541,23 @@ public class TimeZoneServices {
 		Date str = null;
 		String returnStr = null;
 		try {
-			
-			if(format.equalsIgnoreCase("time")) {
-                SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
-                str = sdf.parse(date);
-                
-                SimpleDateFormat sdf2 = new SimpleDateFormat("hh:mm:ss a");
-                returnStr = sdf2.format(str);
-                return returnStr;
-			}else {
+
+			if (format.equalsIgnoreCase("time")) {
+				SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+				str = sdf.parse(date);
+
+				SimpleDateFormat sdf2 = new SimpleDateFormat("hh:mm:ss a");
+				returnStr = sdf2.format(str);
+				return returnStr;
+			} else {
 				SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                str = sdf.parse(date);
-                
-                SimpleDateFormat sdf2 = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss a");
-                returnStr = sdf.format(str);
-    			return returnStr;
+				str = sdf.parse(date);
+
+				SimpleDateFormat sdf2 = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss a");
+				returnStr = sdf.format(str);
+				return returnStr;
 			}
-			
-			
+
 		} catch (Exception e) {
 
 		}
