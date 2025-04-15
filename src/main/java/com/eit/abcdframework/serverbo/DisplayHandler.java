@@ -233,12 +233,10 @@ public class DisplayHandler {
 
 	public CommonUtilDto toExecutePgRest(String alias, boolean function, String role) {
 		CommonUtilDto commonUtilDtoValue = new CommonUtilDto();
-		String htmlStr = null;
 		String where = null;
 		JSONArray res = new JSONArray();
 		JSONObject displayConfig;
 		String url;
-//		String pgrest = applicationurl;
 		try {
 			List<JSONObject> checkjson = new ArrayList<>();
 			JSONObject aliesobj = new JSONObject(alias);
@@ -289,50 +287,57 @@ public class DisplayHandler {
 				commonUtilDtoValue.setEntity(api);
 
 				if (function && extraDatas.has("preDefined") && extraDatas.getBoolean("preDefined")) {
+					LOGGER.info("Enter into preDefined function");
 					JSONObject quryJson = extraDatas.getJSONObject("Query");
 					if (quryJson.has("where")) {
 						String whereCon = quryJson.getString("where")
 								+ (where.equalsIgnoreCase("") ? "" : " and " + where);
 						quryJson.put("where", whereCon);
 					} else if (!where.equalsIgnoreCase("")) {
-						quryJson.put("where", where.replace("?datas=", ""));
+						quryJson.put("where", (" WHERE "+ where.replace("?datas=", "")));
 
 					}
 					url = GlobalAttributeHandler.getPgrestURL() + "rpc/predefine_function" + "?basequery=" + quryJson;
 				} else if (function && !where.isEmpty()) {
+					LOGGER.info("Enter into function Without where");
 					if (extraDatas.has("name"))
 						url = GlobalAttributeHandler.getPgrestURL() + api + where + "&" + "name="
 								+ extraDatas.getString("name");
 					else
 						url = GlobalAttributeHandler.getPgrestURL() + api + where;
 				} else if (function) {
+					LOGGER.info("Enter into function");
 					if (extraDatas.has("name"))
 						url = GlobalAttributeHandler.getPgrestURL() + api + "?name=" + extraDatas.getString("name");
 					else
 						url = GlobalAttributeHandler.getPgrestURL() + api + "?datas=";
 				} else if (!where.isEmpty()) {
+					LOGGER.info("Enter into API Without Where");
 					url = GlobalAttributeHandler.getPgrestURL() + api + "?" + where;
 				} else {
+					LOGGER.info("Enter into API");
 					url = GlobalAttributeHandler.getPgrestURL() + api;
 				}
 
 				res = dataTransmits.transmitDataspgrest(url, extraDatas.getString("schema"));
+//				LOGGER.info("Res = {}", res);
 
 				String key = extraDatas.has("gridDisplayKey")
 						&& !extraDatas.getString("gridDisplayKey").equalsIgnoreCase("")
 								? extraDatas.getString("gridDisplayKey")
 								: "displayfield";
 
-				commonServices.addAdditionalFields(extraDatas, res, jsononbj, whereCondition.optBoolean("convertTime"),
-						whereCondition.optJSONObject("additionalInformation"));
+				if (res.length() == 0)
+					commonServices.addAdditionalFields(extraDatas, res, jsononbj,
+							whereCondition.optBoolean("convertTime"),
+							whereCondition.optJSONObject("additionalInformation"));
 
 				if (whereCondition.optBoolean("convertToAddress"))
 					commonServices.changeGeoCodeToAddress(res, extraDatas);
 
-				
 				JSONObject jsonObject2;
 				JSONArray jsonArray = new JSONArray();
-
+                
 				for (int i = 0; i < res.length(); i++) {
 					jsonObject2 = new JSONObject();
 					JSONObject getresjson = new JSONObject(res.get(i).toString());
@@ -371,10 +376,7 @@ public class DisplayHandler {
 				commonUtilDtoValue.setDatavalues(String.valueOf(jsonArray));
 				commonUtilDtoValue.setJqdetails(jsononbj.toString());
 			}
-
-//			htmlStr = new JSONSerializer().exclude("*.class").deepSerialize(commonUtilDtoValue);
-
-			LOGGER.info("design and data htmlStr = {}", htmlStr);
+			LOGGER.info("design and data htmlStr = Data Returned");
 
 		} catch (Exception e) {
 			LOGGER.error("Error : ", e);

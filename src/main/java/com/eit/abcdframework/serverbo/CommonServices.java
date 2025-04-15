@@ -608,9 +608,9 @@ public class CommonServices {
 	public static String convertTo12HrFormat(String time24) {
 		try {
 			if (time24.contains(" ")) {
-				return TimeZoneServices.getDateTZ(time24).toString();
+				return TimeZoneServices.get24to12(time24, "time");
 			} else {
-				return TimeZoneServices.getDateDZ(time24).toString();
+				return TimeZoneServices.get24to12(time24, "date&time");
 			}
 		} catch (Exception e) {
 			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);

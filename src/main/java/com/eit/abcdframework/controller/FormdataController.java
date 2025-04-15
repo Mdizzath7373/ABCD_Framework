@@ -61,6 +61,16 @@ public class FormdataController {
 		return formdataService.transmittingToMethod("Delete", name, primary, where, isdeleteall);
 	}
 
+	@PostMapping("/bulkAdd")
+	public String transmittingDatapostBulk(@RequestBody String data) {
+		return formdataService.transmittingToMethodBulk("PUT", data);
+	}
+
+	@PutMapping("/bulkEdit")
+	public String transmittingDataputBulk(@RequestBody String data) {
+		return formdataService.transmittingToMethodBulk("PUT", data);
+	}
+
 	@GetMapping("/download")
 	public ResponseEntity<InputStreamResource> downloadFileFromS3(String url) throws IOException {
 		url = url.split(path)[1];

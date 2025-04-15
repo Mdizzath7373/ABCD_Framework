@@ -40,8 +40,8 @@ public class TimeZoneServices {
 //					+ totalDuration.getSeconds());
 
 //			System.out.println(TimeZoneServices.getDate(TimeZoneServices.getDateInTimeZoneforSKT("Asia/Riyadh")));
-			System.out.println(TimeZoneServices.getDateInTimeZoneforSKT(new Date(),"Asia/Riyadh"));
-            System.out.println(TimeZoneServices.getDateInTimeZoneforSKT(new Date(),"Asia/Kolkata"));
+			System.out.println(TimeZoneServices.getDateInTimeZoneforSKT(new Date(), "Asia/Riyadh"));
+			System.out.println(TimeZoneServices.getDateInTimeZoneforSKT(new Date(), "Asia/Kolkata"));
 		} catch (DatatypeConfigurationException e) {
 			LOGGER.error("Exception at " + Thread.currentThread().getStackTrace()[1].getMethodName(), e);
 		}
@@ -415,7 +415,6 @@ public class TimeZoneServices {
 		return cal.getTime();
 	}
 
-
 	public static Calendar getDateForTimeZones(Date date, String timeZoneId) {
 		Calendar mbCal = Calendar.getInstance(TimeZone.getTimeZone(timeZoneId));
 		mbCal.setTimeInMillis(date.getTime());
@@ -537,4 +536,33 @@ public class TimeZoneServices {
 		}
 		return days_difference + ":" + hours_difference + ":" + minutes_difference + ":" + seconds_difference;
 	}
+
+	public static String get24to12(String date, String format) {
+		Date str = null;
+		String returnStr = null;
+		try {
+			
+			if(format.equalsIgnoreCase("time")) {
+                SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+                str = sdf.parse(date);
+                
+                SimpleDateFormat sdf2 = new SimpleDateFormat("hh:mm:ss a");
+                returnStr = sdf2.format(str);
+                return returnStr;
+			}else {
+				SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                str = sdf.parse(date);
+                
+                SimpleDateFormat sdf2 = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss a");
+                returnStr = sdf.format(str);
+    			return returnStr;
+			}
+			
+			
+		} catch (Exception e) {
+
+		}
+		return date;
+	}
+
 }

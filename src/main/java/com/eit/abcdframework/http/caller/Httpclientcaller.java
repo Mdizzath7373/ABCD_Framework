@@ -64,7 +64,7 @@ public class Httpclientcaller {
 		JSONArray responseArray = new JSONArray();
 		try {
 			int statusCode = response.getCode();
-//			LOGGER.info("Status Code is ::{}", statusCode);
+			LOGGER.info("Status Code is ::{}", statusCode);
 
 			HttpEntity responseEntity = response.getEntity();
 			if (responseEntity == null) {

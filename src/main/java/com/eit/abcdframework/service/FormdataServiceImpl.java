@@ -82,6 +82,7 @@ public class FormdataServiceImpl implements FormdataService {
 
 			}
 
+			LOGGER.info("Fetching data from Config");
 			String displayAlias = jsonheader.getString("name");
 			displayConfig = DisplaySingleton.memoryDispObjs2.getJSONObject(displayAlias);
 			JSONObject gettabledata = new JSONObject(displayConfig.get("datas").toString());
@@ -119,17 +120,21 @@ public class FormdataServiceImpl implements FormdataService {
 			}
 
 			if (method.equalsIgnoreCase("POST")) {
+				LOGGER.info("Enter into POST Method process");
 				res = transmittingDatatopgrestpost(gettabledata, jsonbody, function, jsonheader);
 			} else {
+				LOGGER.info("Enter into PUT Method process");
 				res = transmittingDatatopgrestput(gettabledata, jsonbody, function, jsonheader);
 
 			}
 
 			if (res.equalsIgnoreCase(GlobalAttributeHandler.getFailure())) {
+				LOGGER.error("Responce Failure :::{}", res);
 				return new JSONObject().put(GlobalAttributeHandler.getError(), GlobalAttributeHandler.getFailure())
 						.toString();
 			}
 
+			LOGGER.info("Success, Enter into Responce Handle Method");
 			responcesHandling.curdMethodResponceHandle(res, bodyData, jsonheader, gettabledata, method,
 					new ArrayList<>());
 
@@ -242,7 +247,7 @@ public class FormdataServiceImpl implements FormdataService {
 			if (method.equalsIgnoreCase("GET")) {
 				res = transmittingDatapgrestget(columnprimarykey, method, gettabledata, primary, where);
 			} else {
-				res=transmittingDatapgrestDel(columnprimarykey, method, gettabledata, primary, where, isdeleteall);
+				res = transmittingDatapgrestDel(columnprimarykey, method, gettabledata, primary, where, isdeleteall);
 			}
 
 		} catch (Exception e) {
@@ -255,7 +260,7 @@ public class FormdataServiceImpl implements FormdataService {
 
 	private String transmittingDatapgrestget(String columnprimarykey, String method, JSONObject gettabledata,
 			String primary, String where) {
-		
+
 		JSONObject returndata = new JSONObject();
 		JSONArray temparay;
 		try {
@@ -270,7 +275,7 @@ public class FormdataServiceImpl implements FormdataService {
 							+ (where.equalsIgnoreCase("") ? "" : " and " + where.replace("?datas=", ""));
 					quryJson.put("where", whereCon);
 				} else if (!where.equalsIgnoreCase(""))
-					quryJson.put("where", " where "+where.replace("?datas=", ""));
+					quryJson.put("where", " where " + where.replace("?datas=", ""));
 
 				url = GlobalAttributeHandler.getPgrestURL() + gettabledata.getString("Function") + "?basequery="
 						+ gettabledata.getJSONObject("Query");
@@ -328,8 +333,7 @@ public class FormdataServiceImpl implements FormdataService {
 				url = (GlobalAttributeHandler.getPgrestURL() + gettabledata.getString(method.toUpperCase()) + "?"
 						+ columnprimarykey + "=eq." + primary);
 			} else if (primary != null && primary.equalsIgnoreCase("") && !where.equalsIgnoreCase("")) {
-				url = (GlobalAttributeHandler.getPgrestURL() + gettabledata.getString(method.toUpperCase()) + where)
-						;
+				url = (GlobalAttributeHandler.getPgrestURL() + gettabledata.getString(method.toUpperCase()) + where);
 				;
 
 			} else if (isdeleteall) {
@@ -350,6 +354,71 @@ public class FormdataServiceImpl implements FormdataService {
 		} catch (Exception e) {
 			returndata.put(GlobalAttributeHandler.getError(), GlobalAttributeHandler.getFailure());
 			LOGGER.error("Exception at {}", Thread.currentThread().getStackTrace()[1].getMethodName(), e);
+		}
+		return response;
+	}
+
+	@Override
+	public String transmittingToMethodBulk(String method, String data) {
+		JSONObject displayConfig;
+		JSONObject jsonObject1 = null;
+		String res = "";
+
+		try {
+			JSONObject jsonheader = null;
+			JSONArray jsonbody = null;
+
+			JSONObject jsonObjectdata = new JSONObject(data);
+			if (jsonObjectdata.has("data"))
+				jsonObject1 = new JSONObject(CommonServices.decrypt(jsonObjectdata.getString("data")));
+			else
+				jsonObject1 = jsonObjectdata;
+
+			jsonheader = new JSONObject(jsonObject1.getJSONObject("header").toString());
+			jsonbody = new JSONArray(jsonObject1.getJSONArray("body").toString());
+
+			String displayAlias = jsonheader.getString("name");
+			displayConfig = DisplaySingleton.memoryDispObjs2.getJSONObject(displayAlias);
+			JSONObject gettabledata = new JSONObject(displayConfig.get("datas").toString());
+
+			if (method.equalsIgnoreCase("POST")) {
+				res = transmittingDatatopgrestpostBulk(gettabledata, jsonbody, jsonheader);
+			} else {
+//				res = transmittingDatatopgrestputBulk(gettabledata, jsonbody, jsonheader);
+
+			}
+
+			if (res.equalsIgnoreCase(GlobalAttributeHandler.getFailure())) {
+				return new JSONObject().put(GlobalAttributeHandler.getError(), GlobalAttributeHandler.getFailure())
+						.toString();
+			}
+
+//			responcesHandling.curdMethodResponceHandleBulk(res, bodyData, jsonheader, gettabledata, method,
+//					new ArrayList<>());
+
+		} catch (Exception e) {
+			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+		}
+
+		return new JSONObject().put(GlobalAttributeHandler.getReflex(), GlobalAttributeHandler.getSuccess()).toString();
+	}
+
+	private String transmittingDatatopgrestpostBulk(JSONObject gettabledata, JSONArray jsonbody,
+			JSONObject jsonheader) {
+		String response = "";
+		try {
+			String url = (GlobalAttributeHandler.getPgrestURL() + gettabledata.getString("POST")).replaceAll(" ",
+					"%20");
+
+			String jsonBodyString = jsonbody.toString();
+
+			response = dataTransmit.transmitDataspgrestpost(url, jsonBodyString,
+					jsonheader.has("primaryvalue") ? jsonheader.getBoolean("primaryvalue") : false,
+					gettabledata.getString("schema"));
+
+		} catch (Exception e) {
+			LOGGER.error("Exception at {} ", Thread.currentThread().getStackTrace()[1].getMethodName(), e);
+			return GlobalAttributeHandler.getFailure();
 		}
 		return response;
 	}
