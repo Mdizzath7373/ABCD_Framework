@@ -554,12 +554,12 @@ public class TimeZoneServices {
 				str = sdf.parse(date);
 
 				SimpleDateFormat sdf2 = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss a");
-				returnStr = sdf.format(str);
+				returnStr = sdf2.format(str);
 				return returnStr;
 			}
 
 		} catch (Exception e) {
-
+            e.printStackTrace();
 		}
 		return date;
 	}

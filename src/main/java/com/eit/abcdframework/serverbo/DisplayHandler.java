@@ -327,7 +327,7 @@ public class DisplayHandler {
 								? extraDatas.getString("gridDisplayKey")
 								: "displayfield";
 
-				if (res.length() == 0)
+				if (res.length() != 0)
 					commonServices.addAdditionalFields(extraDatas, res, jsononbj,
 							whereCondition.optBoolean("convertTime"),
 							whereCondition.optJSONObject("additionalInformation"));
