@@ -240,7 +240,7 @@ public class Httpclientcaller {
 		StringBuilder result = new StringBuilder();
 		try {
 //			 String regex =DisplaySingleton.memoryApplicationSetting.getString("UrlEncodeExcept");
-			String regex = "[^a-zA-Z0-9=&?_.:/\\-'()!%]";
+			String regex = "[^a-zA-Z0-9=&?_.:/\\-'()!,]";
 			for (int i = 0; i < value.length(); i++) {
 				char c = value.charAt(i);
 				if (!isArabic(c)) {

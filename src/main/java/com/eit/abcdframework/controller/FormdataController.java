@@ -63,7 +63,7 @@ public class FormdataController {
 
 	@PostMapping("/bulkAdd")
 	public String transmittingDatapostBulk(@RequestBody String data) {
-		return formdataService.transmittingToMethodBulk("PUT", data);
+		return formdataService.transmittingToMethodBulk("POST", data);
 	}
 
 	@PutMapping("/bulkEdit")

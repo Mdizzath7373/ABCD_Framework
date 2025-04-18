@@ -294,7 +294,7 @@ public class DisplayHandler {
 								+ (where.equalsIgnoreCase("") ? "" : " and " + where);
 						quryJson.put("where", whereCon);
 					} else if (!where.equalsIgnoreCase("")) {
-						quryJson.put("where", (" WHERE "+ where.replace("?datas=", "")));
+						quryJson.put("where", (" WHERE " + where.replace("?datas=", "")));
 
 					}
 					url = GlobalAttributeHandler.getPgrestURL() + "rpc/predefine_function" + "?basequery=" + quryJson;
@@ -337,7 +337,7 @@ public class DisplayHandler {
 
 				JSONObject jsonObject2;
 				JSONArray jsonArray = new JSONArray();
-                
+
 				for (int i = 0; i < res.length(); i++) {
 					jsonObject2 = new JSONObject();
 					JSONObject getresjson = new JSONObject(res.get(i).toString());
@@ -563,7 +563,7 @@ public class DisplayHandler {
 		JSONObject result = new JSONObject(); // final result
 		String query = "";
 		try {
-			JSONArray series = new JSONArray();
+			JSONArray series = null;
 			JSONObject datasJson = new JSONObject(alias); // converting datas into json object
 			JSONArray res = new JSONArray(); // it will hold res from db operation
 
@@ -588,13 +588,13 @@ public class DisplayHandler {
 				url += "?query_text=" + query;
 				res = dataTransmits.transmitDataspgrest(url, datasFromConfigs.getString("schema"));
 
-				series.put(new JSONObject(res.get(0).toString()).getJSONArray("y").get(0));
+				series = res.length()!=0 ? new JSONObject(res.get(0).toString()).getJSONArray("y"): new JSONArray();
+
 			}
-			System.err.println(res);
 
 			JSONArray xAxis = null;
 			if (datasFromConfigs.has("x") && datasFromConfigs.getBoolean("x")) {
-				xAxis = new JSONArray(res.getJSONObject(0).getJSONArray("x").get(0).toString());
+				xAxis = new JSONArray(res.getJSONObject(0).getJSONArray("x").toString());
 			} else {
 				xAxis = discfg.getJSONArray("xAxis");
 			}
