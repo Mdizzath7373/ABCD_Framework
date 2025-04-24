@@ -226,7 +226,7 @@ public class FormdataServiceImpl implements FormdataService {
 	}
 
 	@Override
-	public String transmittingToMethod(String method, String name, String primary, String where, boolean isdeleteall) {
+	public String transmittingToMethod(String method, String name, String primary, String where, boolean isdeleteall, boolean isbulk) {
 		String res = "";
 		JSONObject displayConfig;
 		try {
@@ -243,13 +243,12 @@ public class FormdataServiceImpl implements FormdataService {
 			JSONObject gettabledata = new JSONObject(displayConfig.get("datas").toString());
 			String columnprimarykey = gettabledata.getJSONObject(GlobalAttributeHandler.getKey())
 					.getString(GlobalAttributeHandler.getPrimarycolumnkey());
-
 			if (method.equalsIgnoreCase("GET")) {
-				res = transmittingDatapgrestget(columnprimarykey, method, gettabledata, primary, where);
+				res = transmittingDatapgrestget(columnprimarykey, method, gettabledata, primary, where, isbulk);
 			} else {
-				res = transmittingDatapgrestDel(columnprimarykey, method, gettabledata, primary, where, isdeleteall);
+				res = transmittingDatapgrestDel(columnprimarykey, method, gettabledata, primary, where, isdeleteall, isbulk);
 			}
-
+ 
 		} catch (Exception e) {
 			LOGGER.error("Exception at {} ", Thread.currentThread().getStackTrace()[1].getMethodName(), e);
 		}
@@ -258,31 +257,35 @@ public class FormdataServiceImpl implements FormdataService {
 
 	}
 
-	private String transmittingDatapgrestget(String columnprimarykey, String method, JSONObject gettabledata,
-			String primary, String where) {
 
+
+	private String transmittingDatapgrestget(String columnprimarykey, String method, JSONObject gettabledata,
+			String primary, String where, boolean isgetbulk) {
 		JSONObject returndata = new JSONObject();
 		JSONArray temparay;
 		try {
 			String url = "";
 			String which = gettabledata.has("method") ? gettabledata.getString("method") : "GET";
-			LOGGER.info("method:" + method);
-			if (gettabledata.has("preDefined") && gettabledata.getBoolean("preDefined")) {
-				JSONObject quryJson = gettabledata.getJSONObject("Query");
-				LOGGER.info("quryjson: " + quryJson);
-				if (quryJson.has("where")) {
-					String whereCon = quryJson.getString("where")
-							+ (where.equalsIgnoreCase("") ? "" : " and " + where.replace("?datas=", ""));
-					quryJson.put("where", whereCon);
-				} else if (!where.equalsIgnoreCase(""))
-					quryJson.put("where", " where " + where.replace("?datas=", ""));
-
+			if (gettabledata.getString(method).startsWith("rpc") && gettabledata.getBoolean("preDefined")) {
+				JSONObject quryJson =null;
+				String data="";
+				if (gettabledata.getJSONObject("Query").has("where")) {
+					 data=buildOrderedJsonString(gettabledata.getJSONObject("Query"), where);
+				} else if (!where.equalsIgnoreCase("")) {
+					data=buildOrderedJsonString(gettabledata.getJSONObject("Query"), where);
+				}
+				
+				System.err.println(data);
 				url = GlobalAttributeHandler.getPgrestURL() + gettabledata.getString("Function") + "?basequery="
-						+ gettabledata.getJSONObject("Query");
+						+ data;
 				System.err.println(url);
 			} else if (primary != null && !primary.equalsIgnoreCase("")) {
-				url = GlobalAttributeHandler.getPgrestURL() + gettabledata.getString(method.toUpperCase()) + "?"
-						+ columnprimarykey + "=eq." + primary;
+				if (isgetbulk)
+					url = (GlobalAttributeHandler.getPgrestURL() + gettabledata.getString(method.toUpperCase()) + "?"
+							+ columnprimarykey + "=in.(" + primary + ")");
+				else
+					url = (GlobalAttributeHandler.getPgrestURL() + gettabledata.getString(method.toUpperCase()) + "?"
+							+ columnprimarykey + "=eq." + primary);
 			} else if (primary != null && primary.equalsIgnoreCase("") && !where.equalsIgnoreCase("")) {
 				url = GlobalAttributeHandler.getPgrestURL() + gettabledata.getString(method.toUpperCase()) + where;
 			} else {
@@ -305,12 +308,10 @@ public class FormdataServiceImpl implements FormdataService {
 				} else {
 					json = new JSONObject();
 				}
-				LOGGER.info(" if url: " + url);
 				getdata = new JSONObject(new JSONArray(dataTransmit.transmitDataspgrestpost(url, json.toString(), false,
 						gettabledata.getString("schema"))).get(0).toString());
 				returndata.put(GlobalAttributeHandler.getDatavalue(), temparay.put(getdata));
 			} else {
-				LOGGER.info(" else url: " + url);
 				temparay = dataTransmit.transmitDataspgrest(url, gettabledata.getString("schema"));
 				returndata.put(GlobalAttributeHandler.getDatavalue(), temparay);
 			}
@@ -323,33 +324,83 @@ public class FormdataServiceImpl implements FormdataService {
 		return returndata.toString();
 	}
 
+	private static final String[] JSON_FIELDS_ORDER = { "query", "where", "groupby", "having", "orderby", "limit" };
+
+// Method to build an ordered JSONObject from an existing JSONObject
+
+public static String buildOrderedJsonString(JSONObject sourceJson, String where) {
+    StringBuilder jsonBuilder = new StringBuilder();
+    jsonBuilder.append("{");
+    
+    boolean isFirst = true;
+    for (String field : JSON_FIELDS_ORDER) {
+        if (sourceJson.has(field) || (field.equals("where") && !where.isEmpty())) {
+            // Add comma if not the first field
+            if (!isFirst) {
+                jsonBuilder.append(",");
+            }
+            isFirst = false;
+            
+            // Handle the 'where' field specially
+            if (field.equals("where")) {
+                if (!where.isEmpty()) {
+                	where=where.replace("?datas=","");
+                    if (sourceJson.has(field)) {
+                        // Both source JSON has where and we have additional where condition
+                        jsonBuilder.append("  \"").append(field).append("\": ");
+                        jsonBuilder.append("\"").append(sourceJson.optString(field).replace("\"", "\\\""))
+                                .append(" and ").append(where.replace("\"", "\\\"")).append("\"");
+                    } else {
+                        // Only our where condition
+                        jsonBuilder.append("  \"").append(field).append("\": ");
+                        jsonBuilder.append("\" where ").append(where.replace("\"", "\\\"")).append("\"");
+                    }
+                } else if (sourceJson.has(field)) {
+                    // Only source JSON has where
+                    jsonBuilder.append("  \"").append(field).append("\": ");
+                    jsonBuilder.append("\"").append(sourceJson.optString(field).replace("\"", "\\\"")).append("\"");
+                }
+            } else if (sourceJson.has(field)) {
+                // Handle all other fields
+                jsonBuilder.append("  \"").append(field).append("\": ");
+                Object value = sourceJson.opt(field);
+                if (value instanceof String) {
+                    jsonBuilder.append("\"").append(((String) value).replace("\"", "\\\"")).append("\"");
+                } else {
+                    jsonBuilder.append(value);
+                }
+            }
+        }
+    }
+    
+    jsonBuilder.append("}");
+    return jsonBuilder.toString();
+}
+
+
 	private String transmittingDatapgrestDel(String columnprimarykey, String method, JSONObject gettabledata,
-			String primary, String where, boolean isdeleteall) {
+			String primary, String where, boolean isdeleteall, boolean isdeletebulk) {
 		JSONObject returndata = new JSONObject();
 		String response = "";
 		try {
 			String url = "";
 			if (primary != null && !primary.equalsIgnoreCase("")) {
-				url = (GlobalAttributeHandler.getPgrestURL() + gettabledata.getString(method.toUpperCase()) + "?"
-						+ columnprimarykey + "=eq." + primary);
+				if(!isdeleteall&&isdeletebulk) 		
+					url = (GlobalAttributeHandler.getPgrestURL() + gettabledata.getString(method.toUpperCase()) + "?"
+							+ columnprimarykey + "=in.(" + primary +")");
+				else
+					url = (GlobalAttributeHandler.getPgrestURL() + gettabledata.getString(method.toUpperCase()) + "?"
+							+ columnprimarykey + "=eq." + primary);
 			} else if (primary != null && primary.equalsIgnoreCase("") && !where.equalsIgnoreCase("")) {
 				url = (GlobalAttributeHandler.getPgrestURL() + gettabledata.getString(method.toUpperCase()) + where);
-				;
-
+ 
 			} else if (isdeleteall) {
 				url = url + gettabledata.getString("api");
 			} else {
 				return returndata.put(GlobalAttributeHandler.getError(), "Please check the data").toString();
 			}
-
+			
 			response = dataTransmit.transmitDataspgrestDel(url, gettabledata.getString("schema"));
-
-//			if (response >= 200 && response <= 226) {
-//				returndata.put(GlobalAttributeHandler.getReflex(), GlobalAttributeHandler.getSuccess());
-//			} else {
-//				res = HttpStatus.getStatusText(response);
-//				returndata.put(GlobalAttributeHandler.getError(), res);
-//			}
 
 		} catch (Exception e) {
 			returndata.put(GlobalAttributeHandler.getError(), GlobalAttributeHandler.getFailure());
@@ -357,6 +408,7 @@ public class FormdataServiceImpl implements FormdataService {
 		}
 		return response;
 	}
+
 
 	@Override
 	public String transmittingToMethodBulk(String method, String data) {
@@ -384,7 +436,7 @@ public class FormdataServiceImpl implements FormdataService {
 			if (method.equalsIgnoreCase("POST")) {
 				res = transmittingDatatopgrestpostBulk(gettabledata, jsonbody, jsonheader);
 			} else {
-//				res = transmittingDatatopgrestputBulk(gettabledata, jsonbody, jsonheader);
+				res = transmittingDatatopgrestputBulk(gettabledata, jsonbody, jsonheader);
 
 			}
 
@@ -393,15 +445,35 @@ public class FormdataServiceImpl implements FormdataService {
 						.toString();
 			}
 
-//			responcesHandling.curdMethodResponceHandleBulk(res, bodyData, jsonheader, gettabledata, method,
-//					new ArrayList<>());
-
 		} catch (Exception e) {
 			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
 		}
 
 		return new JSONObject().put(GlobalAttributeHandler.getReflex(), GlobalAttributeHandler.getSuccess()).toString();
 	}
+	
+	private String transmittingDatatopgrestputBulk(JSONObject gettabledata, JSONArray jsonbody,
+	        JSONObject jsonheader) {
+	    String response = "";
+	    try {
+	        String url = (GlobalAttributeHandler.getPgrestURL() + gettabledata.getString("PUT")+"?on_conflict="+gettabledata.getJSONObject("primarykey").getString("columnname")).replaceAll(" ", "%20");
+
+	        String jsonBodyString = jsonbody.toString();
+
+	        response = dataTransmit.transmitDataspgrestPutbulk(
+	                url, 
+	                jsonBodyString, 
+	                jsonheader.has("primaryvalue") ? jsonheader.getBoolean("primaryvalue") : false,
+	                gettabledata.getString("schema"));
+
+	    } catch (Exception e) {
+	        LOGGER.error("Exception at {} ", Thread.currentThread().getStackTrace()[1].getMethodName(), e);
+	        return GlobalAttributeHandler.getFailure();
+	    }
+	    return response;
+	}
+
+
 
 	private String transmittingDatatopgrestpostBulk(JSONObject gettabledata, JSONArray jsonbody,
 			JSONObject jsonheader) {
@@ -422,6 +494,7 @@ public class FormdataServiceImpl implements FormdataService {
 		}
 		return response;
 	}
+
 
 //	private StringBuilder URLEncode(String value) {
 //		StringBuilder result = new StringBuilder();

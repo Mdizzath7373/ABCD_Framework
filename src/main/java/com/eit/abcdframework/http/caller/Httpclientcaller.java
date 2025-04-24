@@ -326,6 +326,24 @@ public class Httpclientcaller {
 		return googleCredentials.getAccessToken().getTokenValue();
 
 	}
+	
+	public String transmitDataspgrestPutbulk(String toUrl, String data, boolean addheader, String schema)
+			throws IOException {
+			 
+			HttpPost httpPost = new HttpPost(toUrl);
+			httpPost.addHeader("Content-Type", "application/json;charset=utf-8");
+			httpPost.addHeader("Content-Profile", schema);
+			if (addheader) {
+			httpPost.addHeader("Prefer", "return=representation, resolution=merge-duplicates");
+			} else {
+			httpPost.addHeader("Prefer", "resolution=merge-duplicates");
+			}
+			 
+			httpPost.setEntity(new StringEntity(data, ContentType.APPLICATION_JSON.withCharset(StandardCharsets.UTF_8)));
+			 
+			return executeRequest(httpPost, "POST").toString();
+			 
+			}
 
 //	public String transmitDataspgrestbulkInsert(String toUrl, String data, boolean addheader, String schema) {
 //		int statusCode = 0;

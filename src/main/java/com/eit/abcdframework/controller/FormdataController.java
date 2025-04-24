@@ -41,8 +41,8 @@ public class FormdataController {
 
 	@GetMapping("/form")
 	public String transmittingDataget(@RequestParam String name, @RequestParam String primary,
-			@RequestParam String where) {
-		return formdataService.transmittingToMethod("GET", name, primary, where, false);
+			@RequestParam String where, boolean isbulk) {
+		return formdataService.transmittingToMethod("GET", name, primary, where, false, isbulk);
 	}
 
 	@PostMapping("/form")
@@ -57,8 +57,8 @@ public class FormdataController {
 
 	@DeleteMapping("/form")
 	public String transmittingDataDel(@RequestParam String name, @RequestParam String primary,
-			@RequestParam String where, boolean isdeleteall) {
-		return formdataService.transmittingToMethod("Delete", name, primary, where, isdeleteall);
+			@RequestParam String where, boolean isdeleteall, boolean isbulk) {
+		return formdataService.transmittingToMethod("Delete", name, primary, where, isdeleteall, isbulk);
 	}
 
 	@PostMapping("/bulkAdd")
@@ -66,11 +66,12 @@ public class FormdataController {
 		return formdataService.transmittingToMethodBulk("POST", data);
 	}
 
+
 	@PutMapping("/bulkEdit")
 	public String transmittingDataputBulk(@RequestBody String data) {
 		return formdataService.transmittingToMethodBulk("PUT", data);
 	}
-
+	
 	@GetMapping("/download")
 	public ResponseEntity<InputStreamResource> downloadFileFromS3(String url) throws IOException {
 		url = url.split(path)[1];

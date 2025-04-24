@@ -560,64 +560,76 @@ public class DisplayHandler {
 //	}
 
 	public String toExecutePgRest(String alias, boolean function, String role, String chartType) {
-		JSONObject result = new JSONObject(); // final result
+		JSONObject result = new JSONObject();
 		String query = "";
 		try {
-			JSONArray series = null;
-			JSONObject datasJson = new JSONObject(alias); // converting datas into json object
-			JSONArray res = new JSONArray(); // it will hold res from db operation
-
-			String aliasName = new JSONObject(datasJson.getJSONArray("Data").get(0).toString()).getString("Name");
-			String where = new JSONObject(datasJson.getJSONArray("Data").get(0).toString()).getString("Where");
-			JSONObject oneRow = DisplaySingleton.memoryDispObjs2.getJSONObject(aliasName); // it will have particular
-																							// row from configs table
-			JSONObject discfg = new JSONObject(oneRow.get("discfg").toString());
-			JSONObject datasFromConfigs = new JSONObject(oneRow.get("datas").toString());
-
-			String url = GlobalAttributeHandler.getPgrestURL();
-
-			if (datasFromConfigs.getBoolean("preDefineFunction")
-					&& !datasFromConfigs.getString("query").equalsIgnoreCase("")) {
-				url += "rpc/get_chart_function";
-				if (!where.equalsIgnoreCase("")) {
-					query = datasFromConfigs.getString("query").replace("wherecondition", where);
-				} else {
-					if (datasFromConfigs.getString("query").contains("wherecondition"))
-						query = datasFromConfigs.getString("query").replace("wherecondition", "");
-				}
-				url += "?query_text=" + query;
-				res = dataTransmits.transmitDataspgrest(url, datasFromConfigs.getString("schema"));
-
-				series = res.length()!=0 ? new JSONObject(res.get(0).toString()).getJSONArray("y"): new JSONArray();
-
-			}
-
-			JSONArray xAxis = null;
-			if (datasFromConfigs.has("x") && datasFromConfigs.getBoolean("x")) {
-				xAxis = new JSONArray(res.getJSONObject(0).getJSONArray("x").toString());
-			} else {
-				xAxis = discfg.getJSONArray("xAxis");
-			}
-			if (chartType.equalsIgnoreCase("donut")) {
-				result.put("labels", xAxis);
-				result.put("series", series.getJSONObject(0).getJSONArray("datas"));
-				result.put("chartType", chartType);
-				result.put("colors", discfg.getJSONArray("colors"));
-			} else {
-				if (xAxis != null) {
-					result.put("xAxis", xAxis);
-				} else {
-					System.out.println("xAxis is null...");
-				}
-				result.put("series", series);
-				result.put("chartType", chartType);
-				result.put("colors", discfg.getJSONArray("colors"));
-			}
-
-		} catch (Exception e) {
-			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+		JSONArray series = null;
+		JSONObject datasJson = new JSONObject(alias);
+		JSONArray res = new JSONArray();
+		 
+		String aliasName = new JSONObject(datasJson.getJSONArray("Data").get(0).toString()).getString("Name");
+		String where = new JSONObject(datasJson.getJSONArray("Data").get(0).toString()).getString("Where");
+		JSONObject oneRow = DisplaySingleton.memoryDispObjs2.getJSONObject(aliasName); // it will have particular
+		// row from configs table
+		JSONObject discfg = new JSONObject(oneRow.get("discfg").toString());
+		JSONObject datasFromConfigs = new JSONObject(oneRow.get("datas").toString());
+		 
+		String url = GlobalAttributeHandler.getPgrestURL();
+		 
+		if (datasFromConfigs.getBoolean("preDefineFunction")
+		&& !datasFromConfigs.getString("query").equalsIgnoreCase("")) {
+		url += "rpc/get_chart_function";
+		if (!where.equalsIgnoreCase("")) {
+		query = datasFromConfigs.getString("query").replace("wherecondition", where);
+		} else {
+		if (datasFromConfigs.getString("query").contains("wherecondition"))
+		query = datasFromConfigs.getString("query").replace("wherecondition", "");
+		}
+		url += "?query_text=" + query;
+		res = dataTransmits.transmitDataspgrest(url, datasFromConfigs.getString("schema"));
+		LOGGER.info("res: "+res);
+		 
+		 
+		if (res.length() != 0 && res.getJSONObject(0).get("y") != JSONObject.NULL) {
+		series = res.getJSONObject(0).getJSONArray("y");
+		} else if (res.length() == 0 || res.getJSONObject(0).get("y") == JSONObject.NULL) {
+		if (chartType.equalsIgnoreCase("donut") || chartType.equalsIgnoreCase("radialBar")) {
+		series = new JSONArray();
+		} else {
+		series = new JSONArray().put(new JSONObject().put("name", "").put("datas", new JSONArray()));
+		}
+		}
+		 
+		 
+		JSONArray xAxis = null;
+		if (datasFromConfigs.has("x") && datasFromConfigs.getBoolean("x") && res.getJSONObject(0).get("x") != JSONObject.NULL) {
+		xAxis = new JSONArray(res.getJSONObject(0).getJSONArray("x").toString());
+		}
+		else {
+		xAxis = discfg.getJSONArray("xAxis");
+		}
+		 
+		 
+		if (chartType.equalsIgnoreCase("donut")||chartType.equalsIgnoreCase("radialBar")) {
+		result.put("labels", xAxis);
+		result.put("series", series);
+		result.put("chartType", chartType);
+		result.put("colors", discfg.getJSONArray("colors"));
+		} else {
+		if (xAxis != null) {
+		result.put("xAxis", xAxis);
+		} else {
+		System.out.println("xAxis is null...");
+		}
+		result.put("series", series);
+		result.put("chartType", chartType);
+		result.put("colors", discfg.getJSONArray("colors"));
+		}
+		 
+		}} catch (Exception e) {
+		LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
 		}
 		return result.toString();
-	}
+		}
 
 }
