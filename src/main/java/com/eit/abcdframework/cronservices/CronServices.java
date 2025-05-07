@@ -31,6 +31,9 @@ public class CronServices {
 
 	@Autowired
 	AmazonSMTPMail amazonSMTPMail;
+	
+	@Autowired
+	Httpclientcaller dataTransmit;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger("CronServices");
 
@@ -40,44 +43,55 @@ public class CronServices {
 			JSONObject jobScheduler = new JSONObject(
 					DisplaySingleton.memoryApplicationSetting.get("JobScheduler").toString());
 				
-				amazonSMTPMail.cornEmialScheduler(jobScheduler.getJSONArray("listOfJob"),jobScheduler.getJSONObject("emailConfig"),jobScheduler.getJSONObject("findby"), new ArrayList<File>());
+				//amazonSMTPMail.cornEmialScheduler(jobScheduler.getJSONArray("listOfJob"),jobScheduler.getJSONObject("emailConfig"),jobScheduler.getJSONObject("findby"), new ArrayList<File>());
 				
 		
 			
 			
 			
 			
-			
+				JSONArray listOfJob = jobScheduler.getJSONArray("listOfJob");
+				JSONObject smtpMail = new JSONObject(
+						DisplaySingleton.memoryApplicationSetting.get("smptAmazonMail").toString());
 
-//			for (int i = 0; i < listOfJob.length(); i++) {
-//				try {
-//					String job = listOfJob.getString(i);
-//					String subject = jobScheduler.getJSONObject(job).getString("subject");
-//					String bodyTemplate = jobScheduler.getJSONObject(job).getString("body");
-//					String url = applicationurl + "rpc/getremainderdata?datas=" + job;
-//					JSONArray json = dataTrans.transmitDataspgrest(url,schema);
-//
-//					for (int list = 0; list < json.length(); list++) {
-//						JSONObject jsondata = new JSONObject(json.get(list).toString());
-//						String companyName = jsondata.getString("primarydata").split("\\+")[0];
-//						String docsname = jsondata.getString("docsname");
-//						String expiryDate = jsondata.getString("primarydata").split("\\+")[1];
-//						String body = bodyTemplate.replace("{companyName}", companyName).replace("{docsname}", docsname)
-//								.replace("{expiryDate}", expiryDate);
-//
-//						if (job.equals("fleet")) {
-//							String fleetID = jsondata.getString("primarydata").split("\\+")[2];
-//							body = body.replace("{fleetID}", fleetID);
-//						}
-//						resultOfMail = amazonSMTPMail.sendEmail(smtpMail.getString("amazonverifiedfromemail"),
-//								jsondata.getString("email"), subject, body, smtpMail.getString("amazonsmtpusername"),
-//								smtpMail.getString("amazonsmtppassword"), smtpMail.getString("amazonhostaddress"),
-//								smtpMail.getString("amazonport"));
-//					}
-//				} catch (Exception e) {
-//					LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
-//				}
-//			}
+			for (int i = 0; i < listOfJob.length(); i++) {
+				try {
+					String job = listOfJob.getString(i);
+					String subject = jobScheduler.getJSONObject(job).getString("subject");
+					String bodyTemplate = jobScheduler.getJSONObject(job).getString("body");
+					String adminbodyTemplate = jobScheduler.getJSONObject(job).getString("adminbody");
+
+					String url = applicationurl + "rpc/getremainderdata3?datas=" + job;
+					JSONArray json = dataTransmit.transmitDataspgrest(url,schema);
+
+					for (int list = 0; list < json.length(); list++) {
+						JSONObject jsondata = new JSONObject(json.get(list).toString());
+						String companyName = jsondata.getString("primarydata").split("\\+")[0];
+						String docsname = jsondata.getString("docsname");
+						String expiryDate = jsondata.getString("primarydata").split("\\+")[1];
+						String body = bodyTemplate.replace("{companyName}", companyName).replace("{docsname}", docsname)
+								.replace("{expiryDate}", expiryDate);
+						String adminbody = adminbodyTemplate.replace("{companyName}", companyName).replace("{docsname}", docsname)
+								.replace("{expiryDate}", expiryDate);
+
+						if (job.equals("fleet")) {
+							String fleetID = jsondata.getString("primarydata").split("\\+")[2];
+							body = body.replace("{fleetID}", fleetID);
+                            adminbody = adminbody.replace("{fleetID}", fleetID);
+						}
+						resultOfMail = amazonSMTPMail.sendEmail(smtpMail.getString("amazonverifiedfromemail"),
+								jsondata.getString("email"), subject, body, smtpMail.getString("amazonsmtpusername"),
+								smtpMail.getString("amazonsmtppassword"), smtpMail.getString("amazonhostaddress"),
+								smtpMail.getString("amazonport"));
+						resultOfMail = amazonSMTPMail.sendEmail(smtpMail.getString("amazonverifiedfromemail"),
+								jobScheduler.getString("airportadmin"), subject, adminbody, smtpMail.getString("amazonsmtpusername"),
+								smtpMail.getString("amazonsmtppassword"), smtpMail.getString("amazonhostaddress"),
+								smtpMail.getString("amazonport"));
+					}
+				} catch (Exception e) {
+					LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+				}
+			}
 		} catch (Exception e) {
 			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
 		}
