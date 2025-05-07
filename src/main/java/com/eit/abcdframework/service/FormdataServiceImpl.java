@@ -266,7 +266,7 @@ public class FormdataServiceImpl implements FormdataService {
 		try {
 			String url = "";
 			String which = gettabledata.has("method") ? gettabledata.getString("method") : "GET";
-			if (gettabledata.getString(method).startsWith("rpc") && gettabledata.getBoolean("preDefined")) {
+			if (gettabledata.getString(method).startsWith("rpc") &&gettabledata.has("preDefined") && gettabledata.getBoolean("preDefined")) {
 				JSONObject quryJson =null;
 				String data="";
 				if (gettabledata.getJSONObject("Query").has("where")) {
