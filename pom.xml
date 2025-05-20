@@ -22,6 +22,18 @@
 	</properties>
 
 	<dependencies>
+	<dependency>
+        <groupId>org.apache.poi</groupId>
+        <artifactId>poi</artifactId>
+        <version>5.2.5</version> <!-- Check for the latest version -->
+    </dependency>
+
+    <!-- POI-OOXML (for .xlsx files - XSSF) -->
+    <dependency>
+        <groupId>org.apache.poi</groupId>
+        <artifactId>poi-ooxml</artifactId>
+        <version>5.2.5</version> <!-- Should match POI version -->
+ </dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
