@@ -31,6 +31,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import com.eit.abcdframework.globalhandler.GlobalAttributeHandler;
+import com.eit.abcdframework.globalhandler.GlobalExceptionHandler;
 import com.eit.abcdframework.http.caller.Httpclientcaller;
 import com.eit.abcdframework.service.FormdataServiceImpl;
 import com.eit.abcdframework.util.AmazonSMTPMail;
@@ -117,6 +118,8 @@ public class CommonServices {
 
 		} catch (Exception e) {
 			LOGGER.error("Exception at User Status Update ::", e);
+			return new JSONObject().put(GlobalExceptionHandler.getError(), e.getMessage()).toString();
+
 		}
 		return response;
 	}
@@ -148,9 +151,7 @@ public class CommonServices {
 			} else {
 				return returnMessage.put("error", "Verification Failed").toString();
 			}
-		} catch (
-
-		Exception e) {
+		} catch (Exception e) {
 			returnMessage.put("error", "Verification Failed");
 			LOGGER.error("Exception at " + Thread.currentThread().getStackTrace()[1].getMethodName(), e);
 		}
@@ -213,6 +214,7 @@ public class CommonServices {
 			}
 		} catch (Exception e) {
 			LOGGER.error("Exception at " + Thread.currentThread().getStackTrace()[1].getMethodName(), e);
+			
 		}
 		return OTP;
 
@@ -247,6 +249,8 @@ public class CommonServices {
 
 		} catch (Exception e) {
 			LOGGER.error("Exception at " + Thread.currentThread().getStackTrace()[1].getMethodName(), e);
+			return new JSONObject().put(GlobalExceptionHandler.getError(), e.getMessage()).toString();
+
 		}
 
 		return res;
@@ -358,30 +362,72 @@ public class CommonServices {
 
 	}
 
-	public static String mappedCurdOperation(JSONObject getdataObject, String data) {
+	
+//	public static String mappedCurdOperation(JSONObject getdataObject, String data, String response) {
+//		String res = "";
+//		try {
+//			Map<String, Boolean> formDataResponces = new HashMap<>();
+//			JSONArray methods = getdataObject.getJSONObject("synchronizedCurdOperation").getJSONArray("Methods");
+//			JSONArray bodJson = getdataObject.getJSONObject("synchronizedCurdOperation").getJSONArray("bodyJson");
+//
+//			for (int method = 0; method < methods.length(); method++) {
+//				String keyofmethods = methods.get(method).toString();
+//
+//				if (keyofmethods.equalsIgnoreCase("post")) {
+//					res = formdataServiceImpl.transmittingToMethod("POST", data, bodJson.get(method).toString(),response);
+//					formDataResponces.put(bodJson.get(method).toString(),
+//							(new JSONObject(res).has("reflex") ? true : false));
+//				} else if (keyofmethods.equalsIgnoreCase("put")) {
+//					res = formdataServiceImpl.transmittingToMethod("PUT", data, bodJson.get(method).toString(),response);
+//					formDataResponces.put(bodJson.get(method).toString(),
+//							(new JSONObject(res).has("reflex") ? true : false));
+//				} 
+//				
+//				Set<String> Failed = formDataResponces.entrySet().stream().filter(entry -> !entry.getValue())
+//						.map(Map.Entry::getKey).collect(Collectors.toSet());
+//				res = Failed.isEmpty() ? "Success" : "Missed Api" + Failed;
+//				LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName() + "{}-->{}", bodJson.get(method),
+//						res);
+//
+//			}
+//
+//		} catch (Exception e) {
+//			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+//		}
+//
+//		return res;
+//	}
+	
+	public static String mappedCurdOperation2(JSONObject getdataObject, String data, String response) {
 		String res = "";
 		try {
 			Map<String, Boolean> formDataResponces = new HashMap<>();
-			JSONArray methods = getdataObject.getJSONObject("synchronizedCurdOperation").getJSONArray("Methods");
+			JSONObject payload = new JSONObject(data);
+//			JSONArray methods = getdataObject.getJSONObject("synchronizedCurdOperation").getJSONArray("Methods");
 			JSONArray bodJson = getdataObject.getJSONObject("synchronizedCurdOperation").getJSONArray("bodyJson");
-			for (int method = 0; method < methods.length(); method++) {
-				String keyofmethods = methods.get(method).toString();
-				if (keyofmethods.equalsIgnoreCase("post")) {
-					res = formdataServiceImpl.transmittingToMethod("POST", data, bodJson.get(method).toString());
-					formDataResponces.put(bodJson.get(method).toString(),
+			for(int i=0;i<bodJson.length();i++) {
+					String bJson = bodJson.get(i).toString();
+				if (payload.has(bJson) && (payload.get(bJson) instanceof JSONObject)) {
+				    
+					JSONObject jsonheader = payload.getJSONObject(bJson).getJSONObject("header");
+				String method = jsonheader.getString("method");
+				if(method.equalsIgnoreCase("post")) {
+					res = formdataServiceImpl.transmittingToMethod("POST", data, bodJson.get(i).toString(),response);
+					formDataResponces.put(bodJson.get(i).toString(),
 							(new JSONObject(res).has("reflex") ? true : false));
-				} else if (keyofmethods.equalsIgnoreCase("put")) {
-					res = formdataServiceImpl.transmittingToMethod("PUT", data, bodJson.get(method).toString());
-					formDataResponces.put(bodJson.get(method).toString(),
+				}else if(method.equalsIgnoreCase("put")) {
+					res = formdataServiceImpl.transmittingToMethod("PUT", data, bodJson.get(i).toString(),response);
+					formDataResponces.put(bodJson.get(i).toString(),
 							(new JSONObject(res).has("reflex") ? true : false));
-				} else {
-
 				}
+			}
+	
+	
 
 				Set<String> Failed = formDataResponces.entrySet().stream().filter(entry -> !entry.getValue())
 						.map(Map.Entry::getKey).collect(Collectors.toSet());
 				res = Failed.isEmpty() ? "Success" : "Missed Api" + Failed;
-				LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName() + "{}-->{}", bodJson.get(method),
+				LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName() + "{}-->{}", bodJson.get(i),
 						res);
 
 			}
@@ -392,9 +438,9 @@ public class CommonServices {
 
 		return res;
 	}
-
+	
 	@Async
-	public CompletableFuture<String> mappedCurdOperationASYNC(JSONObject getdataObject, String data) {
+	public CompletableFuture<String> mappedCurdOperationASYNC(JSONObject getdataObject, String data,String response) {
 		String result = "";
 		try {
 			Map<String, Boolean> formDataResponces = new HashMap<>();
@@ -403,11 +449,11 @@ public class CommonServices {
 			for (int method = 0; method < methods.length(); method++) {
 				String keyofmethods = methods.get(method).toString();
 				if (keyofmethods.equalsIgnoreCase("post")) {
-					result = formdataServiceImpl.transmittingToMethod("POST", data, bodJson.get(method).toString());
+					result = formdataServiceImpl.transmittingToMethod("POST", data, bodJson.get(method).toString(),response);
 					formDataResponces.put(bodJson.get(method).toString(),
 							(new JSONObject(result).has("reflex") ? true : false));
 				} else if (keyofmethods.equalsIgnoreCase("put")) {
-					result = formdataServiceImpl.transmittingToMethod("PUT", data, bodJson.get(method).toString());
+					result = formdataServiceImpl.transmittingToMethod("PUT", data, bodJson.get(method).toString(),response);
 					formDataResponces.put(bodJson.get(method).toString(),
 							(new JSONObject(result).has("reflex") ? true : false));
 				} else {
@@ -541,10 +587,9 @@ public class CommonServices {
 				param.put("where", "where " + additionalInformation.optString("additionalWhere"));
 				url += param;
 				LOGGER.info("URL for additional : " + url);
-
-				JSONArray additionalRes = new JSONObject(
-						dataTransmit.transmitDataspgrest(url, datasOfAF.getString("schema")).get(0).toString())
-						.getJSONArray("datavalues");
+				//LOGGER.info("get 0 : "+dataTransmit.transmitDataspgrest(url, datasOfAF.getString("schema")).toString());	
+				JSONArray additionalRes =
+						dataTransmit.transmitDataspgrest(url, datasOfAF.getString("schema"));
 
 				fieldsToAdd = additionalInformation.optJSONArray("additionalFields").toList(); // Fields to be added in
 																								// the final res
@@ -595,7 +640,7 @@ public class CommonServices {
 				if (isConvert && timeFields != null) {
 					for (Object o : timeFields) {
 						String s = o.toString();
-						row.put(s, convertTo12HrFormat(row.getString(s)));
+						row.put(s, convertTo12HrFormat(row.get(s).equals(null) ? null : row.getString(s)));
 					}
 				}
 			}
@@ -649,15 +694,14 @@ public class CommonServices {
 			String url = "https://nominatim.openstreetmap.org/reverse?format=json&lat=" + lat + "&lon=" + lon;
 			JSONObject header = new JSONObject();
 			header.put("Accept-Language", (language.equalsIgnoreCase("") ? "en" : language));
-
 			JSONObject jsonObject = new JSONObject(
-					new JSONArray(dataTransmit.transmitDatas(url, header, "GET")).get(0).toString());
+					dataTransmit.transmitDatas(url, header, "GET").get(0).toString());
 
 			String displayName = jsonObject.optString("display_name", lat + "," + lon);
 			return displayName;
 		} catch (Exception e) {
 			e.printStackTrace();
-			return lat + "," + lon;
+			return new JSONObject().put(GlobalExceptionHandler.getError(), e.getMessage()).toString();
 		}
 	}
 

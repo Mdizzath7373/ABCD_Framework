@@ -30,6 +30,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import com.eit.abcdframework.config.ConfigurationFile;
+import com.eit.abcdframework.globalhandler.GlobalAttributeHandler;
+import com.eit.abcdframework.globalhandler.GlobalExceptionHandler;
 import com.eit.abcdframework.serverbo.DisplayHandler;
 import com.google.auth.oauth2.GoogleCredentials;
 
@@ -60,42 +62,203 @@ public class Httpclientcaller {
 
 	}
 
+//	private JSONArray parseResponseBody(ClassicHttpResponse response, String method) {
+//	    JSONArray responseArray = new JSONArray();
+//	    try {
+//	        int statusCode = response.getCode();
+//	        LOGGER.info("Status Code is ::{}", statusCode);
+//
+//	        // Early return on error status codes
+//	        if (statusCode < 200 || statusCode > 226) {
+//	            return responseArray.put(new JSONObject().put("error", "Request failed with status code: " + statusCode));
+//	        }
+//
+//	        HttpEntity responseEntity = response.getEntity();
+//	        if (responseEntity == null) {
+//	            if (method.equalsIgnoreCase("get"))
+//	                return responseArray;
+//	            else {
+//	                return responseArray.put(new JSONObject().put("error", "Empty response"));
+//	            }
+//	        }
+//
+//	        String responseBody = EntityUtils.toString(responseEntity);
+//
+//	        // Handle empty or invalid responses
+//	        if (responseBody.isBlank() || responseBody.equals("{}") || responseBody.equals("[]")) {
+//	            if (method.equalsIgnoreCase("get"))
+//	                return responseArray;
+//	            else {
+//	                return responseArray.put(new JSONObject().put("error", "Empty or invalid response body"));
+//	            }
+//	        }
+//
+//	        // Handle JSON object response
+//	        if (responseBody.trim().startsWith("{")) {
+//	            JSONObject jsonObject = new JSONObject(responseBody);
+//	            if (jsonObject.has("reflex")) {
+//	                return new JSONArray().put(jsonObject.getString("reflex"));
+//	            }
+//	            return responseArray.put(jsonObject);
+//	        }
+//
+//	        // Handle JSON array response
+//	        if (responseBody.trim().startsWith("[")) {
+//	            responseArray = new JSONArray(responseBody);
+//	            if (responseArray.isEmpty()) {
+//	                return responseArray;
+//	            }
+//
+//	            // Check for reflex or error in the array
+//	            if (responseArray.getJSONObject(0).has("reflex")) {
+//	                return responseArray.put(responseArray.getJSONObject(0).getString("reflex"));
+//	            }
+//	            if (responseArray.getJSONObject(0).has("datavalues")
+//	                    && responseArray.getJSONObject(0).get("datavalues") == null) {
+//	                return new JSONArray();
+//	            } else {
+//	                return new JSONObject(responseArray.get(0).toString()).getJSONArray("datavalues");
+//	            }
+//	        }
+//
+//	        // Default case for unknown response formats
+//	        responseArray.put(statusCode);
+//
+//	    } catch (Exception e) {
+//	        // Log the error and return an error message in response
+//	        LOGGER.error("Error in {}: {}", Thread.currentThread().getStackTrace()[0].getMethodName(), e.getMessage());
+//	        return responseArray.put(new JSONObject().put("error", "Exception occurred: " + e.getMessage()));
+//	    }
+//
+//	    return responseArray;
+//	}
+
+	
+	
+//	private JSONArray parseResponseBody(ClassicHttpResponse response, String method) {
+//		JSONArray responseArray = new JSONArray();
+//		try {
+//			
+//			int statusCode = response.getCode();
+//			LOGGER.info("Status Code is ::{}", statusCode);
+//			
+//			HttpEntity responseEntity = response.getEntity();
+//				 
+//			if (responseEntity == null) {
+//				if (method.equalsIgnoreCase("get"))
+//					return responseArray;
+//				else {
+//					if (statusCode >= 200 && statusCode <= 226) {
+//						return responseArray.put(new JSONObject().put("reflex", "Success"));
+//					} else {
+//						return responseArray.put(new JSONObject().put(GlobalAttributeHandler.getError(), GlobalAttributeHandler.getFailure()));
+//					}
+//				}
+//			}
+//
+//			String responseBody = EntityUtils.toString(responseEntity);
+//			LOGGER.info("Response Body Content: {}", responseBody);
+//			
+//			if (responseBody.isBlank() || responseBody.equals("{}") || responseBody.equals("[]")
+//					|| responseBody.equals("")) {
+//				if (method.equalsIgnoreCase("get"))
+//					return responseArray;
+//				else {
+//					if (statusCode >= 200 && statusCode <= 226) {
+//						return responseArray.put(new JSONObject().put("reflex", "Success"));
+//					} else {
+//						return responseArray.put(new JSONObject().put(GlobalAttributeHandler.getError(), GlobalAttributeHandler.getFailure()));
+//					}
+//				}
+//			}
+//
+//			if (responseBody.trim().startsWith("{")) {
+//				JSONObject jsonObject = new JSONObject(responseBody);
+//				
+//				if (jsonObject.has("code") && jsonObject.has("message") && (statusCode < 200 || statusCode > 226)) {
+//					return responseArray.put(new JSONObject().put(GlobalAttributeHandler.getError(), GlobalAttributeHandler.getFailure()));
+//				}
+//				
+//				if (jsonObject.has("reflex")) {
+//					return new JSONArray().put(jsonObject.getString("reflex"));
+//				}
+//				return responseArray.put(jsonObject);
+//			}
+//
+//			if (responseBody.trim().startsWith("[")) {
+//				responseArray = new JSONArray(responseBody);
+//				if (responseArray.isEmpty()) {
+//					return responseArray;
+//				}
+//
+//				if (responseArray.getJSONObject(0).has("reflex")) {
+//					return responseArray.put(responseArray.getJSONObject(0).getString("reflex"));
+//				}
+//				if (responseArray.getJSONObject(0).has("datavalues")
+//						&& responseArray.getJSONObject(0).get("datavalues").equals(null)) {
+//					return new JSONArray();
+//				} else {
+//					return new JSONObject(responseArray.get(0).toString()).getJSONArray("datavalues");
+//				}
+//
+//			} else {
+//				responseArray.put(statusCode);
+//			}
+//		} catch (Exception e) {
+//			LOGGER.error("Error in {}: {}", Thread.currentThread().getStackTrace()[0].getMethodName(), e.getMessage());
+//		}
+//	//	LOGGER.info("RESPONSE "+responseArray);
+//
+//		return responseArray;
+//	}
+	
 	private JSONArray parseResponseBody(ClassicHttpResponse response, String method) {
 		JSONArray responseArray = new JSONArray();
 		try {
+			
 			int statusCode = response.getCode();
 			LOGGER.info("Status Code is ::{}", statusCode);
-
+			
 			HttpEntity responseEntity = response.getEntity();
+				 
 			if (responseEntity == null) {
 				if (method.equalsIgnoreCase("get"))
 					return responseArray;
 				else {
 					if (statusCode >= 200 && statusCode <= 226) {
-						return responseArray.put(new JSONObject().put("reflex", "Successfully Verified"));
+						return responseArray.put(new JSONObject().put("reflex", "Success"));
 					} else {
-						return responseArray.put(new JSONObject().put("error", "Failed"));
+						return responseArray.put(new JSONObject().put(GlobalAttributeHandler.getError(), GlobalAttributeHandler.getFailure()));
 					}
 				}
 			}
 
 			String responseBody = EntityUtils.toString(responseEntity);
-
+//			LOGGER.info("Response Body Content: {}", responseBody);
+			
 			if (responseBody.isBlank() || responseBody.equals("{}") || responseBody.equals("[]")
 					|| responseBody.equals("")) {
 				if (method.equalsIgnoreCase("get"))
 					return responseArray;
 				else {
 					if (statusCode >= 200 && statusCode <= 226) {
-						return responseArray.put(new JSONObject().put("reflex", "Successfully Verified"));
+						return responseArray.put(new JSONObject().put("reflex", "Success"));
 					} else {
-						return responseArray.put(new JSONObject().put("error", "Failed"));
+						return responseArray.put(new JSONObject().put(GlobalAttributeHandler.getError(), GlobalAttributeHandler.getFailure()));
 					}
 				}
 			}
 
 			if (responseBody.trim().startsWith("{")) {
 				JSONObject jsonObject = new JSONObject(responseBody);
+				
+				if (jsonObject.has("code") && jsonObject.has("message") && (statusCode < 200 || statusCode > 226)) {
+				    String errorMessage = GlobalExceptionHandler.handlePgRestError(jsonObject);
+				     responseArray.put(new JSONObject().put(GlobalExceptionHandler.getError(),errorMessage));
+				     return responseArray;
+				}
+
+				
 				if (jsonObject.has("reflex")) {
 					return new JSONArray().put(jsonObject.getString("reflex"));
 				}
@@ -124,8 +287,10 @@ public class Httpclientcaller {
 		} catch (Exception e) {
 			LOGGER.error("Error in {}: {}", Thread.currentThread().getStackTrace()[0].getMethodName(), e.getMessage());
 		}
+//		LOGGER.info("RESPONSE "+responseArray);
 		return responseArray;
 	}
+	
 
 	public JSONArray transmitDatas(String url, JSONObject header, String method) {
 		try {
@@ -214,6 +379,24 @@ public class Httpclientcaller {
 		httpPut.setEntity(new StringEntity(data, ContentType.APPLICATION_JSON.withCharset(StandardCharsets.UTF_8)));
 
 		return executeRequest(httpPut, "PUT").toString();
+
+	}
+	
+	public String transmitDataspgrestPutbulk(String toUrl, String data, boolean addheader, String schema)
+	        throws IOException {
+
+	    HttpPost httpPost = new HttpPost(toUrl);
+	    httpPost.addHeader("Content-Type", "application/json;charset=utf-8");
+	    httpPost.addHeader("Content-Profile", schema);
+	    if (addheader) {
+	        httpPost.addHeader("Prefer", "return=representation, resolution=merge-duplicates");
+	    } else {
+	        httpPost.addHeader("Prefer", "resolution=merge-duplicates, missing=default");
+	    }
+
+	    httpPost.setEntity(new StringEntity(data, ContentType.APPLICATION_JSON.withCharset(StandardCharsets.UTF_8)));
+
+	    return executeRequest(httpPost, "POST").toString();
 
 	}
 
@@ -326,24 +509,6 @@ public class Httpclientcaller {
 		return googleCredentials.getAccessToken().getTokenValue();
 
 	}
-	
-	public String transmitDataspgrestPutbulk(String toUrl, String data, boolean addheader, String schema)
-			throws IOException {
-			 
-			HttpPost httpPost = new HttpPost(toUrl);
-			httpPost.addHeader("Content-Type", "application/json;charset=utf-8");
-			httpPost.addHeader("Content-Profile", schema);
-			if (addheader) {
-			httpPost.addHeader("Prefer", "return=representation, resolution=merge-duplicates");
-			} else {
-			httpPost.addHeader("Prefer", "resolution=merge-duplicates");
-			}
-			 
-			httpPost.setEntity(new StringEntity(data, ContentType.APPLICATION_JSON.withCharset(StandardCharsets.UTF_8)));
-			 
-			return executeRequest(httpPost, "POST").toString();
-			 
-			}
 
 //	public String transmitDataspgrestbulkInsert(String toUrl, String data, boolean addheader, String schema) {
 //		int statusCode = 0;

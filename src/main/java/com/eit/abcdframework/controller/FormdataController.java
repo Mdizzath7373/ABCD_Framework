@@ -2,6 +2,7 @@ package com.eit.abcdframework.controller;
 
 import java.io.IOException;
 
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
@@ -15,12 +16,15 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.S3Object;
 import com.eit.abcdframework.config.ConfigurationFile;
 import com.eit.abcdframework.http.caller.Httpclientcaller;
+import com.eit.abcdframework.serverbo.CommonServices;
 import com.eit.abcdframework.service.FormdataService;
 
 @RestController
@@ -33,6 +37,9 @@ public class FormdataController {
 
 	@Autowired
 	AmazonS3 amazonS3;
+	
+	@Autowired
+	private CommonServices commonService;
 
 	@Autowired
 	Httpclientcaller dHttpclientcaller;
@@ -47,12 +54,12 @@ public class FormdataController {
 
 	@PostMapping("/form")
 	public String transmittingDatapost(@RequestBody String data) {
-		return formdataService.transmittingToMethod("POST", data, "");
+		return formdataService.transmittingToMethod("POST", data, "","");
 	}
 
 	@PutMapping("/form")
 	public String transmittingDataput(@RequestBody String data) {
-		return formdataService.transmittingToMethod("PUT", data, "");
+		return formdataService.transmittingToMethod("PUT", data, "","");
 	}
 
 	@DeleteMapping("/form")
@@ -66,12 +73,16 @@ public class FormdataController {
 		return formdataService.transmittingToMethodBulk("POST", data);
 	}
 
-
 	@PutMapping("/bulkEdit")
 	public String transmittingDataputBulk(@RequestBody String data) {
 		return formdataService.transmittingToMethodBulk("PUT", data);
 	}
 	
+	@PostMapping("/disassociate")
+	public String transmittingDataDisassociate(@RequestBody String data) {
+		return formdataService.transmittingToMethodDisassociate(data);
+	}
+
 	@GetMapping("/download")
 	public ResponseEntity<InputStreamResource> downloadFileFromS3(String url) throws IOException {
 		url = url.split(path)[1];
@@ -83,6 +94,17 @@ public class FormdataController {
 		headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + "onboard/" + url);
 
 		return ResponseEntity.ok().headers(headers).contentType(MediaType.APPLICATION_OCTET_STREAM).body(resource);
+	}
+	
+	@PostMapping("/uploadExcel")
+	public String uploadExcel(@RequestPart("excel") MultipartFile file,@RequestParam String data) {
+		return formdataService.insertViaExcel(file, data);
+	}
+
+	@PostMapping("/getAddress")
+	public String getAddressByLatLong(@RequestBody String data) {
+		JSONObject json = new JSONObject(data);
+		return commonService.getAddressFromLatLng(json.getString("lat"),json.getString("lon"), json.getString("language"));
 	}
 
 //	@GetMapping("/test")

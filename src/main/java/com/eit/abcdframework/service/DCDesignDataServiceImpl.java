@@ -7,7 +7,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -25,6 +27,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.eit.abcdframework.dto.CommonUtilDto;
 import com.eit.abcdframework.globalhandler.GlobalAttributeHandler;
+import com.eit.abcdframework.globalhandler.GlobalExceptionHandler;
 import com.eit.abcdframework.http.caller.Httpclientcaller;
 import com.eit.abcdframework.serverbo.CommonServices;
 import com.eit.abcdframework.serverbo.DisplayConfigBO;
@@ -34,6 +37,9 @@ import com.eit.abcdframework.serverbo.FileuploadServices;
 import com.eit.abcdframework.serverbo.ResponcesHandling;
 import com.eit.abcdframework.util.TimeZoneServices;
 import com.eit.abcdframework.websocket.WebSocketService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import org.json.JSONException;
 
 @Service
 public class DCDesignDataServiceImpl implements DCDesignDataService {
@@ -81,8 +87,89 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 			role = obj.has("role") ? obj.getString("role") : "default";
 		} catch (Exception e) {
 			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+			
 		}
 		return displayConfigBO.getDesignData(value, function, role);
+	}
+	
+	@Override
+	public String multiGridDesignData(String data) {
+	    JSONObject finalResult = new JSONObject(); 
+
+	    JSONObject dataObj = null;
+	    int noOfThreads = 0;
+	    try {
+	        dataObj = new JSONObject(data);
+	        if (!dataObj.has("callback"))
+	            dataObj = new JSONObject(CommonServices.decrypt(dataObj.getString("data")));
+	        else
+	            dataObj = new JSONObject(data);
+
+	        String aliasName = dataObj.getJSONObject("value").getJSONArray("Data").getJSONObject(0).getString("Name");
+
+	        JSONObject configs = DisplaySingleton.memoryDispObjs2.getJSONObject(aliasName);
+	        JSONObject discfg = new JSONObject(configs.get("discfg").toString());
+	        JSONObject datas = new JSONObject(configs.get("datas").toString());
+	        JSONArray aliasNamesFromDatas = datas.getJSONArray("aliasNames");
+	        JSONObject mapFromDiscfg = discfg.getJSONObject("map");
+	        String role = dataObj.optString("role","default");
+	        JSONArray whereConditions = new JSONArray();
+	        if( dataObj.getJSONObject("value").getJSONArray("Data").getJSONObject(0).get("WhereConditions") instanceof JSONArray) {
+	        whereConditions = dataObj.getJSONObject("value").getJSONArray("Data").getJSONObject(0).getJSONArray("WhereConditions");
+	        }
+	        else {
+	        	for(int i=0;i<aliasNamesFromDatas.length();i++) {
+	        		whereConditions.put(dataObj.getJSONObject("value").getJSONArray("Data").getJSONObject(0).getJSONObject("WhereConditions"));
+	        	} 
+	        }
+	        
+	        final JSONArray wheres = whereConditions;
+	        
+	        noOfThreads = aliasNamesFromDatas.length();
+	        final ExecutorService executorService = Executors.newFixedThreadPool(noOfThreads);
+
+	        ObjectMapper mapper = new ObjectMapper();
+
+	        List<CompletableFuture<Void>> futures = new ArrayList<>();
+
+	        Map<String,JSONObject> finalMap = new ConcurrentHashMap<String,JSONObject>();
+
+	        for(int i=0; i<whereConditions.length(); i++) {
+	            final int index = i;
+	            CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+	                try {
+	                    JSONObject eachWhere = wheres.getJSONObject(index);
+	                    eachWhere.put("Name", aliasNamesFromDatas.getString(index));
+	                    JSONObject value = new JSONObject().put("Data", new JSONArray().put(eachWhere));
+	                    LOGGER.info("value "+index+" : "+value.toString());
+
+	                    CommonUtilDto result = displayConfigBO.getDesignData(value.toString(), eachWhere.getBoolean("function"), role);
+
+	                    finalMap.put(mapFromDiscfg.getString(aliasNamesFromDatas.getString(index)), 
+	                                new JSONObject(mapper.writeValueAsString(result)));
+	                } catch (JsonProcessingException | JSONException e) {
+	                    LOGGER.error("Error processing item " + index, e);
+	                }
+	            }, executorService);
+	            futures.add(future);
+	        }
+
+	        // Wait for all futures to complete
+	        try {
+	            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get();
+	        } catch (Exception e) {
+	            LOGGER.error("Error waiting for futures to complete", e);
+	        } finally {
+	            executorService.shutdown();
+	        }
+
+	        finalResult = new JSONObject(finalMap);
+
+	    } catch(Exception e) {
+	        LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+			return new JSONObject().put(GlobalExceptionHandler.getError(), e.getMessage()).toString();
+	    }
+	    return finalResult.toString();
 	}
 
 	@Override
@@ -90,6 +177,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 		JSONObject jsonObject1 = null;
 		JSONObject documentdata = null;
 		String res = "";
+		String response="";
 		try {
 			int primary_id = 0;
 			if (data.equalsIgnoreCase("") && !data.startsWith("{")) {
@@ -171,8 +259,30 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 				fileuploadServices.mergebase64ToPDF(gettabledata, jsonbody, filedata.get(0));
 			}
 
-			toSaveObject(method, jsonbody, gettabledata, jsonheader, filedata);
-
+			 response = toSaveObject(method, jsonbody, gettabledata, jsonheader, filedata);
+			 
+			 if (response.equalsIgnoreCase("PrimaryKey is Missing")) {
+					LOGGER.error("Responce Failure :::{}", response);
+					return new JSONObject().put(GlobalExceptionHandler.getError(), GlobalExceptionHandler.missingPrimaryKey())
+							.toString();
+				}
+				
+				LOGGER.info("RES", response);
+			
+				if (response != null && response.trim().startsWith("[")) {
+				    JSONArray resArray = new JSONArray(response);
+				    if(jsonheader.has("getResponse")&&jsonheader.getBoolean("getResponse")) {
+				    	if(!resArray.getJSONObject(0).has(GlobalExceptionHandler.getError())) {
+				    		return new JSONObject().put(GlobalAttributeHandler.getReflex(), resArray.get(0)).toString();
+				    	}
+				    }
+				    if (!resArray.isEmpty() && resArray.getJSONObject(0).has(GlobalAttributeHandler.getError())) {
+				        LOGGER.error("Response Failure ::: {}", response);
+				        return resArray.getJSONObject(0).toString();
+				    }
+				}
+				
+			 
 			if (isprogress) {
 				Map<String, AtomicInteger> progress = fileuploadServices.getProgress();
 				progress.put(jsonbody.get("ids").toString() + "-" + (jsonbody
@@ -186,8 +296,9 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 			if (primary_id != 0) {
 				String delUrl = GlobalAttributeHandler.getPgrestURL() + "pdf_splitter?id=eq." + primary_id;
 				dataTransmit.transmitDataspgrestDel(delUrl, gettabledata.getString("schema"));
-			} else {
-				new JSONObject().put(GlobalAttributeHandler.getError(), GlobalAttributeHandler.getFailure()).toString();
+			} 
+			else {
+			     new JSONObject().put(GlobalExceptionHandler.getError(), GlobalExceptionHandler.getUnknownException()).toString();
 			}
 
 			if (gettabledata.has("asynOperation")) {
@@ -196,7 +307,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 				for (int typeOfMehod = 0; typeOfMehod < typeOfMehods.length(); typeOfMehod++) {
 					CompletableFuture<String> councurrentAPIres = new CompletableFuture<String>();
 					if (typeOfMehods.get(typeOfMehod).toString().equalsIgnoreCase("Map")) {
-						councurrentAPIres = commonServices.mappedCurdOperationASYNC(gettabledata, data);
+						councurrentAPIres = commonServices.mappedCurdOperationASYNC(gettabledata, data,"");
 						LOGGER.info("Councurrent API Response----->{}", councurrentAPIres);
 					}
 					if (!councurrentAPIres.isDone()) {
@@ -213,30 +324,36 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 				for (int typeOfMehod = 0; typeOfMehod < typeOfMehods.length(); typeOfMehod++) {
 					String councurrentAPIres = "";
 					if (typeOfMehods.get(typeOfMehod).toString().equalsIgnoreCase("Map")) {
-						councurrentAPIres = CommonServices.mappedCurdOperation(gettabledata, data);
+						if (jsonheader.has("primaryvalue") && jsonheader.getBoolean("primaryvalue")) {
+							councurrentAPIres = CommonServices.mappedCurdOperation2(gettabledata, data, response);
+						} else
+							councurrentAPIres = CommonServices.mappedCurdOperation2(gettabledata, data, "");
+
 						LOGGER.info("Councurrent API Response----->{}", councurrentAPIres);
 					}
 					if (!councurrentAPIres.equalsIgnoreCase("Success")) {
 						return new JSONObject()
-								.put(GlobalAttributeHandler.getError(), GlobalAttributeHandler.getFailure()).toString();
+								.put(GlobalExceptionHandler.getError(), GlobalExceptionHandler.getConcurrentApiFailure()).toString();
 					}
 				}
 				LOGGER.info("Finish the synchronized Curd Opertion!");
 			}
 
-		} catch (
-
-		Exception e) {
+		} catch (Exception e) {
 			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+			return new JSONObject().put(GlobalExceptionHandler.getError(), e.getMessage()).toString();			
 		}
+		
 		return new JSONObject().put(GlobalAttributeHandler.getReflex(), GlobalAttributeHandler.getSuccess()).toString();
+
 	}
 
 	private String toSaveObject(String method, JSONObject jsonbody, JSONObject gettabledata, JSONObject jsonheader,
 			List<File> files) {
 		JSONObject bodyData = null;
+		String response = "";
 		try {
-			String response = "";
+			
 			String url = "";
 			String columnprimarykey = gettabledata.getJSONObject(GlobalAttributeHandler.getKey())
 					.getString(GlobalAttributeHandler.getPrimarycolumnkey());
@@ -255,7 +372,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 							TimeZoneServices.getDateInTimeZoneforSKT("Asia/Riyadh"));
 				}
 				url = GlobalAttributeHandler.getPgrestURL() + gettabledata.getString("api").replaceAll(" ", "%20");
-				response = dataTransmit.transmitDataspgrestpost(url, jsonbody.toString(), false,
+				response = dataTransmit.transmitDataspgrestpost(url, jsonbody.toString(), jsonheader.has("primaryvalue") ? jsonheader.getBoolean("primaryvalue") : false,
 						gettabledata.getString("schema"));
 			} else if (method.equalsIgnoreCase("PUT")) {
 				if (jsonbody.has(columnprimarykey) && !jsonbody.get(columnprimarykey).toString().equalsIgnoreCase("")) {
@@ -263,12 +380,10 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 					url = (GlobalAttributeHandler.getPgrestURL() + gettabledata.getString("api") + "?"
 							+ columnprimarykey + "=eq." + (jsonbody.get(columnprimarykey)).toString())
 							.replaceAll(" ", "%20");
-					response = dataTransmit.transmitDataspgrestput(url, jsonbody.toString(), false,
+					response = dataTransmit.transmitDataspgrestput(url, jsonbody.toString(), jsonheader.has("primaryvalue") ? jsonheader.getBoolean("primaryvalue") : false,
 							gettabledata.getString("schema"));
 				} else {
-					return new JSONObject()
-							.put(GlobalAttributeHandler.getError(), "primaryKey is Missing,Please Check this")
-							.toString();
+					return "PrimaryKey is Missing";
 				}
 			}
 
@@ -277,8 +392,9 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 
 		} catch (Exception e) {
 			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+			return new JSONArray().put(new JSONObject().put( GlobalExceptionHandler.getError(),e.getMessage())).toString();
 		}
-		return "";
+		return response;
 	}
 
 	@Override
@@ -307,6 +423,8 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 
 		} catch (Exception e) {
 			LOGGER.error("Exception at " + Thread.currentThread().getStackTrace()[1].getMethodName(), e);
+			return new JSONObject().put(GlobalExceptionHandler.getError(), e.getMessage()).toString();
+
 		}
 		return getwidgets(aliesname, function, where, role);
 	}
@@ -444,6 +562,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 			role = obj.has("role") ? obj.getString("role") : "default";
 		} catch (Exception e) {
 			LOGGER.error(Thread.currentThread().getStackTrace()[0].getMethodName(), e);
+			return new JSONObject().put(GlobalExceptionHandler.getError(), e.getMessage()).toString();
 		}
 		return displayHandler.toExecutePgRest(value, function, role, chartType);
 	}

@@ -61,7 +61,7 @@ public class ResponcesHandling {
 								gettabledata.getJSONObject(GlobalAttributeHandler.getKey()).getString("columnname")));
 				handlerMethod(jsonheader, jsonbody, gettabledata, method, files);
 
-			} else if (response.equalsIgnoreCase("success")) {
+			} else if (response.equalsIgnoreCase("success")||response.startsWith("[")) {
 				handlerMethod(jsonheader, jsonbody, gettabledata, method, files);
 //			} else if (Integer.parseInt(response) >= 200 && Integer.parseInt(response) <= 226) {
 			} else if (new JSONObject((new JSONArray(response).get(0).toString())).has("reflex")) {
@@ -78,7 +78,8 @@ public class ResponcesHandling {
 				.put(GlobalAttributeHandler.getReflex(), GlobalAttributeHandler.getSuccess()).toString());
 
 	}
-
+	
+	
 	private static void handlerMethod(JSONObject jsonheader, JSONObject jsonbody, JSONObject gettabledata,
 			String method, List<File> files) {
 		try {
