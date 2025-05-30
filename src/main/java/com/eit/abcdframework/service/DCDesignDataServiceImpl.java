@@ -222,10 +222,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 				fileuploadServices.fileupload(gettabledata, files, jsonbody, documentdata);
 				for (MultipartFile mfile : files) {
 					try {
-//						File file = Files.createTempFile(null, mfile.getOriginalFilename()).toFile();
-//						mfile.transferTo(file);
-//						filedata.add(file);
-						File file = new File(System.getProperty("java.io.tmpdir"), mfile.getOriginalFilename());
+						File file = Files.createTempFile(null, mfile.getOriginalFilename()).toFile();
 						mfile.transferTo(file);
 						filedata.add(file);
 					} catch (Exception e) {

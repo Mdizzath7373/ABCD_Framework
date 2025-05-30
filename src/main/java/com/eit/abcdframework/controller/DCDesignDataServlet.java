@@ -1,7 +1,10 @@
 package com.eit.abcdframework.controller;
 
+import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -19,8 +22,11 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.eit.abcdframework.dto.CommonUtilDto;
 import com.eit.abcdframework.serverbo.CommonServices;
+import com.eit.abcdframework.serverbo.DisplaySingleton;
 import com.eit.abcdframework.serverbo.FileuploadServices;
 import com.eit.abcdframework.service.DCDesignDataService;
+import com.eit.abcdframework.service.FormdataService;
+import com.eit.abcdframework.util.AmazonSMTPMail;
 
 @RestController
 @RequestMapping("/DCDesignDataServlet")
@@ -32,15 +38,37 @@ public class DCDesignDataServlet {
 
 	@Autowired
 	FileuploadServices fileuploadServices;
+	
+	@Autowired
+	FormdataService formdataService;
+	
+	@Autowired
+	CommonServices commonServices;
+	
+	@Autowired
+	AmazonSMTPMail amazonSMTPMail;
 
 //	@Value("${applicationurl}")
 //	public String pgrest;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger("DCDesignDataServlet");
+	private static JSONObject email = null;
 
 	@PostMapping(value = "/displaydata")
 	public CommonUtilDto getDCDesignData(@RequestBody String data) {
 		return dcDesignDataService.getDCDesignData(data);
+	}
+	
+	
+	@PostMapping(value = "/displaydata1")
+	public CommonUtilDto getDCDesignData1(@RequestBody String data) {
+		return dcDesignDataService.getDCDesignData(data);
+	}
+	
+	
+	@PostMapping(value = "/displayMultiGrid")
+	public String getMultipleGrids(@RequestBody String data) {
+	return dcDesignDataService.multiGridDesignData(data);
 	}
 
 	@PostMapping(value = "/fileupload", produces = { "application/json" })
@@ -103,6 +131,132 @@ public class DCDesignDataServlet {
 		
 	}
 
+	@PostMapping(value = "/inspectionemail", produces = { "application/json" })
+	public String inspectionemail(@RequestPart("files") List<MultipartFile> files, @RequestParam String data) throws JSONException, Exception {
+	    LOGGER.error("Entered into inspectionemail");
+
+	    try {
+	        // Input validation
+	        if (data == null || data.equalsIgnoreCase("")) {
+	            LOGGER.error("Data validation failed - empty or null data");
+	            return "Please Check Your Data Object!";
+	        }
+
+	        JSONObject jsonObject1;
+	        JSONObject gettabledata;
+	        
+	        // Parse JSON with error handling
+	        try {
+	            if (!data.startsWith("{")) {
+	                jsonObject1 = new JSONObject(CommonServices.decrypt(data));
+	            } else {
+	                jsonObject1 = new JSONObject(data);
+	            }
+	            LOGGER.error("JSON parsing successful");
+	        } catch (JSONException e) {
+	            LOGGER.error("JSON parsing error: {}", e.getMessage());
+	            return "Invalid JSON data format";
+	        }
+
+	        // Extract header and body with error handling
+	        JSONObject jsonheader;
+	        JSONObject jsonbody;
+	        
+	        try {
+	            jsonheader = jsonObject1.has("PrimaryBody")
+	                ? new JSONObject(jsonObject1.getJSONObject("PrimaryBody").getJSONObject("header").toString())
+	                : new JSONObject(jsonObject1.getJSONObject("header").toString());
+
+	            jsonbody = jsonObject1.has("PrimaryBody")
+	                ? new JSONObject(jsonObject1.getJSONObject("PrimaryBody").getJSONObject("body").toString())
+	                : new JSONObject(jsonObject1.getJSONObject("body").toString());
+	            
+	            LOGGER.error("Header and body extraction successful");
+	        } catch (JSONException e) {
+	            LOGGER.error("Error extracting header/body: {}", e.getMessage());
+	            return "Invalid JSON structure";
+	        }
+
+	        String name = "Inspection";
+	        String primary = jsonbody.getString("inspectionsrno");
+	        LOGGER.error("enter in to inspectionid:{}", primary);
+	        String inspectiondata;
+	        
+	        // Service call with error handling
+	        try {
+	            inspectiondata = formdataService.transmittingToMethod("GET", name, primary, "", false, false);
+	            LOGGER.error("Service call successful");
+	        } catch (Exception e) {
+	            LOGGER.error("Service call failed: {}", e.getMessage());
+	            return "Failed to retrieve inspection data";
+	        }
+
+	        JSONObject displayConfig;
+	        JSONObject jsonResponse = new JSONObject(inspectiondata);
+	        JSONArray datavalueArray = jsonResponse.getJSONArray("datavalue");
+	        JSONObject inspectionObject = datavalueArray.getJSONObject(0);
+	        
+	        if (jsonbody.has("s3link")) {
+	            inspectionObject.put("s3link", jsonbody.getJSONArray("s3link"));
+	        }
+	        inspectionObject.put("status", "Submitted");
+	        // Get email config with error handling
+	        try {
+	            displayConfig = DisplaySingleton.memoryDispObjs2.getJSONObject("Inspectionmail");
+	            gettabledata = new JSONObject(displayConfig.get("datas").toString());
+	            email = new JSONObject(gettabledata.get("email").toString());
+	            LOGGER.error("Email configuration loaded successfully");
+	        } catch (Exception e) {
+	            LOGGER.error("Email config error: {}", e.getMessage());
+	            return "Email configuration not found";
+	        }
+
+	        List<File> filedata = new ArrayList<>();
+
+	        // File processing with error handling
+	        for (MultipartFile mfile : files) {
+	            try {
+	                if (mfile.isEmpty()) {
+	                    LOGGER.warn("Empty file skipped: {}", mfile.getOriginalFilename());
+	                    continue;
+	                }
+	                
+	                File file = new File(System.getProperty("java.io.tmpdir"), mfile.getOriginalFilename());
+	                mfile.transferTo(file);
+	                filedata.add(file);
+	                LOGGER.error("File processed successfully: {}", mfile.getOriginalFilename());
+	            } catch (Exception e) {
+	                LOGGER.error("File processing error for {}: {}", mfile.getOriginalFilename(), e.getMessage());
+	            }
+	        }
+
+	        // Check if any files were processed
+	        if (filedata.isEmpty()) {
+	            LOGGER.error("No files could be processed");
+	            return "No files could be processed";
+	        }
+
+	        
+	        // Send email with error handling
+	        try {
+	            LOGGER.error("Started the mail sending process");
+
+	            amazonSMTPMail.emailconfig(email, inspectionObject, filedata,
+	                jsonheader.has("lang") ? jsonheader.getString("lang") : "en", "POST",
+	                gettabledata.getString("schema"));
+	            
+	        } catch (Exception e) {
+	            LOGGER.error("Email sending failed: {}", e.getMessage(), e);
+	            return "Failed to send email";
+	        }
+
+	        return "Email sent successfully";
+	        
+	    } catch (Exception e) {
+	        LOGGER.error("Unexpected error in inspectionemail: {}", e.getMessage(), e);
+	        return "An error occurred while processing the request";
+	    }
+	}
 //	@PostMapping(value = "/testfileupload", produces = { "application/json" })
 //	public String testfileupload(@RequestPart("files") List<MultipartFile> files) {
 //		LOGGER.error("Entered into Fileupload ---------{}", Instant.now());

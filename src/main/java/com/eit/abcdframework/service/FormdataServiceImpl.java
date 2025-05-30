@@ -386,7 +386,7 @@ public class FormdataServiceImpl implements FormdataService {
 			} else {
 				url = GlobalAttributeHandler.getPgrestURL() + gettabledata.getString("GET");
 			}
-
+			
 			if (which.equalsIgnoreCase("post")) {
 				temparay = new JSONArray();
 				JSONObject json = null;
@@ -407,6 +407,7 @@ public class FormdataServiceImpl implements FormdataService {
 						gettabledata.getString("schema"))).get(0).toString());
 				returndata.put(GlobalAttributeHandler.getDatavalue(), temparay.put(getdata));
 			} else {
+				LOGGER.info("GET URL: "+url);
 				temparay = dataTransmit.transmitDataspgrest(url, gettabledata.getString("schema"));
 				LOGGER.info("temparay "+temparay.toString());
 				

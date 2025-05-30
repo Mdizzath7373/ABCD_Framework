@@ -19,6 +19,11 @@ public class Cacheclear {
 	@Autowired
 	Httpclientcaller httpclientcaller;
 
+	@GetMapping("/cron")
+	public void cronRefresh() {
+		displaySingleton.scheduleJobs();
+	}
+	
 	@GetMapping("/configs")
 	public void configclear() {
 		displaySingleton.configsObj();

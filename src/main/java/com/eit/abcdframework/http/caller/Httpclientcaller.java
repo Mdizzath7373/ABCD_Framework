@@ -234,7 +234,7 @@ public class Httpclientcaller {
 			}
 
 			String responseBody = EntityUtils.toString(responseEntity);
-//			LOGGER.info("Response Body Content: {}", responseBody);
+			LOGGER.info("Response Body Content: {}", responseBody);
 			
 			if (responseBody.isBlank() || responseBody.equals("{}") || responseBody.equals("[]")
 					|| responseBody.equals("")) {
@@ -277,7 +277,13 @@ public class Httpclientcaller {
 				if (responseArray.getJSONObject(0).has("datavalues")
 						&& responseArray.getJSONObject(0).get("datavalues").equals(null)) {
 					return new JSONArray();
-				} else {
+				} 
+				else if (responseArray.length() > 0 && 
+				         responseArray.get(0) instanceof JSONObject &&
+				         responseArray.get(0).toString().trim().startsWith("{")) {
+				    return responseArray;
+				}
+				else {
 					return new JSONObject(responseArray.get(0).toString()).getJSONArray("datavalues");
 				}
 

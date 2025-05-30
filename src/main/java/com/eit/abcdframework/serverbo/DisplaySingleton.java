@@ -15,6 +15,12 @@ import com.eit.abcdframework.util.TimeZoneServices;
 import com.eit.abcdframework.websocket.WebSocketService;
 
 import jakarta.annotation.PostConstruct;
+import org.quartz.CronScheduleBuilder;
+import org.quartz.JobBuilder;
+import org.quartz.JobDetail;
+import org.quartz.Scheduler;
+import org.quartz.Trigger;
+import org.quartz.TriggerBuilder;
 
 @Component
 public class DisplaySingleton {
@@ -30,6 +36,9 @@ public class DisplaySingleton {
 
 	@Autowired
 	TimeZoneServices timeZoneServices;
+	
+	@Autowired
+    private Scheduler scheduler;
 
 	@Autowired
 	WebSocketService socket;
@@ -53,12 +62,46 @@ public class DisplaySingleton {
 			applictionsettingObj();
 //			applictionformObj();
 			emailConfigObj();
+			scheduleJobs();
 
 		} catch (Exception e) {
 			LOGGER.error("Exception in loadDisplayObjs : ", e);
 		}
 	}
 
+	public void scheduleJobs() {
+		try {
+			JSONObject configs = DisplaySingleton.memoryDispObjs2.getJSONObject("cronScheduler");
+			LOGGER.info("datas : "+configs.toString());
+			JSONArray crons = new JSONObject(configs.getString("datas")).getJSONArray("crons");
+			
+			for(int i=0;i<crons.length();i++) {
+				JSONObject eachCron = crons.getJSONObject(i);
+					
+						String aliasName = eachCron.getString("aliasName");
+						String cronExpression = eachCron.getString("cronExpression");
+						Boolean isEnabled = eachCron.getBoolean("isEnabled");
+						JobDetail jobDetail = JobBuilder.newJob(com.eit.abcdframework.cron.CronJobs.class)
+								.withIdentity(aliasName)
+								.usingJobData("aliasName", aliasName)
+								.usingJobData("isEnabled",isEnabled)
+								.storeDurably()
+								.build();
+						Trigger trigger = TriggerBuilder.newTrigger()
+								.withIdentity(aliasName + "_trigger")
+								.forJob(jobDetail)
+								.withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
+								.build();
+						scheduler.scheduleJob(jobDetail,trigger);
+						LOGGER.info("Scheduled "+aliasName+" at "+cronExpression);
+					
+			}
+			
+		}catch(Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
 	public JSONObject configsObj() {
 		try {
 			String url = applicationurl + "configs";
