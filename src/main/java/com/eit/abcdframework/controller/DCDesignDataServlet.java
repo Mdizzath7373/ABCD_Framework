@@ -53,6 +53,11 @@ public class DCDesignDataServlet {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger("DCDesignDataServlet");
 	private static JSONObject email = null;
+	
+	@PostMapping(value = "/getGrid")
+	public String getNewGridJSON(@RequestBody String datas) {
+		return dcDesignDataService.getNewGridJSON(datas);
+	}
 
 	@PostMapping(value = "/displaydata")
 	public CommonUtilDto getDCDesignData(@RequestBody String data) {

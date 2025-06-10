@@ -234,7 +234,7 @@ public class Httpclientcaller {
 			}
 
 			String responseBody = EntityUtils.toString(responseEntity);
-			LOGGER.info("Response Body Content: {}", responseBody);
+//			LOGGER.info("Response Body Content: {}", responseBody);
 			
 			if (responseBody.isBlank() || responseBody.equals("{}") || responseBody.equals("[]")
 					|| responseBody.equals("")) {

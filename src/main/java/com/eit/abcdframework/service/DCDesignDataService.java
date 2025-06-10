@@ -32,5 +32,8 @@ public interface DCDesignDataService {
 	String uploadImageProgress(List<MultipartFile> files,String data);
 
 	String multiGridDesignData(String data);
+	
+	String getNewGridJSON(String data);
+
 
 }

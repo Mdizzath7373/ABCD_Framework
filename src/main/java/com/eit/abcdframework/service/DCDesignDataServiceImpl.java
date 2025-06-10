@@ -64,6 +64,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 
 	@Autowired
 	CommonServices commonServices;
+	
 
 	private static final Logger LOGGER = LoggerFactory.getLogger("DCDesignDataServiceImpl");
 
@@ -666,6 +667,64 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 				return "Failed";
 			}
 		}
+	}
+	@Override
+	public String getNewGridJSON(String data) {
+		
+		try {
+			JSONObject finalResult = new JSONObject();
+			
+			JSONObject payLoad = new JSONObject(data);
+			String aliasName = payLoad.getString("aliasName");
+			String fetchBy = payLoad.getString("fetchBy");
+			String where = payLoad.optString("where","");
+			
+			String urlForConfigs = GlobalAttributeHandler.getPgrestURL() +"configs_new"+"?alias_name=eq."+aliasName;
+//			LOGGER.info("urlForConfigs : "+urlForConfigs);
+			JSONObject configs = dataTransmit.transmitDataspgrest(urlForConfigs,"mvt").getJSONObject(0);
+//			LOGGER.info("configs : "+configs.toString());
+			JSONObject configuration = new JSONObject(configs.getString("configuration"));
+//			LOGGER.info("configuration : "+configuration.toString());
+			
+			finalResult.put("display", configuration.getJSONObject("display"));
+			
+			StringBuilder url = new StringBuilder(GlobalAttributeHandler.getPgrestURL());
+			JSONObject dataSource = configuration.getJSONObject("dataSource");
+			if(fetchBy.equals("table")) {
+				url.append(dataSource.getString("table"));
+				if(!where.equalsIgnoreCase("")) {
+				url.append("?").append(where);
+				}
+			}
+			else if (fetchBy.equals("function")) {
+				url.append("rpc/").append(dataSource.getString("function"));
+				if(!where.equalsIgnoreCase("")) {
+					url.append("?").append(where);
+				}
+			}
+			else if (fetchBy.equals("query")) {
+				url.append("rpc/").append("predefine_function").append("?");
+				if(!where.equalsIgnoreCase("")) {
+				String param = CommonServices.getOrderedJSONObject(new JSONObject().put("query", dataSource.getString("query")).put("where", " WHERE "+where));
+				url.append("basequery=").append(param);
+				}
+			}
+//			LOGGER.info("finalURL : "+url);
+			
+			//JSONArray result = dataTransmits.transmitDataspgrest(url.toString(),"mvt").getJSONObject(0).getJSONArray("datavalues");
+			
+			JSONArray result = dataTransmit.transmitDataspgrest(url.toString(),"mvt");
+
+			
+			finalResult.put("datavalues", result);
+			
+			return finalResult.toString();
+			
+		}catch(Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+		
 	}
 
 }

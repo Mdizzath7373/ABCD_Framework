@@ -5,6 +5,7 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,6 +39,7 @@ import com.eit.abcdframework.util.AmazonSMTPMail;
 import com.eit.abcdframework.util.MessageServices;
 import com.eit.abcdframework.util.TimeZoneServices;
 import com.eit.abcdframework.websocket.WebSocketService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 public class CommonServices {
@@ -704,5 +706,24 @@ public class CommonServices {
 			return new JSONObject().put(GlobalExceptionHandler.getError(), e.getMessage()).toString();
 		}
 	}
+	
+	public static String getOrderedJSONObject(JSONObject input) {
+		 String[] keysInOrder = { "query", "where", "groupby", "having", "orderby", "limit" };
+		    LinkedHashMap<String, Object> orderedMap = new LinkedHashMap<>();
+
+		    for (String key : keysInOrder) {
+		        if (input.has(key)) {
+		            orderedMap.put(key, input.get(key));
+		        }
+		    }
+		    try {
+		        ObjectMapper objectMapper = new ObjectMapper();
+		        String orderedJson = objectMapper.writeValueAsString(orderedMap);
+		        return orderedJson;
+		    } catch (Exception e) {
+		        e.printStackTrace();
+		        return null;
+		    }
+	 }
 
 }
