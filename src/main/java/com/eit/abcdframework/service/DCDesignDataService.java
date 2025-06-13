@@ -33,7 +33,7 @@ public interface DCDesignDataService {
 
 	String multiGridDesignData(String data);
 	
-	String getNewGridJSON(String data);
+	String fetchGridJSON_v2(String data);
 
 
 }

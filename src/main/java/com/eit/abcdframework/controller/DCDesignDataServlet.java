@@ -54,22 +54,15 @@ public class DCDesignDataServlet {
 	private static final Logger LOGGER = LoggerFactory.getLogger("DCDesignDataServlet");
 	private static JSONObject email = null;
 	
-	@PostMapping(value = "/getGrid")
-	public String getNewGridJSON(@RequestBody String datas) {
-		return dcDesignDataService.getNewGridJSON(datas);
+	@PostMapping(value = "/griddata_v2")
+	public String fetchGridJSON_v2(@RequestBody String datas) {
+		return dcDesignDataService.fetchGridJSON_v2(datas);
 	}
 
 	@PostMapping(value = "/displaydata")
 	public CommonUtilDto getDCDesignData(@RequestBody String data) {
 		return dcDesignDataService.getDCDesignData(data);
 	}
-	
-	
-	@PostMapping(value = "/displaydata1")
-	public CommonUtilDto getDCDesignData1(@RequestBody String data) {
-		return dcDesignDataService.getDCDesignData(data);
-	}
-	
 	
 	@PostMapping(value = "/displayMultiGrid")
 	public String getMultipleGrids(@RequestBody String data) {

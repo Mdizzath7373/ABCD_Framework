@@ -4,6 +4,8 @@ import java.io.File;
 import java.net.URLEncoder;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -18,6 +20,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,9 +40,8 @@ import com.eit.abcdframework.serverbo.FileuploadServices;
 import com.eit.abcdframework.serverbo.ResponcesHandling;
 import com.eit.abcdframework.util.TimeZoneServices;
 import com.eit.abcdframework.websocket.WebSocketService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import org.json.JSONException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 public class DCDesignDataServiceImpl implements DCDesignDataService {
@@ -669,7 +671,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 		}
 	}
 	@Override
-	public String getNewGridJSON(String data) {
+	public String fetchGridJSON_v2(String data) {
 		
 		try {
 			JSONObject finalResult = new JSONObject();
@@ -680,11 +682,11 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 			String where = payLoad.optString("where","");
 			
 			String urlForConfigs = GlobalAttributeHandler.getPgrestURL() +"configs_new"+"?alias_name=eq."+aliasName;
-//			LOGGER.info("urlForConfigs : "+urlForConfigs);
+			//LOGGER.info("urlForConfigs : "+urlForConfigs);
 			JSONObject configs = dataTransmit.transmitDataspgrest(urlForConfigs,"mvt").getJSONObject(0);
-//			LOGGER.info("configs : "+configs.toString());
+			//LOGGER.info("configs : "+configs.toString());
 			JSONObject configuration = new JSONObject(configs.getString("configuration"));
-//			LOGGER.info("configuration : "+configuration.toString());
+			LOGGER.info("configuration : "+configuration.toString());
 			
 			finalResult.put("display", configuration.getJSONObject("display"));
 			
@@ -709,12 +711,32 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 				url.append("basequery=").append(param);
 				}
 			}
-//			LOGGER.info("finalURL : "+url);
-			
-			//JSONArray result = dataTransmits.transmitDataspgrest(url.toString(),"mvt").getJSONObject(0).getJSONArray("datavalues");
 			
 			JSONArray result = dataTransmit.transmitDataspgrest(url.toString(),"mvt");
-
+			
+			HashMap<String,String> columnNameDataFieldMap = new HashMap<String,String>();
+			JSONArray columnsArray =  configuration.getJSONObject("display").getJSONObject("config").getJSONArray("columns");
+			for(int i=0;i<columnsArray.length();i++) {
+				JSONObject obj = columnsArray.getJSONObject(i);
+				if(obj.has("columnname"))
+				columnNameDataFieldMap.put(obj.getString("datafield"), obj.getString("columnname"));
+			}
+			
+			for (int i = 0; i < result.length(); i++) {
+	            JSONObject obj = result.getJSONObject(i);
+	            List<String> keysToRename = new ArrayList<>();
+	            for (Iterator<String> it = obj.keys(); it.hasNext();) {
+	                keysToRename.add(it.next());
+	            }
+	            for (String oldKey : keysToRename) {
+	                if (columnNameDataFieldMap.containsKey(oldKey)) {
+	                    Object value = obj.get(oldKey);
+	                    String newKey = columnNameDataFieldMap.get(oldKey);
+	                    obj.remove(oldKey);
+	                    obj.put(newKey, value);
+	                }
+	            }
+	        }
 			
 			finalResult.put("datavalues", result);
 			
@@ -726,5 +748,4 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 		}
 		
 	}
-
 }
