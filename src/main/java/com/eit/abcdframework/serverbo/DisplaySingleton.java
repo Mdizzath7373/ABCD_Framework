@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.stereotype.Component;
 
 import com.eit.abcdframework.http.caller.Httpclientcaller;
@@ -24,6 +25,8 @@ import org.quartz.TriggerBuilder;
 
 @Component
 public class DisplaySingleton {
+
+    private final AuthenticationManager authenticationManagerBean;
 	private static final Logger LOGGER = LoggerFactory.getLogger("DisplaySingleton");
 	@Autowired
 	Httpclientcaller dataTransmit;
@@ -49,10 +52,11 @@ public class DisplaySingleton {
 	public static final JSONObject memoryEmailCofig = new JSONObject();
 
 	public static final JSONObject addressCache = new JSONObject();
+	public static final JSONObject memoryConfigsV2 = new JSONObject();
+	private DisplaySingleton(AuthenticationManager authenticationManagerBean) {
+        this.authenticationManagerBean = authenticationManagerBean;
 
-	private DisplaySingleton() {
-
-	}
+    }
 
 	@PostConstruct
 	public void loadDisplayObjs() {
@@ -63,9 +67,24 @@ public class DisplaySingleton {
 //			applictionformObj();
 			emailConfigObj();
 			scheduleJobs();
-
+			configsV2();
 		} catch (Exception e) {
 			LOGGER.error("Exception in loadDisplayObjs : ", e);
+		}
+	}
+	
+	private void configsV2() {
+		try {
+		String url = applicationurl + "configs_new";
+		JSONArray resultFromDB = dataTransmit.transmitDataspgrest(url, schema);
+		LOGGER.info("Configs2 : "+resultFromDB.toString());
+		for(int i=0;i<resultFromDB.length();i++) {
+			JSONObject json = resultFromDB.getJSONObject(i);
+			memoryConfigsV2.put(json.getString("alias_name"), json);
+		}
+		System.out.println(memoryConfigsV2.toString());
+		}catch(Exception e) {
+			LOGGER.error("Exception in configsV2Memory : ", e);
 		}
 	}
 

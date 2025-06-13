@@ -25,6 +25,7 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -66,6 +67,9 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 
 	@Autowired
 	CommonServices commonServices;
+	
+	@Value("${schema}")
+	private String schema;
 	
 
 	private static final Logger LOGGER = LoggerFactory.getLogger("DCDesignDataServiceImpl");
@@ -681,9 +685,9 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 			String fetchBy = payLoad.getString("fetchBy");
 			String where = payLoad.optString("where","");
 			
-			String urlForConfigs = GlobalAttributeHandler.getPgrestURL() +"configs_new"+"?alias_name=eq."+aliasName;
+			//String urlForConfigs = GlobalAttributeHandler.getPgrestURL() +"configs_new"+"?alias_name=eq."+aliasName;
 			//LOGGER.info("urlForConfigs : "+urlForConfigs);
-			JSONObject configs = dataTransmit.transmitDataspgrest(urlForConfigs,"mvt").getJSONObject(0);
+			JSONObject configs = DisplaySingleton.memoryConfigsV2.getJSONObject(aliasName);
 			//LOGGER.info("configs : "+configs.toString());
 			JSONObject configuration = new JSONObject(configs.getString("configuration"));
 			LOGGER.info("configuration : "+configuration.toString());
