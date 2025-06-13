@@ -90,6 +90,7 @@ public class DisplaySingleton {
 
 	public void scheduleJobs() {
 		try {
+			if(DisplaySingleton.memoryDispObjs2.has("cronScheduler")) {
 			JSONObject configs = DisplaySingleton.memoryDispObjs2.getJSONObject("cronScheduler");
 			LOGGER.info("datas : "+configs.toString());
 			JSONArray crons = new JSONObject(configs.getString("datas")).getJSONArray("crons");
@@ -114,6 +115,7 @@ public class DisplaySingleton {
 						scheduler.scheduleJob(jobDetail,trigger);
 						LOGGER.info("Scheduled "+aliasName+" at "+cronExpression);
 					
+			}
 			}
 			
 		}catch(Exception e) {
