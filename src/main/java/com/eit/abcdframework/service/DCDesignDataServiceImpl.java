@@ -692,6 +692,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 			
 			StringBuilder url = new StringBuilder(GlobalAttributeHandler.getPgrestURL());
 			JSONObject dataSource = configuration.getJSONObject("dataSource");
+			String schemaName = dataSource.getString("schema");
 			if(fetchBy.equals("table")) {
 				url.append(dataSource.getString("table"));
 				if(!where.equalsIgnoreCase("")) {
@@ -712,7 +713,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 				}
 			}
 			
-			JSONArray result = dataTransmit.transmitDataspgrest(url.toString(),"mvt");
+			JSONArray result = dataTransmit.transmitDataspgrest(url.toString(),schemaName);
 			
 			HashMap<String,String> columnNameDataFieldMap = new HashMap<String,String>();
 			JSONArray columnsArray =  configuration.getJSONObject("display").getJSONObject("config").getJSONArray("columns");
