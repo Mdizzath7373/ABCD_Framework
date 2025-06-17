@@ -74,4 +74,38 @@ public class FormServiceImplementation implements FormService{
 			return "Failed";
 		}
 	}
+
+	@Override
+	public String transmittingToMethodDel(String data) {
+		try {
+			JSONObject payLoad = new JSONObject(data);
+			String aliasName = payLoad.getString("aliasName");
+			String deleteBy = payLoad.getString("deleteBy");
+			String deleteContent = payLoad.getString("deleteContent");
+			JSONObject configuration =new JSONObject( DisplaySingleton.memoryConfigsV2.getJSONObject(aliasName).getString("configuration"));
+			JSONObject dataSource = configuration.getJSONObject("dataSource");
+			
+			if(deleteBy.equalsIgnoreCase("primarykey")) {
+				StringBuilder url = new StringBuilder(GlobalAttributeHandler.getPgrestURL());
+				url.append(dataSource.getString("table"))
+				   .append("?")
+				   .append(dataSource.getString("primaryKey"))
+				   .append("=eq.")
+				   .append(deleteContent);
+				LOGGER.info("URL for delete : "+url);
+				String response = dataTransmit.transmitDataspgrestDel(url.toString(),dataSource.getString("schema"));
+				return response;
+			}
+			else {
+				return null;
+			}
+			
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+			return "Failed";
+		}
+		
+	}
+	
 }
