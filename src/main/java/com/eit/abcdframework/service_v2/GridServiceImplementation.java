@@ -36,11 +36,16 @@ public class GridServiceImplementation implements GridService{
 			String aliasName = payLoad.getString("aliasName");
 			String fetchBy = payLoad.getString("fetchBy");
 			String where = payLoad.optString("where","");
+			String schema = payLoad.getString("schema");
+		
 			
-			//String urlForConfigs = GlobalAttributeHandler.getPgrestURL() +"configs_new"+"?alias_name=eq."+aliasName;
-			//LOGGER.info("urlForConfigs : "+urlForConfigs);
-			JSONObject configs = DisplaySingleton.memoryConfigsV2.getJSONObject(aliasName);
-			//LOGGER.info("configs : "+configs.toString());
+			StringBuilder urlForConfigs = new StringBuilder(GlobalAttributeHandler.getPgrestURL());
+			urlForConfigs.append("configs_new").append("?").append("alias_name").append("=eq.").append(aliasName);
+			LOGGER.info("URL FOR CONFIGS :"+urlForConfigs);
+			JSONObject configs = dataTransmit.transmitDataspgrest(urlForConfigs.toString(),schema).getJSONObject(0);
+			
+			
+			
 			JSONObject configuration = new JSONObject(configs.getString("configuration"));
 			LOGGER.info("configuration : "+configuration.toString());
 			
