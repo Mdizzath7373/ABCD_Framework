@@ -4,5 +4,5 @@ public interface FormService {
 	
 	String transmttingToMethod(String method,String data);
 	
-	String transmittingToMethodDel(String data);
+	String transmittingToMethodDel(String aliasName,String deleteBy,String deleteContent);
 }

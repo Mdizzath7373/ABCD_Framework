@@ -76,12 +76,9 @@ public class FormServiceImplementation implements FormService{
 	}
 
 	@Override
-	public String transmittingToMethodDel(String data) {
+	public String transmittingToMethodDel(String aliasName,String deleteBy,String deleteContent) {
 		try {
-			JSONObject payLoad = new JSONObject(data);
-			String aliasName = payLoad.getString("aliasName");
-			String deleteBy = payLoad.getString("deleteBy");
-			String deleteContent = payLoad.getString("deleteContent");
+			
 			JSONObject configuration =new JSONObject( DisplaySingleton.memoryConfigsV2.getJSONObject(aliasName).getString("configuration"));
 			JSONObject dataSource = configuration.getJSONObject("dataSource");
 			
