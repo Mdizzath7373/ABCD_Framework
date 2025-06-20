@@ -1,6 +1,11 @@
 package com.eit.abcdframework.serverbo;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -725,5 +730,101 @@ public class CommonServices {
 		        return null;
 		    }
 	 }
+	
+	public static String  alterConfFile(String newSchemaName) {
+		String filePath = "/usr/local/postgrest/postgrest.conf";
+		StringBuilder content = new StringBuilder();
+		try(BufferedReader br = new BufferedReader(new FileReader(filePath))){
+			String line;
+			while((line = br.readLine()) != null) {
+				if(line.startsWith("db-schemas")) {
+					String schemasListed = line.split("=")[1].replaceAll("\"","");
+					String[] schemasList = schemasListed.split(",");
+					for(String s : schemasList) {
+						if(s.trim().equals(newSchemaName)) {
+							LOGGER.error("Schema "+newSchemaName+" already exist in conf file ....");
+							return "Failed";
+						}
+					}
+					
+					LOGGER.info("Schemas Before : "+schemasListed);
+					schemasListed = newSchemaName+","+schemasListed;
+					LOGGER.info("Schemas After : "+schemasListed);
+					StringBuilder updatedLine = new StringBuilder().append("db-schemas = ")
+												.append("\"").append(schemasListed).append("\"");
+					content.append(updatedLine.toString());
+					content.append("\n");
+					
+				}else {
+				content.append(line);
+				content.append("\n");
+				}
+			}
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+			return "Failed when reading and altering";
+		}
+		try(BufferedWriter bw = new BufferedWriter(new FileWriter(filePath))){
+			
+			bw.write(content.toString());
+			bw.flush();
+			
+			if(restartPostgrestWithCheck()) {
+			return "Successfully Altered and Restarted Postgrest server";
+			}
+			else {
+				return "Failed when restarting postgrest";
+			}
+			
+		}catch(Exception e) {
+			e.printStackTrace();
+			return "Failed when writing";
+		}
+	}
+	
+	public static Boolean restartPostgrestWithCheck() {
+	    try {
+	        
+	        String killCmd = "kill $(ps aux | grep '[p]ostgrest postgrest.conf' | awk '{print $2}')";
+	        Process killProcess = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", killCmd});
+	        killProcess.waitFor();
+	        Thread.sleep(1000); 
+
+	       
+	        String startCmd = "cd /usr/local/postgrest && nohup ./postgrest ./postgrest.conf > postgrest.log 2>&1 &";
+	        Process startProcess = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", startCmd});
+	        startProcess.waitFor();
+	        Thread.sleep(2000); 
+
+	        
+	        String checkCmd = "ps aux | grep '[p]ostgrest postgrest.conf'";
+	        Process checkProcess = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", checkCmd});
+	        BufferedReader reader = new BufferedReader(new InputStreamReader(checkProcess.getInputStream()));
+
+	        String line;
+	        boolean running = false;
+	        while ((line = reader.readLine()) != null) {
+	            if (line.contains("postgrest.conf")) {
+	                running = true;
+	                break;
+	            }
+	        }
+
+	        checkProcess.waitFor();
+
+	        if (running) {
+	            return true;
+	        } else {
+	            return false;
+	        }
+
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	        return false;
+	    }
+	}
+
+	
 
 }

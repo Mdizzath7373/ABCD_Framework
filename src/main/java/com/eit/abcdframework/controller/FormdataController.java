@@ -106,6 +106,11 @@ public class FormdataController {
 		JSONObject json = new JSONObject(data);
 		return commonService.getAddressFromLatLng(json.getString("lat"),json.getString("lon"), json.getString("language"));
 	}
+	
+	@GetMapping("/schema")
+	public String schemaUpdate(@RequestParam String schema) {
+		return CommonServices.alterConfFile(schema);
+	}
 
 //	@GetMapping("/test")
 //	public void test() throws IOException {

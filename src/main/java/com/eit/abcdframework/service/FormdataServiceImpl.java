@@ -243,6 +243,7 @@ public class FormdataServiceImpl implements FormdataService {
 
 			String url = (GlobalAttributeHandler.getPgrestURL() + gettabledata.getString("POST")).replaceAll(" ",
 					"%20");
+			LOGGER.info("URL for POST : "+url);
 			response = dataTransmit.transmitDataspgrestpost(url, jsonbody.toString(),
 					jsonheader.has("primaryvalue") ? jsonheader.getBoolean("primaryvalue") : false,
 					gettabledata.getString("schema"));
