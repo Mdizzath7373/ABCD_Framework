@@ -277,7 +277,10 @@ public class Httpclientcaller {
 				if (responseArray.getJSONObject(0).has("datavalues")
 						&& responseArray.getJSONObject(0).get("datavalues").equals(null)) {
 					return new JSONArray();
-				} 
+				}
+				else if(responseArray.getJSONObject(0).has("datavalues")) {
+					return responseArray.getJSONObject(0).getJSONArray("datavalues");
+				}
 				else if (responseArray.length() > 0 && 
 				         responseArray.get(0) instanceof JSONObject &&
 				         responseArray.get(0).toString().trim().startsWith("{")) {
