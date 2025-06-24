@@ -44,13 +44,44 @@ public class GraphServiceImplementation implements GraphService{
 			
 			JSONObject dataSource = configuration.getJSONObject("dataSource");
 			
-			JSONObject objForgetChart = new JSONObject();
-			objForgetChart.put("query",dataSource.getString("query") );
+			
 			
 			StringBuilder url = new StringBuilder(GlobalAttributeHandler.getPgrestURL());
-
 			
-			url.append("rpc/get_chart").append("?json_input=").append(objForgetChart.toString());
+			String fetchBy = payLoad.has("fetchBy") && payLoad.get("fetchBy") != null && payLoad.getString("fetchBy") != ""
+					? payLoad.getString("fetchBy") : dataSource.optString("fetchtype","");
+					
+					
+			if(fetchBy.equalsIgnoreCase("query")) {
+				
+				String query =dataSource.optString("query","");
+				
+				if(query != "") {
+				JSONObject objForGetChart = new JSONObject();
+				objForGetChart.put("query",query);
+				url.append("rpc/get_chart").append("?json_input=").append(objForGetChart.toString());
+				}
+				else {
+					LOGGER.error("Trying to fetch by query.But query not configured");
+					return "Trying to fetch by query.But query not configured";
+				}
+			}
+			else if(fetchBy.equalsIgnoreCase("function")) {
+				
+				String functionName = dataSource.optString("function","");
+				
+				if(functionName != "") {
+					url.append("rpc/").append(functionName).append("?").append(where);
+				}
+				else {
+					LOGGER.error("Trying to fetch by function.But function not configured");
+					return "Trying to fetch by function.But function not configured";
+				}
+			}
+			else {
+				LOGGER.error("Wrong fetch type!!!");
+				return "Wrong fetch type!!!";
+			}
 			
 			LOGGER.info("URL : "+url.toString());
 			
