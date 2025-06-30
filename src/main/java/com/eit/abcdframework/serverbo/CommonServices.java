@@ -616,7 +616,7 @@ public class CommonServices {
 				}
 
 				for (String key : additionalJqxColumns.keySet()) { // adding column jsons for additional columns
-					if (fieldsToAdd.contains(key)) {
+					if (fieldsToAdd.contains(key) && additionalRes.length() != 0) {
 						inputColumns.put(additionalJqxColumns.get(key));
 						defaults.put(key);
 					}
