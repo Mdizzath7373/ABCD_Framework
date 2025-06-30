@@ -22,5 +22,7 @@ public class GraphController {
 	public String getChart(@RequestBody String data) {
 		return gs.getChart(data);
 	}
+	
+	
 
 }

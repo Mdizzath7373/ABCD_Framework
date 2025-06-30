@@ -46,12 +46,13 @@ public class GraphServiceImplementation implements GraphService{
 			
 			
 			
-			StringBuilder url = new StringBuilder(GlobalAttributeHandler.getPgrestURL());
 			
 			String fetchBy = payLoad.has("fetchBy") && payLoad.get("fetchBy") != null && payLoad.getString("fetchBy") != ""
 					? payLoad.getString("fetchBy") : dataSource.optString("fetchtype","");
 					
-					
+			StringBuilder url = new StringBuilder(GlobalAttributeHandler.getPgrestURL());
+			
+			
 			if(fetchBy.equalsIgnoreCase("query")) {
 				
 				String query =dataSource.optString("query","");
@@ -85,7 +86,22 @@ public class GraphServiceImplementation implements GraphService{
 			
 			LOGGER.info("URL : "+url.toString());
 			
+			finalResult.put("datavalues",new JSONObject(getDataValues(url.toString(),schemaName)));
+			
+			return finalResult.toString();
+		}catch(Exception e) {
+			e.printStackTrace();
+			return "Failed";
+			
+		}
+	}
+	
+	
+	public String getDataValues(String url,String schemaName) {
+		try {
 			JSONArray res = dataTransmit.transmitDataspgrest(url.toString(),schemaName );
+			
+			LOGGER.info("RES : "+res.toString());
 			
 			JSONObject dataValues = new JSONObject();
 			
@@ -107,14 +123,11 @@ public class GraphServiceImplementation implements GraphService{
 					dataValues.put("y",new JSONArray().put(obj.getString("y")));
 				}
 			}
-			
-			finalResult.put("datavalues", dataValues);
-			
-			return finalResult.toString();
+			LOGGER.info("dataValues : "+dataValues.toString());
+			return dataValues.toString();
 		}catch(Exception e) {
 			e.printStackTrace();
-			return "Failed";
-			
+			return "{}";
 		}
 	}
 

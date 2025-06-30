@@ -35,4 +35,9 @@ public class FormDataController {
 		return formService.transmittingToMethodDel(aliasName,deleteBy,deleteContent);
 	}
 	
+	@PostMapping("/execute")
+	public String executeQuery(@RequestBody String data) {
+		return formService.executeQuery(data);
+	}
+	
 }

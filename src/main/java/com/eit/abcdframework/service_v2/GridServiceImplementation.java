@@ -45,12 +45,24 @@ public class GridServiceImplementation implements GridService{
 			JSONObject configs = dataTransmit.transmitDataspgrest(urlForConfigs.toString(),schema).getJSONObject(0);
 			
 			
-			
 			JSONObject configuration = new JSONObject(configs.getString("configuration"));
 			LOGGER.info("configuration : "+configuration.toString());
 			
 			finalResult.put("display", configuration.getJSONObject("display"));
 			
+			
+			finalResult.put("datavalues",new JSONArray(getDataValues(configuration,fetchBy,where)));
+			
+			return finalResult.toString();
+			
+		}catch(Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+		
+	}
+	public String getDataValues(JSONObject configuration,String fetchBy,String where) {
+		try {
 			StringBuilder url = new StringBuilder(GlobalAttributeHandler.getPgrestURL());
 			JSONObject dataSource = configuration.getJSONObject("dataSource");
 			String schemaName = dataSource.getString("schema");
@@ -71,8 +83,13 @@ public class GridServiceImplementation implements GridService{
 				if(!where.equalsIgnoreCase("")) {
 				String param = CommonServices.getOrderedJSONObject(new JSONObject().put("query", dataSource.getString("query")).put("where", " WHERE "+where));
 				url.append("basequery=").append(param);
+				}else {
+					String param = CommonServices.getOrderedJSONObject(new JSONObject().put("query", dataSource.getString("query")));
+					url.append("basequery=").append(param);
 				}
 			}
+			
+			LOGGER.info("URL : "+url);
 			
 			JSONArray result = dataTransmit.transmitDataspgrest(url.toString(),schemaName);
 			
@@ -99,15 +116,11 @@ public class GridServiceImplementation implements GridService{
 	                }
 	            }
 	        }
-			
-			finalResult.put("datavalues", result);
-			
-			return finalResult.toString();
+			return result.toString();
 			
 		}catch(Exception e) {
 			e.printStackTrace();
-			return null;
+			return "[]";
 		}
-		
 	}
 }

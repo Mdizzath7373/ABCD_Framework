@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import com.eit.abcdframework.globalhandler.GlobalAttributeHandler;
 import com.eit.abcdframework.http.caller.Httpclientcaller;
+import com.eit.abcdframework.serverbo.CommonServices;
 import com.eit.abcdframework.serverbo.DisplaySingleton;
 
 @Service
@@ -18,6 +19,12 @@ public class FormServiceImplementation implements FormService{
 	
 	@Autowired
 	Httpclientcaller dataTransmit;
+	
+	@Autowired
+	GridService gridService;
+	
+	@Autowired
+	GraphService graphService;
 	
 	@Override
 	public String transmttingToMethod(String method,String data) {
@@ -104,5 +111,45 @@ public class FormServiceImplementation implements FormService{
 		}
 		
 	}
+
+	@Override
+	public String executeQuery(String data) {
+		try {
+			JSONObject payLoad = new JSONObject(data);
+			String query = payLoad.getString("query");
+			String schemaName = payLoad.getString("schema");
+			String displayType = payLoad.getString("displayType");
+			
+			if(displayType.equalsIgnoreCase("chart")) {
+				
+				StringBuilder url = new StringBuilder(GlobalAttributeHandler.getPgrestURL());
+				JSONObject objForGetChart = new JSONObject();
+				objForGetChart.put("query",query);
+				url.append("rpc/get_chart").append("?json_input=").append(objForGetChart.toString());
+			
+				LOGGER.info("URL : "+url.toString());
+			
+				JSONObject result =new JSONObject(graphService.getDataValues(url.toString(),schemaName));
+				LOGGER.info("result : "+result.toString());
+				return result.toString();
+			}
+			else if(displayType.equalsIgnoreCase("grid")){
+				StringBuilder url = new StringBuilder(GlobalAttributeHandler.getPgrestURL());
+				url.append("rpc").append("/predefine_function?");
+				String param = CommonServices.getOrderedJSONObject(new JSONObject().put("query",query));
+				url.append("basequery=").append(param);
+				LOGGER.info("URL grid : "+url);
+				JSONArray result = dataTransmit.transmitDataspgrest(url.toString(),schemaName);
+				
+				return result.toString();
+			}
+			return null;
+		}catch(Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+
+	
 	
 }
