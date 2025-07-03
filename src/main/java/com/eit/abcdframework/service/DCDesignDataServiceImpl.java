@@ -469,19 +469,6 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 				
 
 				returnJson.put("jqxdetails", jsononbj.toString());
-				if (function && extraDatas.has("preDefined") && extraDatas.getBoolean("preDefined")) {
-					JSONObject quryJson = extraDatas.getJSONObject("Query");
-					if (quryJson.has("where")) {
-						String whereCon = quryJson.getString("where")
-								+ (where.equalsIgnoreCase("") ? "" : " and " + where);
-						quryJson.put("where", whereCon);
-					}
-
-					url = GlobalAttributeHandler.getPgrestURL() + extraDatas.getString("Function") + "?basequery="
-							+ quryJson;
-				} else {
-					url = GlobalAttributeHandler.getPgrestURL() + extraDatas.getString(method);
-				}
 
 				if (where != "" && extraDatas.has("params")) {
 					String params = "&";
@@ -508,16 +495,18 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 								+ (where.equalsIgnoreCase("") ? "" : " and " + where.replace("?datas=", ""));
 						quryJson.put("where", whereCon);
 					}
+					else {
+						quryJson.put("where", "WHERE "+where);
+					}
 
 					url = GlobalAttributeHandler.getPgrestURL() + extraDatas.getString("Function") + "?basequery="
 							+ quryJson;
-					LOGGER.info(dataTransmit.transmitDataspgrest(url, extraDatas.getString("schema")).toString());
 					
 					datavalues = dataTransmit.transmitDataspgrest(url, extraDatas.getString("schema"));   
 				} else {
 					datavalues = dataTransmit.transmitDataspgrest(url, extraDatas.getString("schema"));
 				}
-//				datavalues = dataTransmit.transmitDataspgrest(url);
+
 				returnJson.put("datavalue", datavalues.toString());
 
 				JSONObject coloumnsnew = new JSONObject();
