@@ -511,10 +511,9 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 
 					url = GlobalAttributeHandler.getPgrestURL() + extraDatas.getString("Function") + "?basequery="
 							+ quryJson;
-
-					datavalues = new JSONObject(new JSONArray(
-							dataTransmit.transmitDataspgrest(url, extraDatas.getString("schema")).get(0).toString()))
-							.getJSONArray("datavalues");
+					LOGGER.info(dataTransmit.transmitDataspgrest(url, extraDatas.getString("schema")).toString());
+					
+					datavalues = dataTransmit.transmitDataspgrest(url, extraDatas.getString("schema"));   
 				} else {
 					datavalues = dataTransmit.transmitDataspgrest(url, extraDatas.getString("schema"));
 				}

@@ -356,7 +356,6 @@ public class Httpclientcaller {
 	}
 
 	public JSONArray transmitDataspgrest(String toUrl, String schema) throws IOException {
-
 		HttpGet httpGet = new HttpGet(URLEncode(toUrl).toString());
 		httpGet.setHeader("Connection", "close");
 		httpGet.setHeader("Accept-Profile", schema);
