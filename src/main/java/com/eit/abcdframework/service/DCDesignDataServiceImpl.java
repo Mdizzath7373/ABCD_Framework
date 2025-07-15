@@ -145,7 +145,7 @@ public class DCDesignDataServiceImpl implements DCDesignDataService {
 	            final int index = i;
 	            CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
 	                try {
-	                    JSONObject eachWhere = wheres.getJSONObject(index);
+	                    JSONObject eachWhere = new JSONObject(wheres.getJSONObject(index).toString());
 	                    eachWhere.put("Name", aliasNamesFromDatas.getString(index));
 	                    JSONObject value = new JSONObject().put("Data", new JSONArray().put(eachWhere));
 	                    LOGGER.info("value "+index+" : "+value.toString());
