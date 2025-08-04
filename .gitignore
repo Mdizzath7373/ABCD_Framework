@@ -36,3 +36,6 @@ build/
 ### VS Code ###
 .vscode/
 /bin/
+src/main/resources/AwsCredentials_kingstrackimages.properties 
+src/main/resources/AwsCredentials_kingstrackimages.properties 
+src/main/resources/AwsCredentials_kingstrackimages.properties 
