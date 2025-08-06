@@ -20,7 +20,7 @@ public class FormDataController {
 	FormService formService;
 	//hii working
 	//Hello
-	
+	// Mahabupkhan
 	@PostMapping("/form")
 	public String dataPost(@RequestBody String data) {
 		return formService.transmttingToMethod("POST",data);
@@ -42,3 +42,4 @@ public class FormDataController {
 	}
 	
 }
+
