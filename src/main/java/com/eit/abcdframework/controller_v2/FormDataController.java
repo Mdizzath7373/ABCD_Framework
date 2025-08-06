@@ -40,6 +40,11 @@ public class FormDataController {
 	public String executeQuery(@RequestBody String data) {
 		return formService.executeQuery(data);
 	}
+	@PutMapping("/msg")
+	public String returnMsg(){
+		return " Hii hpw are you";
+	}
 	
 }
+
 
